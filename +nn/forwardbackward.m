@@ -81,7 +81,7 @@ for i=1:n
   if forget
       res.blob(l.top) = {[]} ;
   end
-  if opts.gpuMode & opts.sync
+  if opts.gpuMode && opts.sync
     % This should make things slower, but on MATLAB 2014a it is necessary
     % for any decent performance.
     wait(gpuDevice) ;
@@ -125,7 +125,7 @@ if doder
     if opts.conserveMemory %delete used dzdx{top}, no need to consider loss or accuracy, because der(loss)=1, and accuracy has no backward computation
       res.dzdx(l.top) = {[]} ;
     end
-    if opts.gpuMode & opts.sync
+    if opts.gpuMode && opts.sync
       wait(gpuDevice) ;
     end
     res.backwardTime(i) = toc(backwardBegin) ;
