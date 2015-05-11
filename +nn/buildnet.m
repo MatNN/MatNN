@@ -1,57 +1,71 @@
 function netObj = buildnet(netName, baseNet)
 %BUILDNET This function rerank networks, weight names, top names
 %
-% NOTE:
-%    you MUST place your layer in processing order.
-%    currently no ordering mechanism, because top can be replaced
-%    eg. conv1's top name = 'conv1', and relu's bottom = 'conv1', top = 'conv1'
-%    so relu's top replaces conv1's top
-%    this will use less memory significantly. because different blob name means 
-%    different memory position. By using the same name, the layers would use the same
-%    memory position to store blobs.
+%  USAGE
+%  NETOBJ = NN.BUILDNET(NETNAME) creates a netobj with a name
+%  NETOBJ = NN.BUILDNET(NETNAME, BASENET) creates a netobj with 
+%  a name and a net to be merged. If your layers names are the
+%  same as some baseNet.layers{}.name, then those layers will 
+%  get the weights which corresponds to the same layer of 
+%  baseNet, this is useful for finetuning.
 %
-% Common layer phrases:
-% 'type'
-% 'name'
-% 'bottom'
-% 'top'
-% 'learningRate' *
-% 'weightDecay' *
-% 'stride' *
-% 'pad' *
-% 'method' *
-% 'pool' *
-% 'rate' *
-% 'param' *
+%  METHODS
+%  NETOBJ.newLayer('key', val, 'key2', val2, ...)
+%  NETOBJ.newLayer({'key' val  'key2'  val2 ...})
+%  the second form is the same as first form, just for quick typing
+%  (no need to put ',' to separate keys).
+%  
+%  NETOBJ.getNet() process and return your network for nn.train use.
+%  NETOBJ.getNet(phase) Like first form, but specific for phase
+%  equal to 'train' or 'val'. When specifying phase to 'train', 
+%  then all layers with parameter .phase='val' will be deleted,
+%  vise versa.
+%
+%  NETOBJ.setDataBlobSize(blobName, blobsize)
+%  Because we don't have data layers, so you need to specify it here,
+%  also works for mutiple data inputs (with different blobName)
+%  blobName is equal to the first layer's bottom name
+%
+%  NETOBJ.setLayerRootFolder(folder)
+%  layer's type set to 'nn.layers.???' will have a prefix comes from
+%  this. By default, layer folder root will be 'nn.', so all of your
+%  layer type will be cap with this value, 
+%  eg 'layers.relu' to 'nn.layers.relu'
 %
 %
-% NET Components
-% net.name
-% net.weights
-% net.weightsNames
-% net.weightsNamesIndex
-% net.weightsShareId
-% net.momentum
-% net.dataLayer
-% net.layers
-% net.layerobjs
-% net.layerNames
-% net.layerNamesIndex
-% net.blobNames
-% net.blobNamesIndex
-% net.blobConnectId
+%  NOTE:
+%  1. you MUST place your layer in processing order.
+%     Currently no ordering mechanism provided.
+%  2. you SHOULD give all of your tops different names.
+%     No checking routine currently.
+%  3. 
 % 
-%
-% Layers Components
-% per layer specific param
-% weights *
-% weights_name *
-% name
-% type
-% learningRate *
-% weightDecay *
-%
-%
+%  Common layer phrases:
+%  'type'
+%  'name'
+%  'bottom'
+%  'top'
+%  '***_param'
+%  'phase'
+%  'rememberOutput'
+% 
+% 
+%  NET Components:
+%  net.name
+%  net.weights
+%  net.weightsNames
+%  net.weightsNamesIndex
+%  net.weightsShareId
+%  net.momentum
+%  net.dataLayer
+%  net.layers
+%  net.layerobjs
+%  net.layerNames
+%  net.layerNamesIndex
+%  net.blobNames
+%  net.blobNamesIndex
+%  net.blobConnectId
+%  
 
 % --------------------------------------------------------------
 %                                                     Initialize
