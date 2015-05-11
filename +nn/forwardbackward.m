@@ -1,4 +1,4 @@
-function res = simplenn(net, x, dzdy, res, varargin)
+function res = forwardbackward(net, x, dzdy, res, varargin)
 %SIMPLENN  Evaluates a simple CNN
 %
 %  This file is a modified version of original vl_simplenn.m
@@ -7,7 +7,7 @@ function res = simplenn(net, x, dzdy, res, varargin)
 %  Forward:
 %    'res' is a structure, each field is the tops of layers
 %  Backward:
-%    'res' is a cell array, each cell is corresponds to a specific layer 
+%    'res' is a cell array, each cell is corresponds to a specific layer
 %
 %  Details:
 %    Weights can be shared, if your weight_name set to the same name.
@@ -17,8 +17,8 @@ function res = simplenn(net, x, dzdy, res, varargin)
 %
 %  NOTICE
 %  if your layer produces .misc, you need to maintain its gpu/cpu array consistency.
-%    
-% 
+%
+%
 %  NOTICE
 %  'res_wrapped' variables are wrapped version of 'res'. And must be wrapped by the carrier class.
 %  This function will NOT produces return values because the data of
@@ -53,7 +53,7 @@ if nargin <= 3 || isempty(res)
   %res.dzdw  = cell(1, n); % each cell contains another cell, and the inner cell's length is respected to the number of weights of a layer
                           % because weight sharing, so numel(res.dzdw) >= numel(net.weightsNames).
   %res.dzdw  = cell(1, numel(net.weightsNames));  % 好像跟上面不同了。反正weight sharing就是要加上共用此weight的layers的微分結果啊
-  res.dzdw  = num2cell(zeros(1, numel(net.weightsNames), 'single')); 
+  res.dzdw  = num2cell(zeros(1, numel(net.weightsNames), 'single'));
   res.dzdwVisited = false(size(res.dzdw));
   res.time  = zeros(1,n+1);
   res.backwardTime = zeros(1,n+1);
@@ -112,11 +112,11 @@ if doder
     % 如果只是共用部分的weight也可以這樣做，反正共用的weight名稱就一樣，不共用的就不一樣
     % =========重點請看這裡：每個layer只允許一個top，除非：
     %                     此layer不需要backward (backward function只是pass way) , 例如slice?
-    
+
     [tmpdzdx, tmpdzdw] = net.layerobjs{i}.backward(opts, l, net.weights(l.weights), res.blob(l.bottom), res.dzdx(l.top));
 
     for b = 1:numel(l.bottom)
-      if ~isempty(tmpdzdx{b}) 
+      if ~isempty(tmpdzdx{b})
           if opts.accumulate
               res.dzdx{l.bottom(b)} = res.dzdx{l.bottom(b)} + tmpdzdx{b};
           else
@@ -126,14 +126,14 @@ if doder
       end
     end
     for w = 1:numel(l.weights) %空的就不加
-      if ~isempty(tmpdzdw{w}) 
+      if ~isempty(tmpdzdw{w})
           if  opts.accumulate || res.dzdwVisited(w)
             res.dzdw{l.weights(w)} = res.dzdw{l.weights(w)} + tmpdzdw{w};
           else
             res.dzdw{l.weights(w)} = tmpdzdw{w};
           end
           res.dzdwVisited(l.weights(w)) = true;
-          
+
           %fprintf('\nlayer %d, w=%d,%s=%.3f,%s=%.3f\n', i, w,'dzdw max',max(tmpdzdw{w}(:)), 'dzdw min', min(tmpdzdw{w}(:)));
       end
     end

@@ -26,12 +26,11 @@ opts.prefetch = false ;
 
 opts.backPropDepth = +inf ;
 opts.plotDiagnostics = false ;
-opts.memoryMapFile = fullfile(tempdir, 'matconvnet.bin') ;
 opts = vl_argparse(opts, opts_user) ;
 
 if isempty(batchStructTrain) && isempty(batchStructVal), error('Must specify Train/Val batch struct!!'); end
 if ~exist(opts.expDir, 'dir'), mkdir(opts.expDir) ; end
-    
+
 
 % opts.numEpochs and opts.numInterations cannot be set at the same time
 if isempty(opts.numEpochs) + isempty(opts.numInterations) == 1
@@ -61,7 +60,6 @@ if numGpus > 1
 elseif numGpus == 1
     gpuDevice(opts.gpus)
 end
-if exist(opts.memoryMapFile), delete(opts.memoryMapFile) ; end
 
 
 
@@ -115,7 +113,7 @@ for i = startInd:opts.numToSave:(runTimes-1)
     %Generate randomSeed use current rng settings
     randomSeed = randi(65536,1)-1;
 
-    % train one epoch (or achieved opts.numToSave) and validate 
+    % train one epoch (or achieved opts.numToSave) and validate
     % process_runs msut accept startIndex and endIndex of iter/epoch
     if numGpus <= 1
         %generate random seed
@@ -130,7 +128,7 @@ for i = startInd:opts.numToSave:(runTimes-1)
             [net, batchStructVal] = process_runs(false, opts, numGpus, net, batchStructVal, epitRange) ;
         end
     end
-    
+
     % save model file
     if numGpus > 1
         spmd(numGpus)
@@ -154,23 +152,23 @@ end
 
 
 % -------------------------------------------------------------------------
-function  [net, batchStruct, prof] = process_runs(training, opts, numGpus, net, batchStruct, epitRange)
+function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchStruct, epitRange)
 % -------------------------------------------------------------------------
-    
+
     if isempty(batchStruct)
         return;
     end
     if training, mode = 'training' ; else, mode = 'validation' ; end
     if numlabs >1, mpiprofile on; end
-    
+
     if numGpus >= 1
         one = gpuArray(single(1)) ;
     else
         one = single(1) ;
     end
-    
+
     mmap = [] ;
-    
+
     rangeNumber = 0;
     globalBatchNum  = 0;
     if isfield(batchStruct, 'batchNumber') && strcmpi(opts.epit, 'epoch')
@@ -192,10 +190,10 @@ function  [net, batchStruct, prof] = process_runs(training, opts, numGpus, net, 
     count = 0;
     cumuTrainedDataNumber = 0;
     batchTime = tic ;
-    for t = epitRange 
+    for t = epitRange
         % set learning rate
         learningRate = opts.learningRatePolicy(globalBatchNum, opts.learningRate, opts.learningRateGamma, opts.learningRatePower, opts.learningRateSteps) ;
-        
+
         % get batch data
         [data, dataN, batchStruct] = nn.batch.fetch(batchStruct, numGpus >= 1, opts.numSubBatches);
         if opts.prefetch
@@ -209,7 +207,7 @@ function  [net, batchStruct, prof] = process_runs(training, opts, numGpus, net, 
         for s=1:numSubBatches
             % evaluate CNN
             if training, dzdy = one; else, dzdy = [] ; end
-            res = nn.simplenn(net, data{s}, dzdy, res, ...
+            res = nn.forwardbackward(net, data{s}, dzdy, res, ...
                          'accumulate', s ~= 1, ...
                          'disableDropout', ~training, ...
                          'conserveMemory', opts.conserveMemory, ...
@@ -227,23 +225,22 @@ function  [net, batchStruct, prof] = process_runs(training, opts, numGpus, net, 
         % gather and accumulate gradients across labs
         if training
             if numGpus <= 1
-                net = accumulate_gradients(opts, learningRate, dataN, net, res) ;
+                net = accumulate_gradients(opts, learningRate, dataN, net, res);
             else
                 if isempty(mmap)
-                    mmap = map_gradients(opts.memoryMapFile, res, numGpus) ;
+                    mmap = map_gradients(opts.memoryMapFile, res, numGpus);
                 end
-                write_gradients(mmap, res) ;
-                labBarrier() ;
-                [net, res] = accumulate_gradients(opts, learningRate, dataN, net, res, mmap) ;
+                labBarrier();
+                [net, res] = accumulate_gradients(opts, learningRate, dataN, net, res, true);
             end
         end
 
         % print learning statistics
-        
+
         cumuTrainedDataNumber = cumuTrainedDataNumber+dataN;
         if mod(count, opts.displayIter) == 0
             fprintf('LabNo.%d - %s: %s %d (%d/%d), lr = %g ... ', labindex, mode, opts.epit, t(1), t(2), rangeNumber, learningRate) ; % eg. training iter 1600 (2/rangeNumber), lr = 0.001 ... %     training epoch 1 (2/batchNumber), lr = 0.001
-            
+
             batchTime = toc(batchTime) ;
             speed = cumuTrainedDataNumber/batchTime ;
             if count == 0
@@ -257,13 +254,13 @@ function  [net, batchStruct, prof] = process_runs(training, opts, numGpus, net, 
             end
             fprintf('%.2fs (%.1f data/s), ', batchTime, speed) ;
             fprintf('\n') ;
-            
+
             batchTime = tic;
             accumulateOutBlobs = zeros(size(outputBlobID));
             cumuTrainedDataNumber = 0;
             count = 0;
         end
-        
+
         % update batchStruct
         if numel(accumulateOutBlobs) == 1
             batchStruct.lastErrorRateOfData(batchStruct.lastBatchIndices) = accumulateOutBlobs(1)/cumuTrainedDataNumber;
@@ -272,12 +269,6 @@ function  [net, batchStruct, prof] = process_runs(training, opts, numGpus, net, 
         count = count+1;
         globalBatchNum = globalBatchNum+1;
 
-    end
-    if numlabs >1
-        prof = mpiprofile('info');
-        mpiprofile off ;
-    else
-        prof = [];
     end
 end
 
@@ -291,7 +282,7 @@ function [net, res] = accumulate_gradients(opts, lr, batchSize, net, res, mmap)
 % -------------------------------------------------------------------------
 
 for w = 1:numel(res.dzdw)
-    
+
     %debug info
     %fprintf('\nw=%d,%s=%.3f,%s=%.3f\n', w,'weightmax',max(net.weights{w}(:)), 'weightmin', min(net.weights{w}(:)));
 
@@ -352,31 +343,4 @@ for w = 1:numel(res.dzdw)
 end
 
 
-end
-% -------------------------------------------------------------------------
-function mmap = map_gradients(fname, res, numGpus)
-% -------------------------------------------------------------------------
-format = {} ;
-for w=1:numel(res.dzdw)
-    format(end+1,1:3) = {'single', size(res.dzdw{w}), sprintf('l%d',w)} ;
-end
-format(end+1,1:3) = {'double', [3 1], 'errors'} ;
-if ~exist(fname) && (labindex == 1)
-  f = fopen(fname,'wb') ;
-  for g=1:numGpus
-    for i=1:size(format,1)
-      fwrite(f,zeros(format{i,2},format{i,1}),format{i,1}) ;
-    end
-  end
-  fclose(f) ;
-end
-labBarrier() ;
-mmap = memmapfile(fname, 'Format', format, 'Repeat', numGpus, 'Writable', true) ;
-end
-% -------------------------------------------------------------------------
-function write_gradients(mmap, res)
-% -------------------------------------------------------------------------
-for w=1:numel(res.dzdw)
-    mmap.Data(labindex).(sprintf('l%d',w)) = gather(res.dzdw{w}) ;
-end
 end
