@@ -1,6 +1,6 @@
-# MatNN: A Neural Network framework for MATLAB
+# MatNN: A NN framework for MATLAB
 
-**MatNN** is a MATLAB Framework for computer vision applications. It aims to provide the similarity of [Caffe](http://caffe.berkeleyvision.org) , and elastic workflow of [MatConvNet](http://www.vlfeat.org/matconvnet).
+**MatNN** is a MATLAB Framework for Neural Network training and testing. It aims to provide the similarity of [Caffe](http://caffe.berkeleyvision.org) , and elastic workflow of [MatConvNet](http://www.vlfeat.org/matconvnet).
 
 This toolbox requires [MatConvNet](http://www.vlfeat.org/matconvnet) toolbox to be installed in your system and added to your Matlab path.
 
@@ -18,7 +18,7 @@ Note that we don't provide data layers, you should design your data sampling and
 ## Functionality
 
 **MatNN** uses the CUDA/C++ code from [MatConvNet](http://www.vlfeat.org/matconvnet)
-to make traning efficiency and the entire framework is built on top of [MatConvNet](http://www.vlfeat.org/matconvnet).
+to make training efficiency and the entire framework is built on top of [MatConvNet](http://www.vlfeat.org/matconvnet).
 
 ## License
 
