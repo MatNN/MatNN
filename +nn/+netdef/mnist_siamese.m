@@ -259,17 +259,11 @@ no.newLayer({
     });
 
 net = no.getNet('train');
-if ismac
-[train4D, trainLabel, test4D, testLabel] = readMNISTDataset('/Users/Jerry/Desktop/pp/mnist/train-images-idx3-ubyte', ...
-                                                            '/Users/Jerry/Desktop/pp/mnist/train-labels-idx1-ubyte', ...
-                                                            '/Users/Jerry/Desktop/pp/mnist/t10k-images-idx3-ubyte', ...
-                                                            '/Users/Jerry/Desktop/pp/mnist/t10k-labels-idx1-ubyte');
-else
-[train4D, trainLabel, test4D, testLabel] = readMNISTDataset('/home/jerry/Desktop/cc/fcn/caffe-future/data/mnist/train-images-idx3-ubyte', ...
-                                                            '/home/jerry/Desktop/cc/fcn/caffe-future/data/mnist/train-labels-idx1-ubyte', ...
-                                                            '/home/jerry/Desktop/cc/fcn/caffe-future/data/mnist/t10k-images-idx3-ubyte', ...
-                                                            '/home/jerry/Desktop/cc/fcn/caffe-future/data/mnist/t10k-labels-idx1-ubyte');
-end
+
+[train4D, trainLabel, test4D, testLabel] = readMNISTDataset('train-images-idx3-ubyte', ...
+                                                            'train-labels-idx1-ubyte', ...
+                                                            't10k-images-idx3-ubyte', ...
+                                                            't10k-labels-idx1-ubyte');
 
     function newInd = pairData(totalTimesOfDataSampled, lastErrorRateOfData, lastBatchIndices, lastBatchErrors, N) 
         m = numel(totalTimesOfDataSampled);
@@ -334,8 +328,8 @@ function [train4D, trainLabel, test4D, testLabel] = readMNISTDataset(trainImgFil
         test4D(:,:,1,i) = imgData(i).img';
     end
     
-    train4D = single(train4D)*0.00390625;
-    test4D = single(test4D)*0.00390625;
+    train4D = single(train4D)/255;
+    test4D = single(test4D)/255;
     
     m = memmapfile(trainLabelFile,'Offset', 8,'Format', 'uint8');
     trainLabel = m.Data;
@@ -343,9 +337,9 @@ function [train4D, trainLabel, test4D, testLabel] = readMNISTDataset(trainImgFil
     testLabel = m.Data;
     clearvars m;
 
-    trainMean = mean(train4D,4);
-    train4D = bsxfun(@minus, single(train4D), trainMean);
-    test4D = bsxfun(@minus, single(test4D), trainMean);
-    
+    % substract mean
+    %trainMean = mean(train4D,4);
+    %train4D = bsxfun(@minus, single(train4D), trainMean);
+    %test4D = bsxfun(@minus, single(test4D), trainMean);
 
 end

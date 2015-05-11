@@ -18,8 +18,7 @@ Note that we don't provide data layers, you should design your data sampling and
 ## Functionality
 
 **MatNN** uses the CUDA/C++ code from [MatConvNet](http://www.vlfeat.org/matconvnet)
-to make traning efficiency and the entire framework is built on top of [MatConvNet](http://www.vlfeat.org/matconvnet)
-
+to make traning efficiency and the entire framework is built on top of [MatConvNet](http://www.vlfeat.org/matconvnet).
 
 ## License
 

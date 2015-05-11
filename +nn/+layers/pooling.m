@@ -22,9 +22,9 @@ default_pooling_param = {
         resource = {};
 
         if isfield(l, 'pooling_param')
-            wp = vllab.utils.vararginHelper(default_pooling_param, l.pooling_param);
+            wp = nn.utils.vararginHelper(default_pooling_param, l.pooling_param);
         else
-            wp = vllab.utils.vararginHelper(default_pooling_param, default_pooling_param);
+            wp = nn.utils.vararginHelper(default_pooling_param, default_pooling_param);
         end
 
 
@@ -59,7 +59,7 @@ default_pooling_param = {
 
 
     function [outputdzdx, outputdzdw] = backward(opts, l, weights, blob, dzdy)
-        %有幾個bottom就要有幾個outputdzdx{}, 有幾個weight,就要有幾個outputdzdw{}
+        %numel(outputdzdx) = numel(blob), numel(outputdzdw) = numel(weights)
         outputdzdx{1} = vl_nnpool(blob{1}, l.pooling_param.kernel_size, dzdy{1}, 'pad', l.pooling_param.pad, 'stride', l.pooling_param.stride, 'method', l.pooling_param.method);
         outputdzdw = {};
     end

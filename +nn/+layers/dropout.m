@@ -23,9 +23,9 @@ default_dropout_param = {
         resource = {};
 
         if isfield(l, 'dropout_param')
-            wp = vllab.utils.vararginHelper(default_dropout_param, l.dropout_param);
+            wp = nn.utils.vararginHelper(default_dropout_param, l.dropout_param);
         else
-            wp = vllab.utils.vararginHelper(default_dropout_param, default_dropout_param);
+            wp = nn.utils.vararginHelper(default_dropout_param, default_dropout_param);
         end
 
         
@@ -65,7 +65,7 @@ default_dropout_param = {
 
 
     function [outputdzdx, outputdzdw] = backward(opts, l, weights, blob, dzdy)
-        %有幾個bottom就要有幾個outputdzdx{}, 有幾個weight,就要有幾個outputdzdw{}
+        %numel(outputdzdx) = numel(blob), numel(outputdzdw) = numel(weights)
         if opts.disableDropout || ~l.dropout_param.enable_terms
             outputdzdx{1} = dzdy{1};
         else

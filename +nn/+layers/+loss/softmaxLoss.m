@@ -27,9 +27,9 @@ N          = [];
         resource = {};
 
         if isfield(l, 'softmaxLoss_param')
-            wp = vllab.utils.vararginHelper(default_softmaxLoss_param, l.softmaxLoss_param);
+            wp = nn.utils.vararginHelper(default_softmaxLoss_param, l.softmaxLoss_param);
         else
-            wp = vllab.utils.vararginHelper(default_softmaxLoss_param, default_softmaxLoss_param);
+            wp = nn.utils.vararginHelper(default_softmaxLoss_param, default_softmaxLoss_param);
         end
         param.softmaxLoss_param = wp;
 

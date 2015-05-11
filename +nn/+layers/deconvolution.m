@@ -30,14 +30,14 @@ default_deconvolution_param = {
 
 
         if isfield(l, 'weight_param')
-            wp1 = vllab.utils.vararginHelper(default_weight_param, l.weight_param);
+            wp1 = nn.utils.vararginHelper(default_weight_param, l.weight_param);
         else
-            wp1 = vllab.utils.vararginHelper(default_weight_param, default_weight_param);
+            wp1 = nn.utils.vararginHelper(default_weight_param, default_weight_param);
         end
         if isfield(l, 'deconvolution_param')
-            wp2 = vllab.utils.vararginHelper(default_deconvolution_param, l.deconvolution_param);
+            wp2 = nn.utils.vararginHelper(default_deconvolution_param, l.deconvolution_param);
         else
-            wp2 = vllab.utils.vararginHelper(default_deconvolution_param, default_deconvolution_param);
+            wp2 = nn.utils.vararginHelper(default_deconvolution_param, default_deconvolution_param);
         end
         if ~any(wp1.enable_terms)
             error('At least enable one weight.');
@@ -91,7 +91,7 @@ default_deconvolution_param = {
 
 
     function [outputdzdx, outputdzdw] = backward(opts, l, weights, blob, dzdy)
-        %有幾個bottom就要有幾個outputdzdx{}, 有幾個weight,就要有幾個outputdzdw{}
+        %numel(outputdzdx) = numel(blob), numel(outputdzdw) = numel(weights)
 
         [~, outputdzdw{1}, outputdzdw{2}] = vl_nnconv(dzdy{1}, weights{1}, weights{2}, blob{1}, 'pad', l.deconvolution_param.pad, 'stride', l.deconvolution_param.stride);
         outputdzdx{1}                     = vl_nnconv(dzdy{1}, weights{1}, weights{2}, 'pad', l.deconvolution_param.pad, 'stride', l.deconvolution_param.stride);

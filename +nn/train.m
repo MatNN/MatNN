@@ -1,5 +1,5 @@
 function [net, batchStructTrain, batchStructVal] = train(net, batchStructTrain, batchStructVal, opts_user)
-%TRAIN Partial code from VLfeat Library
+%TRAIN  (Based on the example code of Matconvnet)
 
 
 opts.numEpochs = [] ;
@@ -61,6 +61,8 @@ elseif numGpus == 1
     gpuDevice(opts.gpus)
 end
 
+% initialize some variable for this function
+trainPa.branchedTopID = find(cellfun(@numel, net.blobConnectId) > 1);
 
 
 % -------------------------------------------------------------------------
@@ -167,8 +169,6 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
         one = single(1) ;
     end
 
-    mmap = [] ;
-
     rangeNumber = 0;
     globalBatchNum  = 0;
     if isfield(batchStruct, 'batchNumber') && strcmpi(opts.epit, 'epoch')
@@ -215,7 +215,7 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
                          'sync', opts.sync, ...
                          'gpuMode', numGpus >= 1) ;
             % accumulate training errors
-            % assume all output blobs is loss-like layer
+            % assume all output blobs are loss-like blobs
             for ac = 1:numel(accumulateOutBlobs)
                 blobRes = double(gather( res.blob{outputBlobID(ac)} ));
                 accumulateOutBlobs(ac) = accumulateOutBlobs(ac) + sum(blobRes(:)) ;
@@ -225,18 +225,14 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
         % gather and accumulate gradients across labs
         if training
             if numGpus <= 1
-                net = accumulate_gradients(opts, learningRate, dataN, net, res);
+                net = accumulate_gradients(opts, learningRate, dataN, net, res, false);
             else
-                if isempty(mmap)
-                    mmap = map_gradients(opts.memoryMapFile, res, numGpus);
-                end
                 labBarrier();
                 [net, res] = accumulate_gradients(opts, learningRate, dataN, net, res, true);
             end
         end
 
         % print learning statistics
-
         cumuTrainedDataNumber = cumuTrainedDataNumber+dataN;
         if mod(count, opts.displayIter) == 0
             fprintf('LabNo.%d - %s: %s %d (%d/%d), lr = %g ... ', labindex, mode, opts.epit, t(1), t(2), rangeNumber, learningRate) ; % eg. training iter 1600 (2/rangeNumber), lr = 0.001 ... %     training epoch 1 (2/batchNumber), lr = 0.001
@@ -275,27 +271,12 @@ end
 
 
 
+function [net, res] = accumulate_gradients(opts, lr, batchSize, net, res, isMultiGPU)
 
-
-% -------------------------------------------------------------------------
-function [net, res] = accumulate_gradients(opts, lr, batchSize, net, res, mmap)
-% -------------------------------------------------------------------------
-
+if isMultiGPU
+    res.dzdw = gop(@(a,b) cellfun(@plus, a,b, 'UniformOutput', false), res.dzdw);
+end
 for w = 1:numel(res.dzdw)
-
-    %debug info
-    %fprintf('\nw=%d,%s=%.3f,%s=%.3f\n', w,'weightmax',max(net.weights{w}(:)), 'weightmin', min(net.weights{w}(:)));
-
-    % accumualte from multiple labs (GPUs) if needed
-    if nargin >= 6
-      tag = sprintf('l%d',w) ;
-      tmp = zeros(size(mmap.Data(labindex).(tag)), 'single') ;
-      for g = setdiff(1:numel(mmap.Data), labindex)
-        tmp = tmp + mmap.Data(g).(tag) ;
-      end
-      res.dzdw{w} = res.dzdw{w} + tmp ;
-    end
-
 
     %There are 3 cases
     % 1. layer1 -> layer2 -> ...
@@ -324,7 +305,7 @@ for w = 1:numel(res.dzdw)
     % 4-3.   solved by the scheme of separate weights/momentum from net.layers
     %        so weights will be update twice (WRONG!!!!!)
     %        Need to sum up gradient!!!!!!! do this now!!!
-    %        SOLVED!!!!, no need to no extra works. 以前想錯了。反正simplenn會幫你加起來
+    %        SOLVED!!!!, no need to no extra works.
     % 4-1.   same as 1.
     %
     %{

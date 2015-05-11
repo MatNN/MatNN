@@ -23,9 +23,9 @@ default_crop_param = {
         resource = {};
 
         if isfield(l, 'crop_param')
-            wp = vllab.utils.vararginHelper(default_crop_param, l.crop_param);
+            wp = nn.utils.vararginHelper(default_crop_param, l.crop_param);
         else
-            wp = vllab.utils.vararginHelper(default_crop_param, default_crop_param);
+            wp = nn.utils.vararginHelper(default_crop_param, default_crop_param);
         end
 
         assert(numel(l.bottom)==2);
@@ -63,7 +63,7 @@ default_crop_param = {
 
 
     function [outputdzdx, outputdzdw] = backward(opts, l, weights, blob, dzdy)
-        %有幾個bottom就要有幾個outputdzdx{}, 有幾個weight,就要有幾個outputdzdw{}
+        %numel(outputdzdx) = numel(blob), numel(outputdzdw) = numel(weights)
         s = [1,1,1,1];
         sizeofBlob2 = size(blob{2});
         sizeofBlob1 = size(blob{1});

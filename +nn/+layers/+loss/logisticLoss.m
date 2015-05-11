@@ -26,9 +26,9 @@ N          = [];
         resource = {};
 
         if isfield(l, 'logisticLoss_param')
-            wp = vllab.utils.vararginHelper(default_logisticLoss_param, l.logisticLoss_param);
+            wp = nn.utils.vararginHelper(default_logisticLoss_param, l.logisticLoss_param);
         else
-            wp = vllab.utils.vararginHelper(default_logisticLoss_param, default_logisticLoss_param);
+            wp = nn.utils.vararginHelper(default_logisticLoss_param, default_logisticLoss_param);
         end
         param.logisticLoss_param = wp;
 

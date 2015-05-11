@@ -26,9 +26,9 @@ d = 0;
         resource = {};
 
         if isfield(l, 'contrastiveLoss_param')
-            wp = vllab.utils.vararginHelper(default_contrastiveLoss_param, l.contrastiveLoss_param);
+            wp = nn.utils.vararginHelper(default_contrastiveLoss_param, l.contrastiveLoss_param);
         else
-            wp = vllab.utils.vararginHelper(default_contrastiveLoss_param, default_contrastiveLoss_param);
+            wp = nn.utils.vararginHelper(default_contrastiveLoss_param, default_contrastiveLoss_param);
         end
         param.contrastiveLoss_param = wp;
 

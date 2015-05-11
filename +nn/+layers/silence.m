@@ -32,7 +32,7 @@ o.backward     = @backward;
 
 
     function [outputdzdx, outputdzdw] = backward(opts, l, weights, blob, dzdy)
-        %有幾個bottom就要有幾個outputdzdx{}, 有幾個weight,就要有幾個outputdzdw{}
+        %numel(outputdzdx) = numel(blob), numel(outputdzdw) = numel(weights)
         
         if opts.gpu
             zero = gpuArray(0);

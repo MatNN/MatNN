@@ -21,14 +21,14 @@ default_display_param = {
     function [resource, topSizes, param] = setup(l, bottomSizes)
         % process your parameters
         if isfield(l, 'exmaple_param')
-            wp1 = vllab.utils.vararginHelper(default_example_param, l.exmaple_param);
+            wp1 = nn.utils.vararginHelper(default_example_param, l.exmaple_param);
         else
-            wp1 = vllab.utils.vararginHelper(default_example_param, default_example_param);
+            wp1 = nn.utils.vararginHelper(default_example_param, default_example_param);
         end
         if isfield(l, 'display_param')
-            wp2 = vllab.utils.vararginHelper(default_display_param, l.display_param);
+            wp2 = nn.utils.vararginHelper(default_display_param, l.display_param);
         else
-            wp2 = vllab.utils.vararginHelper(default_display_param, default_display_param);
+            wp2 = nn.utils.vararginHelper(default_display_param, default_display_param);
         end
         
         % set modified parameters

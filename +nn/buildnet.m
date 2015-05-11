@@ -93,7 +93,7 @@ net.blobConnectId     = {}; %Specify a blob(assume it's a top blob) be used in w
 tmp.blobSizes         = {}; % each cell is the blob size
 
 
-%NOTICE variable 'baseNet' have all the element of variable 'net'
+%NOTICE: variable 'baseNet' have all the element of variable 'net'
 
 
 

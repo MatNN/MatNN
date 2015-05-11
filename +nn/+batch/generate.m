@@ -59,7 +59,7 @@ if strcmpi(useGpu,'Attach')
 end
 
 defaultValues = {'Name', 'data', 'Prefetch', false, 'File', [], 'ProcessFunction', [], 'BatchSize', 1, 'Random', uint8(0), 'Using4D', true};
-[name, prefetch, F, P, N, rnd, fourD] = vllab.utils.vararginHelper(defaultValues, varargin, false);
+[name, prefetch, F, P, N, rnd, fourD] = nn.utils.vararginHelper(defaultValues, varargin, false);
 
 if ~isempty(F)
     if iscell(F)

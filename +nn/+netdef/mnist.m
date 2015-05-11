@@ -115,17 +115,10 @@ no.newLayer({
 
 net = no.getNet('train');
 
-if ismac
-[train4D, trainLabel, test4D, testLabel] = readMNISTDataset('/Users/Jerry/Desktop/pp/mnist/train-images-idx3-ubyte', ...
-                                                            '/Users/Jerry/Desktop/pp/mnist/train-labels-idx1-ubyte', ...
-                                                            '/Users/Jerry/Desktop/pp/mnist/t10k-images-idx3-ubyte', ...
-                                                            '/Users/Jerry/Desktop/pp/mnist/t10k-labels-idx1-ubyte');
-else
-[train4D, trainLabel, test4D, testLabel] = readMNISTDataset('/home/jerry/Desktop/cc/fcn/caffe-future/data/mnist/train-images-idx3-ubyte', ...
-                                                            '/home/jerry/Desktop/cc/fcn/caffe-future/data/mnist/train-labels-idx1-ubyte', ...
-                                                            '/home/jerry/Desktop/cc/fcn/caffe-future/data/mnist/t10k-images-idx3-ubyte', ...
-                                                            '/home/jerry/Desktop/cc/fcn/caffe-future/data/mnist/t10k-labels-idx1-ubyte');
-end
+[train4D, trainLabel, test4D, testLabel] = readMNISTDataset('mnist/train-images-idx3-ubyte', ...
+                                                            'mnist/train-labels-idx1-ubyte', ...
+                                                            'mnist/t10k-images-idx3-ubyte', ...
+                                                            'mnist/t10k-labels-idx1-ubyte');
 
 dataStruct  = nn.batch.generate(false, 'Name', dataBlobName,  'File', train4D,    'BatchSize', batchSize, 'Random', 2);
 labelStruct = nn.batch.generate(false, 'Name', labelBlobName, 'File', trainLabel', 'BatchSize', batchSize, 'Random', 2, 'Using4D', false);
@@ -176,10 +169,5 @@ function [train4D, trainLabel, test4D, testLabel] = readMNISTDataset(trainImgFil
     m = memmapfile(testLabelFile, 'Offset', 8,'Format', 'uint8');
     testLabel = m.Data;
     clearvars m;
-
-    trainMean = mean(train4D,4);
-    %train4D = bsxfun(@minus, single(train4D), trainMean);
-    %test4D = bsxfun(@minus, single(test4D), trainMean);
-    
 
 end

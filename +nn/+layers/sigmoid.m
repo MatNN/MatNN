@@ -32,7 +32,7 @@ o.backward     = @backward;
 
 
     function [outputdzdx, outputdzdw] = backward(opts, l, weights, blob, dzdy)
-        %有幾個bottom就要有幾個outputdzdx{}, 有幾個weight,就要有幾個outputdzdw{}
+        %numel(outputdzdx) = numel(blob), numel(outputdzdw) = numel(weights)
         sigmoid =  1./(1+exp(-blob{1})) ;
         outputdzdx{1} = dzdy{1}.*(sigmoid.*(1-sigmoid));
         outputdzdw = {};
