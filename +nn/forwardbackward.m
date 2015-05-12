@@ -1,8 +1,6 @@
 function res = forwardbackward(net, x, dzdy, res, varargin)
-%SIMPLENN  Evaluates a simple CNN
+%FORWARDBACKWARD  Evaluates a neural network built with buildnet.m
 %
-%  This file is a modified version of original vl_simplenn.m
-%  This version reduces the memory usage.
 %
 %  Forward:
 %    'res' is a structure, each field is the tops of layers
@@ -18,20 +16,13 @@ function res = forwardbackward(net, x, dzdy, res, varargin)
 %  NOTICE
 %  if your layer produces .misc, you need to maintain its gpu/cpu array consistency.
 %
-%
-%  NOTICE
-%  'res_wrapped' variables are wrapped version of 'res'. And must be wrapped by the carrier class.
-%  This function will NOT produces return values because the data of
-%  'res_wrapped' will be replaced with a newer 'res'.
-%
 
-opts.res = [] ;
 opts.accumulate = false;
-opts.conserveMemory = false ;
-opts.sync = false ;
-opts.disableDropout = false ;
-opts.freezeDropout = false ;
-opts.backPropDepth = +inf ;
+opts.conserveMemory = false;
+opts.sync = false;
+opts.disableDropout = false;
+opts.freezeDropout = false;
+opts.visitLayerID = 1:numel(net.layers);
 opts.gpuMode = false;
 
 opts = nn.utils.vararginHelper(opts, varargin);
@@ -52,7 +43,6 @@ if nargin <= 3 || isempty(res)
     res.dzdwVisited = false(size(res.dzdw));
     res.time  = zeros(1,n+1);
     res.backwardTime = zeros(1,n+1);
-
 end
 
 for i = fieldnames(x)'
@@ -60,7 +50,7 @@ for i = fieldnames(x)'
     res.blob{name2Ind} = x.(i{1}); %Because x is a structure, eg. x = struct('data',[],'label',[])
 end
 
-for i=1:n
+for i = opts.visitLayerID
     l = net.layers{i} ;
     forwardBegin = tic ;
   
@@ -88,51 +78,60 @@ for i=1:n
 end
 
 
-
 if doder
 
-  % Make output blobs have their derivatives
-  % consider the derivatives of all output blobs are
-  % scalers, which are 1
-  % You can make a weight scaler for loss, just write a
-  % custom layer that multiplies the scaler onto it
-  outputBlob = cellfun(@isempty, net.blobConnectId);
-  res.dzdx(outputBlob) = {dzdy} ;
-
-  for i=n:-1:max(1, n-opts.backPropDepth+1)
-    l = net.layers{i} ;
-    backwardBegin = tic ;
-
-    [tmpdzdx, tmpdzdw] = net.layerobjs{i}.backward(opts, l, net.weights(l.weights), res.blob(l.bottom), res.dzdx(l.top));
-
-    %dzdx seems will not to accumulate, unless a top be used as bottoms of many other layers
-    dzdxEmpty = ~cellfun('isempty', tmpdzdx);
-    if opts.accumulate
-        for b = dzdxEmpty
-            res.dzdx{l.bottom(b)} = res.dzdx{l.bottom(b)} + tmpdzdx{b};
-        end
-    else
-        res.dzdx(l.bottom(dzdxEmpty)) = tmpdzdx(dzdxEmpty);
-    end
+    % Make output blobs have their derivatives
+    % consider the derivatives of all output blobs are
+    % scalers, which are 1
+    % You can make a weight scaler for loss, just write a
+    % custom layer that multiplies the scaler onto it
+    outputBlob = cellfun('isempty', net.blobConnectId);
+    res.dzdx(outputBlob) = {dzdy} ;
+  
+    for i = opts.visitLayerID(end:-1:1)
+        l = net.layers{i} ;
+        backwardBegin = tic ;
     
+        [tmpdzdx, tmpdzdw] = net.layerobjs{i}.backward(opts, l, net.weights(l.weights), res.blob(l.bottom), res.dzdx(l.top));
+        
 
-    dzdwEmpty = ~cellfun('isempty', tmpdzdw);
-    dzdwEmpty1 = dzdwEmpty & (res.dzdwVisited(l.weights(dzdwEmpty)) | opts.accumulate);
-    for w = find(dzdwEmpty1)
-      res.dzdw{l.weights(w)} = res.dzdw{l.weights(w)} + tmpdzdw{w};
+        % Don't try to clear res.dzdx or res.dzdw at first, you will get terrble performace!!
+        % If you try to clear them at first so you can get rid of if-statement of opts.accumulate
+        % , the performance will drain a lot.
+        dzdxEmpty = ~cellfun('isempty', tmpdzdx);
+        if opts.accumulate
+            for b = find(dzdxEmpty)
+                if any(net.blobConnectId(l.bottom(b)) == i)
+                    res.dzdx{l.bottom(b)} = res.dzdx{l.bottom(b)} + tmpdzdx{b};
+                else
+                    res.dzdx(l.bottom(b)) = tmpdzdx(b);
+                end
+            end
+        else
+            res.dzdx(l.bottom(dzdxEmpty)) = tmpdzdx(dzdxEmpty);
+        end
+        
+        % be careful of modifying this.
+        dzdwEmpty = ~cellfun('isempty', tmpdzdw);
+        st = res.dzdwVisited(l.weights) | opts.accumulate;
+        dzdwEmpty1 = dzdwEmpty & st;
+        dzdwEmpty2 = dzdwEmpty & ~st;
+        for w = find(dzdwEmpty1)
+            res.dzdw{l.weights(w)} = res.dzdw{l.weights(w)} + tmpdzdw{w};
+        end
+        % blow is slightly slower than loop (above)
+        %res.dzdw(l.weights(dzdwEmpty1)) = cellfun(@plus, res.dzdw(l.weights(dzdwEmpty1)), tmpdzdw(dzdwEmpty1), 'UniformOutput', false);
+        res.dzdw(l.weights(dzdwEmpty2)) = tmpdzdw(dzdwEmpty2);
+    
+        res.dzdwVisited(l.weights(dzdwEmpty)) = true;
+    
+        if opts.conserveMemory %delete used dzdx{top}, no need to consider loss or accuracy, because der(loss)=1, and accuracy has no backward computation
+            res.dzdx(l.top) = {[]} ;
+        end
+        if opts.gpuMode && opts.sync
+            wait(gpuDevice) ;
+        end
+        res.backwardTime(i) = toc(backwardBegin) ;
+  
     end
-    %res.dzdw(l.weights(dzdwEmpty1)) = cellfun(@plus, res.dzdw(l.weights(dzdwEmpty1)), tmpdzdw(dzdwEmpty1), 'UniformOutput', false);
-    res.dzdw(l.weights(dzdwEmpty)) = tmpdzdw(dzdwEmpty);
-
-    res.dzdwVisited(l.weights(dzdwEmpty)) = true;
-
-    if opts.conserveMemory %delete used dzdx{top}, no need to consider loss or accuracy, because der(loss)=1, and accuracy has no backward computation
-        res.dzdx(l.top) = {[]} ;
-    end
-    if opts.gpuMode && opts.sync
-        wait(gpuDevice) ;
-    end
-    res.backwardTime(i) = toc(backwardBegin) ;
-
-  end
 end
