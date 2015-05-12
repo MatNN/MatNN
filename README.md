@@ -24,7 +24,7 @@ to make your training progress more efficient, and the entire framework is built
 
 - Minimal reuqirement of external libraries. We will provide a pure matlab code version and a matlab+cuda kernel version, so your code is portable (no need to compile external libraries). And also include the basic version based on MatConvNet. Because you can easily customize a layer, so any exists libraries, like CUDA/cuBlas/cuDNN can be added to your workflow if you want. A cuBlas/cuDNN version will be considered after this project is out of beta. Note that even the pure matlab version will have GPU support from parallel computing toolbox of Matlab.
 - Provide the elastic workflow and maintain the computation efficiency. We will separate each core functions into modules so that you can do less work to make them fit your need.
-- Test your ideas and validate them quickly. Although learning other tools/programming languages may not be a problem, but use you exists matlab code with MatNN is still less time comsuming compared to learn a new language. We provide familiar definition of Caffe, if you have learned it, then you can get started quickly.
+- Test your ideas and validate them quickly. Although learning other tools/programming languages may not be a problem, use you exists matlab code with MatNN is time reserved compared to learn a new language. We provide familiar definition of Caffe, if you have learned it, then you can get started quickly.
 
 ## License
 
