@@ -51,7 +51,6 @@ default_dropout_param = {
         elseif opts.freezeDropout
             outputBlob{1} = blob{1}.*weights{1};
         else
-            mask = [];
             if isa(blob{1},'gpuArray')
                 mask = single(1 / (1 - opts.rate)) * (gpuArray.rand(topSizes,'single') >= wp.rate);
                 outputBlob{1} = blob{1} .* mask;
