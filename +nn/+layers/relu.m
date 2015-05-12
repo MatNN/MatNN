@@ -26,23 +26,14 @@ o.backward     = @backward;
 
 
     function [outputBlob, weightUpdate] = forward(opts, l, weights, blob)
-        if opts.gpuMode
-            outputBlob{1} = max(blob{1}, gpuArray(single(0)));
-        else
-            outputBlob{1} = max(blob{1}, single(0));
-        end
+        outputBlob{1} = max(blob{1}, 0);
         weightUpdate = {};
     end
 
 
     function [outputdzdx, outputdzdw] = backward(opts, l, weights, blob, dzdy)
         %numel(outputdzdx) = numel(blob), numel(outputdzdw) = numel(weights)
-        if opts.gpuMode
-            outputdzdx{1} = (blob{1} > gpuArray(single(0))) .* dzdy{1};
-        else
-            outputdzdx{1} = (blob{1} > single(0)) .* dzdy{1};
-        end
-
+        outputdzdx{1} = (blob{1} > 0) .* dzdy{1};
         outputdzdw = {};
     end
 
