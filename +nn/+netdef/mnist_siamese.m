@@ -1,8 +1,8 @@
 function [net, net_trained] = mnist_siamese(baseNet)
 if nargin == 1
-    no = nn.buildnet('MNIST_siamese_new', baseNet);
+    no = nn.buildnet('MNIST_siamese', baseNet);
 else
-    no = nn.buildnet('MNIST_siamese_new');
+    no = nn.buildnet('MNIST_siamese');
 end
 
 batchSize = 64;
@@ -279,8 +279,6 @@ datapStruct  = nn.batch.generate(false, 'Name', datapBlobName,  'File', train4D,
 labelStruct = nn.batch.generate(false, 'Name', labelBlobName, 'File', [0 1], 'BatchSize', batchSize, 'Random', @pairData, 'Using4D', false);
 batchStruct = nn.batch.generate('Attach', dataStruct, datapStruct, labelStruct);
 
-
-
 opts.numEpochs = [] ;
 opts.numInterations = 50000 ;
 opts.numToSave = 5000; %runs how many Epochs or iterations to save
@@ -290,7 +288,7 @@ opts.numSubBatches = 1 ;
 opts.gpus = [];
 
 opts.learningRate = 0.01 ;
-opts.learningRatePolicy = @lrPolicy; %every 1000 epoch/iter to decay learningrate
+opts.learningRatePolicy = @lrPolicy; %every iteration decays the lr
 opts.learningRateGamma = 0.0001;
 opts.learningRatePower = 0.75;
 opts.weightDecay = 0.0000;
@@ -301,12 +299,11 @@ opts.conserveMemory = false ;
 opts.sync = false ;
 opts.prefetch = false ;
 
-
-
 [net_trained, batchStructTrained, ~] = nn.train(net, batchStruct, [], opts);
 
 
 end
+
 function res = lrPolicy(currentBatchNumber, lr, gamma, power, steps)
      res = lr*((1+gamma*currentBatchNumber)^(-power));
 end

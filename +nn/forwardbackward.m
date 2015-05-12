@@ -24,8 +24,6 @@ function res = forwardbackward(net, x, dzdy, res, varargin)
 %  This function will NOT produces return values because the data of
 %  'res_wrapped' will be replaced with a newer 'res'.
 %
-%  This file is part of the VLFeat library and is made available under
-%  the terms of the BSD license (see the COPYING file).
 
 opts.res = [] ;
 opts.accumulate = false;
@@ -75,7 +73,7 @@ for i=1:n
   
     % optionally forget intermediate results
     forget = opts.conserveMemory ;
-    forget = forget & (~doder || strcmp(l.type, 'relu')) ;
+    forget = forget & (~doder || strcmp(~net.layerobjs{i}.name, 'ReLU')) ;
     forget = forget & ~net.layerobjs{i}.generateLoss ;
     forget = forget & (~isfield(l, 'rememberOutput') || ~l.rememberOutput) ;
     if forget
@@ -93,6 +91,11 @@ end
 
 if doder
 
+  % Make output blobs have their derivatives
+  % consider the derivatives of all output blobs are
+  % scalers, which are 1
+  % You can make a weight scaler for loss, just write a
+  % custom layer that multiplies the scaler onto it
   outputBlob = cellfun(@isempty, net.blobConnectId);
   res.dzdx(outputBlob) = {dzdy} ;
 
@@ -102,6 +105,7 @@ if doder
 
     [tmpdzdx, tmpdzdw] = net.layerobjs{i}.backward(opts, l, net.weights(l.weights), res.blob(l.bottom), res.dzdx(l.top));
 
+    %dzdx seems will not to accumulate, unless a top be used as bottoms of many other layers
     dzdxEmpty = ~cellfun('isempty', tmpdzdx);
     if opts.accumulate
         for b = dzdxEmpty
@@ -113,7 +117,6 @@ if doder
     
 
     dzdwEmpty = ~cellfun('isempty', tmpdzdw);
-
     dzdwEmpty1 = dzdwEmpty & (res.dzdwVisited(l.weights(dzdwEmpty)) | opts.accumulate);
     for w = find(dzdwEmpty1)
       res.dzdw{l.weights(w)} = res.dzdw{l.weights(w)} + tmpdzdw{w};
