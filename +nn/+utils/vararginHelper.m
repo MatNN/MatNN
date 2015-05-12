@@ -68,9 +68,14 @@ else
     end
     dF = fieldnames(defaultValues);
     uF = fieldnames(thePa);
-    nF = intersect(uF,dF);
-    for i=1:numel(nF)
-        defaultValues.(nF{i}) = thePa.(nF{i});
+    %nF = intersect(uF,dF);
+    %for i=1:numel(nF)
+    %    defaultValues.(nF{i}) = thePa.(nF{i});
+    %end
+    for i=uF'
+        if isfield(defaultValues, i{1})
+            defaultValues.(i{1}) = thePa.(i{1});
+        end
     end
     varargout{1} = defaultValues;
 end
