@@ -169,11 +169,11 @@ end
 % --------------------------------------------------------------
 %                 Return network and set internal variable to {}
 % --------------------------------------------------------------
-    function newNet = getNetwork(phase)
+    function newNet = getNetwork()
         %removePhase
-        if nargin == 1
-            removePhase(phase);
-        end
+        %if nargin == 1
+        %    removePhase(phase);
+        %end
 
 
         %do blobProcess
