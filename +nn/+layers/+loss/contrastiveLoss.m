@@ -43,6 +43,7 @@ d = 0;
         assert(isequal(resSize1(1:2), resSize2(1:2)) && isequal(resSize1(1:2), [1 1]));
         assert(isequal(ansSize(1:3), [1 1 1]));
         assert(isequal(ansSize(4), resSize1(4)));
+        % Label size must be Nx1, 1xN or 1x1x1xN;
 
         topSizes = {[1, 1, 1, 1]};
 
