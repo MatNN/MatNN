@@ -1,5 +1,5 @@
 function o = crop()
-%CROP Compute mean class accuracy for you
+%CROP Crop Large data to a smaller size
 %  NOTICE:
 %    bottom{1} is the desired blob need to be croped
 %    bottom{2} provide the size to crop bottom{1}
