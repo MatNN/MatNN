@@ -1,35 +1,37 @@
 function [net, batchStructTrain, batchStructVal] = train(net, batchStructTrain, batchStructVal, opts_user)
 %TRAIN  (Based on the example code of Matconvnet)
+%
+%  NOTE
+%    provided 'batchStructVal' will fetch all samples and test them one by one
+%
 
-
-opts.numEpochs = [] ;
-opts.numInterations = [] ;
+opts.numEpochs = [];
+opts.numInterations = [];
 opts.numToSave = 10; %runs how many Epochs or iterations to save
 opts.displayIter = 10; %Show info every opts.displayIter iterations
-opts.batchSize = 256 ;
-opts.numSubBatches = 1 ;
-opts.gpus = [] ;
+opts.batchSize = 256;
+opts.numSubBatches = 1;
+opts.gpus = [];
 
-opts.learningRate = 0.001 ;
+opts.learningRate = 0.001;
 opts.learningRateGamma = 0.1;
 opts.learningRatePower = 0.75;
 opts.learningRateSteps = 1000;
 opts.learningRatePolicy = @(currentBatchNumber, lr, gamma, power, steps) lr*(gamma^floor(currentBatchNumber/steps));
-opts.weightDecay = 0.0005 ;
-opts.momentum = 0.9 ;
+opts.weightDecay = 0.0005;
+opts.momentum = 0.9;
 
 opts.continue = [] ; % if you specify the saving's iteration/epoch number, then you can load it
-opts.expDir = fullfile('data','exp') ;
-opts.conserveMemory = false ;
-opts.sync = false ;
-opts.prefetch = false ;
+opts.expDir = fullfile('data','exp');
+opts.conserveMemory = false;
+opts.sync = false;
+opts.prefetch = false;
 
-opts.backPropDepth = +inf ;
-opts.plotDiagnostics = false ;
-opts = vl_argparse(opts, opts_user) ;
+opts.plotDiagnostics = false;
+opts = vl_argparse(opts, opts_user);
 
 if isempty(batchStructTrain) && isempty(batchStructVal), error('Must specify Train/Val batch struct!!'); end
-if ~exist(opts.expDir, 'dir'), mkdir(opts.expDir) ; end
+if ~exist(opts.expDir, 'dir'), mkdir(opts.expDir); end
 
 
 % opts.numEpochs and opts.numInterations cannot be set at the same time
@@ -45,8 +47,52 @@ end
 
 
 % -------------------------------------------------------------------------
+%                                           Find train/valid phase layer ID
+% -------------------------------------------------------------------------
+
+visitLayerID_train = [];
+visitLayerID_valid = [];
+outputBlobID_train = [];
+outputBlobID_valid = [];
+for i=1:numel(net.layers)
+    if isfield(net.layers{i}, 'phase')
+        if strcmpi(net.layers{i}.phase, 'train')
+            visitLayerID_train = [visitLayerID_train, i]; %#ok
+            cb = net.blobConnectId(net.layers{i}.top);
+            for c = 1:numel(cb)
+                if isempty(cb{c})
+                    outputBlobID_train = [outputBlobID_train, net.layers{i}.top(c)]; %#ok
+                end
+            end
+        elseif strcmpi(net.layers{i}.phase, 'valid')
+            visitLayerID_valid = [visitLayerID_valid, i]; %#ok
+            cb = net.blobConnectId(net.layers{i}.top);
+            for c = 1:numel(cb)
+                if isempty(cb{c})
+                    outputBlobID_valid = [outputBlobID_valid, net.layers{i}.top(c)]; %#ok
+                end
+            end
+        else
+            error(['Unknown layer phase:', net.layers{i}.phase]);
+        end
+    else
+        cb = net.blobConnectId(net.layers{i}.top);
+        for c = 1:numel(cb)
+            if isempty(cb{c})
+                outputBlobID_train = [outputBlobID_train, net.layers{i}.top(c)]; %#ok
+                outputBlobID_valid = [outputBlobID_valid, net.layers{i}.top(c)]; %#ok
+            end
+        end
+        visitLayerID_train = [visitLayerID_train, i]; %#ok
+        visitLayerID_valid = [visitLayerID_valid, i]; %#ok
+    end
+end
+
+% -------------------------------------------------------------------------
 %                                                    Network initialization
 % -------------------------------------------------------------------------
+
+
 
 evaluateMode = isempty(batchStructTrain) ;
 
@@ -96,8 +142,9 @@ if ~isempty(opts.continue)
     startInd = opts.continue+1;
 end
 
-saveTimes = numel(startInd:opts.numToSave:(runTimes-1))+1;
-rngState = rng;
+%saveTimes = numel(startInd:opts.numToSave:(runTimes-1))+1;
+
+%rngState = rng;
 % start training from the last position
 for i = startInd:opts.numToSave:(runTimes-1)
     % move CNN to GPU as needed
@@ -113,21 +160,21 @@ for i = startInd:opts.numToSave:(runTimes-1)
     epitRange = i:min(i+opts.numToSave-1, runTimes);
 
     %Generate randomSeed use current rng settings
-    randomSeed = randi(65536,1)-1;
+    %randomSeed = randi(65536,1)-1;
 
     % train one epoch (or achieved opts.numToSave) and validate
     % process_runs msut accept startIndex and endIndex of iter/epoch
     if numGpus <= 1
         %generate random seed
-        rng(randomSeed);
-        [net, batchStructTrain] = process_runs(true, opts, numGpus, net, batchStructTrain, epitRange) ;
-        [net, batchStructVal] = process_runs(false, opts, numGpus, net, batchStructVal, epitRange) ;
+        %rng(randomSeed);
+        [net, batchStructTrain] = process_runs(true, opts, numGpus, net, batchStructTrain, visitLayerID_train, outputBlobID_train, epitRange) ;
+        [net, ~] = process_runs(false, opts, numGpus, net, batchStructVal, visitLayerID_valid, outputBlobID_valid, epitRange) ;
     else
         spmd(numGpus)
             %generate random seed
-            rng(randomSeed);
-            [net_, batchStructTrain] = process_runs(true, opts, numGpus, net, batchStructTrain, epitRange) ;
-            [net, batchStructVal] = process_runs(false, opts, numGpus, net, batchStructVal, epitRange) ;
+            %rng(randomSeed);
+            [net_, batchStructTrain] = process_runs(true, opts, numGpus, net, batchStructTrain, visitLayerID_train, outputBlobID_train, epitRange) ;
+            [net, ~] = process_runs(false, opts, numGpus, net, batchStructVal, visitLayerID_valid, outputBlobID_valid, epitRange) ;
         end
     end
 
@@ -146,7 +193,7 @@ for i = startInd:opts.numToSave:(runTimes-1)
 end
 
 %restores rng state
-rng(rngState);
+%rng(rngState);
 
 
 % ---- main function's end
@@ -154,23 +201,19 @@ end
 
 
 % -------------------------------------------------------------------------
-function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchStruct, epitRange)
+function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchStruct, visitLayerID, outputBlobID, epitRange)
 % -------------------------------------------------------------------------
 
     if isempty(batchStruct)
         return;
     end
-    if training, mode = 'training' ; else, mode = 'validation' ; end
-    if numlabs >1, mpiprofile on; end
 
     if numGpus >= 1
-        one = gpuArray(single(1)) ;
+        one = gpuArray(single(1));
     else
-        one = single(1) ;
+        one = single(1);
     end
 
-    rangeNumber = 0;
-    globalBatchNum  = 0;
     if isfield(batchStruct, 'batchNumber') && strcmpi(opts.epit, 'epoch')
         globalBatchNum = batchStruct.batchNumber*(epitRange(1)-1)+1;
         [X,Y] = meshgrid(epitRange,1:batchStruct.batchNumber);
@@ -183,11 +226,24 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
         globalBatchNum = epitRange(1);
     end
 
-    %find outputblobID
-    outputBlobID = find(cellfun(@isempty, net.blobConnectId));
+    if training
+        mode = 'training';
+    else
+        mode = 'validation';
+        opts.numToSave = 0;
+        
+        %opts.batchSize = 1;
+        %opts.numSubBatches = 1;
+        rangeNumber = batchStruct.batchNumber;
+        epitRange = 1:batchStruct.N:batchStruct.m;
+        epitRange = [ones(1,numel(epitRange));epitRange];
+        globalBatchNum = epitRange(1);
+        opts.displayIter = rangeNumber;
+    end
+
     accumulateOutBlobs = zeros(size(outputBlobID));
     res = [];
-    count = 0;
+    count = 1;
     cumuTrainedDataNumber = 0;
     batchTime = tic ;
     for t = epitRange
@@ -206,58 +262,79 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
         % run subbatches
         for s=1:numSubBatches
             % evaluate CNN
-            if training, dzdy = one; else, dzdy = [] ; end
+            if training, dzdy = one; else, dzdy = []; end
             res = nn.forwardbackward(net, data{s}, dzdy, res, ...
-                         'accumulate', s ~= 1, ...
-                         'disableDropout', ~training, ...
-                         'conserveMemory', opts.conserveMemory, ...
-                         'backPropDepth', opts.backPropDepth, ...
-                         'sync', opts.sync, ...
-                         'gpuMode', numGpus >= 1) ;
+                        'visitLayerID', visitLayerID, ...
+                        'accumulate', s ~= 1, ...
+                        'disableDropout', ~training, ...
+                        'conserveMemory', opts.conserveMemory, ...
+                        'sync', opts.sync, ...
+                        'gpuMode', numGpus >= 1) ;
             % accumulate training errors
             % assume all output blobs are loss-like blobs
             for ac = 1:numel(accumulateOutBlobs)
                 blobRes = double(gather( res.blob{outputBlobID(ac)} ));
-                accumulateOutBlobs(ac) = accumulateOutBlobs(ac) + sum(blobRes(:)) ;
+                accumulateOutBlobs(ac) = accumulateOutBlobs(ac) + sum(blobRes(:));
             end
         end
         res.dzdwVisited = res.dzdwVisited & false;
-
+        cumuTrainedDataNumber = cumuTrainedDataNumber+dataN;
         if training
             if numGpus <= 1
-                net = nn.solvers.StochasticGradientDescent(opts, learningRate, dataN, net, res, false);
+                net = nn.solvers.StochasticGradientDescent(opts, learningRate, dataN, net, res);
             else
                 labBarrier();
                 %accumulate weights from other labs
                 res.dzdw = gop(@(a,b) cellfun(@plus, a,b, 'UniformOutput', false), res.dzdw);
-                net = nn.solvers.StochasticGradientDescent(opts, learningRate, dataN, net, res, true);
+                net = nn.solvers.StochasticGradientDescent(opts, learningRate, dataN, net, res);
             end
-        end
-
-        % print learning statistics
-        cumuTrainedDataNumber = cumuTrainedDataNumber+dataN;
-        if mod(count, opts.displayIter) == 0
-            fprintf('LabNo.%d - %s: %s %d (%d/%d), lr = %g ... ', labindex, mode, opts.epit, t(1), t(2), rangeNumber, learningRate) ; % eg. training iter 1600 (2/rangeNumber), lr = 0.001 ... %     training epoch 1 (2/batchNumber), lr = 0.001
-
-            batchTime = toc(batchTime) ;
-            speed = cumuTrainedDataNumber/batchTime ;
-            if count == 0
-                count = count +1;
-            end
-            for ac = 1:numel(accumulateOutBlobs)
-                if isinf(accumulateOutBlobs(ac))
-                    error('A blob output = Inf');
+            % print learning statistics
+            
+            if mod(count, opts.displayIter) == 0 || count == 1
+                fprintf('LabNo.%d - %s: %s %d (%d/%d), lr = %g ... ', labindex, mode, opts.epit, t(1), t(2), rangeNumber, learningRate); % eg. training iter 1600 (2/rangeNumber), lr = 0.001 ... %     training epoch 1 (2/batchNumber), lr = 0.001
+                batchTime = toc(batchTime) ;
+                speed = cumuTrainedDataNumber/batchTime;
+                
+                for ac = 1:numel(accumulateOutBlobs)
+                    if isinf(accumulateOutBlobs(ac))
+                        error('A blob output = Inf');
+                    elseif ~isempty(accumulateOutBlobs(ac))
+                        fprintf('blob(''%s'') = %.6g ', net.blobNames{outputBlobID(ac)}, accumulateOutBlobs(ac)/cumuTrainedDataNumber);
+                    end
                 end
-                fprintf('blob(''%s'') = %.6g ', net.blobNames{outputBlobID(ac)}, accumulateOutBlobs(ac)/cumuTrainedDataNumber) ;
-            end
-            fprintf('%.2fs (%.1f data/s), ', batchTime, speed) ;
-            fprintf('\n') ;
 
-            batchTime = tic;
-            accumulateOutBlobs = zeros(size(outputBlobID));
-            cumuTrainedDataNumber = 0;
-            count = 0;
+                fprintf('%.2fs (%.1f data/s), ', batchTime, speed);
+                fprintf('\n') ;
+                batchTime = tic;
+                accumulateOutBlobs = zeros(size(outputBlobID));
+                cumuTrainedDataNumber = 0;
+            end
+        else
+            if count == 1
+                disp('Validating...');
+            end
+            if mod(count, opts.displayIter) == 0
+                fprintf('LabNo.%d - %s: %s %d (%d/%d), ', labindex, mode, opts.epit, t(1), cumuTrainedDataNumber, batchStruct.m);
+                batchTime = toc(batchTime) ;
+                speed = cumuTrainedDataNumber/batchTime;
+                
+                for ac = 1:numel(accumulateOutBlobs)
+                    if isinf(accumulateOutBlobs(ac))
+                        error('A blob output = Inf');
+                    elseif ~isempty(accumulateOutBlobs(ac))
+                        fprintf('blob(''%s'') = %.6g ', net.blobNames{outputBlobID(ac)}, accumulateOutBlobs(ac)/cumuTrainedDataNumber);
+                    end
+                end
+
+                fprintf('%.2fs (%.1f data/s), ', batchTime, speed);
+                fprintf('\n') ;
+                batchTime = tic;
+                accumulateOutBlobs = zeros(size(outputBlobID));
+                cumuTrainedDataNumber = 0;
+            end
         end
+
+        
 
         % update batchStruct
         if numel(accumulateOutBlobs) == 1
@@ -268,4 +345,5 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
         globalBatchNum = globalBatchNum+1;
 
     end
+
 end
