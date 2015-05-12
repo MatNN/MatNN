@@ -20,6 +20,11 @@ Note that we don't provide data layers, you should design your data sampling and
 **MatNN** uses the CUDA/C++ code from [MatConvNet](http://www.vlfeat.org/matconvnet)
 to make your training progress more efficient, and the entire framework is built on top of [MatConvNet](http://www.vlfeat.org/matconvnet).
 
+## Goal
+
+- Minimal reuqirement of external library. We will provide pure matlab version, matlab+cuda kernel version, mex+cuda+cublas version and mex+cuda+cublas+cuDNN version of this project in the future. Note that even the pure matlab version will have GPU support from parallel computing toolbox of Matlab.
+- Provide the elastic workflow and maintain the computation efficiency. We will try to separate each core functions into modules so that you can easily modify to fit your needs.
+
 ## License
 
 **MatNN** is under the Simplified BSD License.
