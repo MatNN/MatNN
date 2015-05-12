@@ -111,18 +111,31 @@ no.newLayer({
     'name'   'loss'...
     'bottom' {'fc4', 'label'}...
     'top'    'loss'...
+    'phase'  'train'...
+    });
+no.newLayer({
+    'type'   'layers.accuracy'...
+    'name'   'accuracy'...
+    'bottom' {'fc4', 'label'}...
+    'top'    'accuracy'...
+    'phase'  'valid'...
     });
 
-net = no.getNet('train');
+net = no.getNet();
 
-[train4D, trainLabel, test4D, testLabel] = readMNISTDataset('mnist/train-images-idx3-ubyte', ...
-                                                            'mnist/train-labels-idx1-ubyte', ...
-                                                            'mnist/t10k-images-idx3-ubyte', ...
-                                                            'mnist/t10k-labels-idx1-ubyte');
+[train4D, trainLabel, test4D, testLabel] = readMNISTDataset('train-images-idx3-ubyte', ...
+                                                            'train-labels-idx1-ubyte', ...
+                                                            't10k-images-idx3-ubyte', ...
+                                                            't10k-labels-idx1-ubyte');
+
 
 dataStruct  = nn.batch.generate(false, 'Name', dataBlobName,  'File', train4D,    'BatchSize', batchSize, 'Random', 2);
 labelStruct = nn.batch.generate(false, 'Name', labelBlobName, 'File', trainLabel', 'BatchSize', batchSize, 'Random', 2, 'Using4D', false);
 batchStruct = nn.batch.generate('Attach', dataStruct, labelStruct);
+
+vDataStruct  = nn.batch.generate(false, 'Name', dataBlobName,  'File', test4D,    'BatchSize', batchSize, 'Random', 0);
+vLabelStruct = nn.batch.generate(false, 'Name', labelBlobName, 'File', testLabel', 'BatchSize', batchSize, 'Random', 0, 'Using4D', false);
+vBatchStruct = nn.batch.generate('Attach', vDataStruct, vLabelStruct);
 
 opts.numEpochs = [] ;
 opts.numInterations = 12000 ;
@@ -130,10 +143,12 @@ opts.numToSave = 600; %runs how many Epochs or iterations to save
 opts.displayIter = 60;
 opts.batchSize = batchSize ;
 opts.numSubBatches = 1 ;
-opts.gpus = [1] ;
+opts.gpus = [] ; %#ok
 
 opts.learningRate = 0.001 ;
-opts.learningRateSteps = 600; %every 1000 epoch/iter to decay learningrate
+opts.learningRatePolicy = @lrPolicy; %every iteration decays the lr
+opts.learningRateGamma = 0.0001;
+opts.learningRatePower = 0.75;
 
 opts.continue = [] ; % if you specify the saving's iteration/epoch number, then you can load it
 opts.expDir = fullfile('data','exp') ;
@@ -142,10 +157,13 @@ opts.sync = false ;
 opts.prefetch = false ;
 
 
-[net_trained, batchStructTrained, ~] = nn.train(net, batchStruct, [], opts);
+[net_trained, batchStructTrained, ~] = nn.train(net, batchStruct, vBatchStruct, opts);
 
 end
 
+function res = lrPolicy(currentBatchNumber, lr, gamma, power, steps)
+     res = lr*((1+gamma*currentBatchNumber)^(-power));
+end
 
 function [train4D, trainLabel, test4D, testLabel] = readMNISTDataset(trainImgFile, trainLabelFile, testImgFile, testLabelFile)
     m = memmapfile(trainImgFile,'Offset', 16,'Format', {'uint8' [28 28] 'img'});
