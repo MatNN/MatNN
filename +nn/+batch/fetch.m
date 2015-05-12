@@ -52,13 +52,14 @@ end
 %Generate data indices
 if isa(batchStruct.rnd, 'function_handle')
     tp = batchStruct.rnd(batchStruct.totalTimesOfDataSampled, batchStruct.lastErrorRateOfData, batchStruct.lastBatchIndices, batchStruct.lastBatchErrors, batchStruct.N);
-    batchStruct.lastBatchIndices = tp;
+    batchStruct.lastBatchIndices = repmat(tp,S,1);
 elseif batchStruct.rnd == 0
     batchStruct.lastBatchIndices = min(batchStruct.lastIndOfPermute+1, batchStruct.m):min(batchStruct.lastIndOfPermute+batchStruct.N, batchStruct.m);
     batchStruct.lastIndOfPermute = batchStruct.lastBatchIndices(end);
+    batchStruct.lastBatchIndices = repmat(batchStruct.lastBatchIndices,S,1);
 elseif batchStruct.rnd == 1
     tmp = randperm(batchStruct.m);
-    batchStruct.lastBatchIndices = tmp(1:batchStruct.N);
+    batchStruct.lastBatchIndices = repmat(tmp(1:batchStruct.N),S,1);
 elseif batchStruct.rnd == 2
     if batchStruct.lastIndOfPermute == batchStruct.m
         batchStruct.permute = randperm(batchStruct.m);
@@ -94,7 +95,7 @@ for i = 1:S
     % slice data
     if ~isempty(tmpData) %if tmpData isempty, must be prefetch
         dataN = size(tmpData, 4);
-        subbatchInd = [1:ceil(dataN/sliceNumber):(dataN-1), dataN+1];
+        subbatchInd = [1:ceil(dataN/sliceNumber):dataN, dataN+1];
         for d = 1:(numel(subbatchInd)-1)
             smalldata = tmpData(:,:,:,subbatchInd(d):subbatchInd(d+1)-1);
             if useGpu >= 1
