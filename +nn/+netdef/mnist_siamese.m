@@ -258,7 +258,7 @@ no.newLayer({
     'top'    'loss'
     });
 
-net = no.getNet('train');
+net = no.getNet();
 
 [train4D, trainLabel, test4D, testLabel] = readMNISTDataset('train-images-idx3-ubyte', ...
                                                             'train-labels-idx1-ubyte', ...
