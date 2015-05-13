@@ -134,9 +134,7 @@ end
 %                                                   Set base net
 % --------------------------------------------------------------
     function setBaseNet(bn)
-        if ~isempty(baseNet)
-            baseNet = bn;
-        end
+        baseNet = bn;
     end
 
 

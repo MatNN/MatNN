@@ -138,6 +138,9 @@ if ~isempty(opts.continue)
             fprintf('Resuming by loading %s%d\n', lower(opts.epit), opts.continue) ;
         end
         tmp = load(modelPath(opts.continue), 'net') ;
+        
+        % Consider that loaded net is the same as our net, so just use their
+        % weights
         %netObj.setBaseNet(tmp.net);
         %net = netObj.getNet();
 
