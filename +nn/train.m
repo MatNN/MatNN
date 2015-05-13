@@ -12,6 +12,7 @@ opts.displayIter = 10; %Show info every opts.displayIter iterations
 opts.batchSize = 256;
 opts.numSubBatches = 1;
 opts.gpus = [];
+opts.computeMode = 'default';
 
 opts.learningRate = 0.001;
 opts.learningRateGamma = 0.1;
@@ -62,7 +63,13 @@ elseif numGpus == 1
     gpuDevice(opts.gpus)
 end
 
+if numGpus == 0 && ~strcmp(opts.computeMode, 'default')
+    opts.computeMode = 'default';
+    warning('Set computeMode to ''default''.');
+end
+netObj.computeMode(opts.computeMode);
 net = netObj.getNet();
+disp(['Set to <strong>', opts.computeMode, '</strong> mode']);
 
 % -------------------------------------------------------------------------
 %                                           Find train/valid phase layer ID
