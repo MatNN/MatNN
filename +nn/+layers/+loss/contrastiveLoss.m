@@ -1,5 +1,5 @@
 function o = contrastiveLoss(architecture)
-%LOGISTICLOSS 
+%CONTRASTIVELOSS 
 %
 % NOTICE
 %   label index starts from 0 (compatible with other NN tools)
