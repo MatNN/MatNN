@@ -121,8 +121,6 @@ no.newLayer({
     'phase'  'valid'...
     });
 
-net = no.getNet();
-
 [train4D, trainLabel, test4D, testLabel] = readMNISTDataset('train-images-idx3-ubyte', ...
                                                             'train-labels-idx1-ubyte', ...
                                                             't10k-images-idx3-ubyte', ...
@@ -144,6 +142,7 @@ opts.displayIter = 60;
 opts.batchSize = batchSize ;
 opts.numSubBatches = 1 ;
 opts.gpus = [] ; %#ok
+opts.computeMode = 'default';
 
 opts.learningRate = 0.001 ;
 opts.learningRatePolicy = @lrPolicy; %every iteration decays the lr
@@ -157,7 +156,7 @@ opts.sync = false ;
 opts.prefetch = false ;
 
 
-[net_trained, batchStructTrained, ~] = nn.train(net, batchStruct, vBatchStruct, opts);
+[net_trained, batchStructTrained, ~] = nn.train(no, batchStruct, vBatchStruct, opts);
 
 end
 

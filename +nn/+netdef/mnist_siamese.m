@@ -258,8 +258,6 @@ no.newLayer({
     'top'    'loss'
     });
 
-net = no.getNet();
-
 [train4D, trainLabel, test4D, testLabel] = readMNISTDataset('train-images-idx3-ubyte', ...
                                                             'train-labels-idx1-ubyte', ...
                                                             't10k-images-idx3-ubyte', ...
@@ -285,7 +283,8 @@ opts.numToSave = 5000; %runs how many Epochs or iterations to save
 opts.displayIter = 100;
 opts.batchSize = batchSize ;
 opts.numSubBatches = 1 ;
-opts.gpus = [];
+opts.gpus = [1];
+opts.computeMode = 'cuda kernel';
 
 opts.learningRate = 0.01 ;
 opts.learningRatePolicy = @lrPolicy; %every iteration decays the lr
@@ -299,7 +298,7 @@ opts.conserveMemory = false ;
 opts.sync = false ;
 opts.prefetch = false ;
 
-[net_trained, batchStructTrained, ~] = nn.train(net, batchStruct, [], opts);
+[net_trained, batchStructTrained, ~] = nn.train(no, batchStruct, [], opts);
 
 
 end
