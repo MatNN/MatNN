@@ -68,15 +68,25 @@ default_contrastiveLoss_param = {
 
         % setup forward kernel
         cuKernel.forward = parallel.gpu.CUDAKernel(ptxFile, cuFile, 'forward');
-        maxThreads = (floor(prod(bottomSizes{1})/cuKernel.forward.MaxThreadsPerBlock)+1)*bottomSizes{1}(4);
-        maxBlocks = prod(bottomSizes{1})/maxThreads;
+        num = floor(prod(bottomSizes{1})/cuKernel.forward.MaxThreadsPerBlock);
+        if num >= 1
+            maxThreads = cuKernel.forward.MaxThreadsPerBlock;
+        else
+            maxThreads = bottomSizes{1}(4);
+        end
+        maxBlocks = ceil(prod(bottomSizes{1})/maxThreads);
         cuKernel.forward.ThreadBlockSize = [maxThreads, 1, 1];
         cuKernel.forward.GridSize = [maxBlocks, 1, 1];
 
         % setup backward kernel
         cuKernel.backward = parallel.gpu.CUDAKernel(ptxFile, cuFile, 'backward');
-        maxThreads = (floor(prod(bottomSizes{1})/cuKernel.backward.MaxThreadsPerBlock)+1)*bottomSizes{1}(4);
-        maxBlocks = prod(bottomSizes{1})/maxThreads;
+        num = floor(prod(bottomSizes{1})/cuKernel.backward.MaxThreadsPerBlock);
+        if num >= 1
+            maxThreads = cuKernel.backward.MaxThreadsPerBlock;
+        else
+            maxThreads = bottomSizes{1}(4);
+        end
+        maxBlocks = ceil(prod(bottomSizes{1})/maxThreads);
         cuKernel.backward.ThreadBlockSize = [maxThreads, 1, 1];
         cuKernel.backward.GridSize = [maxBlocks, 1, 1];
     end
