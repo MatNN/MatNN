@@ -137,7 +137,13 @@ if ~isempty(opts.continue)
         else
             fprintf('Resuming by loading %s%d\n', lower(opts.epit), opts.continue) ;
         end
-        load(modelPath(opts.continue), 'net') ;
+        tmp = load(modelPath(opts.continue), 'net') ;
+        %netObj.setBaseNet(tmp.net);
+        %net = netObj.getNet();
+
+        net.weights = tmp.net.weights;
+        net.momentum = tmp.net.momentum;
+        clearvars tmp;
     else
         error('Can''t found savings.');
     end

@@ -85,6 +85,7 @@ netObj.getNet = @getNetwork;
 netObj.setDataBlobSize = @setDataBlobSize;
 netObj.setLayerRootFolder = @setLayerRootFolder;
 netObj.computeMode = @computeMode;
+netObj.setBaseNet = @setBaseNet;
 
 
 net = {};
@@ -113,10 +114,10 @@ net.blobConnectId     = {}; %Specify a blob(assume it's a top blob) be used in w
 
 tmp.blobSizes         = {}; % each cell is the blob size
 architecture          = 'default';
+backUpNet             = {};
 
 
 %NOTICE: variable 'baseNet' have all the element of variable 'net'
-
 
 
 % initialize
@@ -129,6 +130,14 @@ if nargin == 2
 else
     baseNet = {};
 end
+% --------------------------------------------------------------
+%                                                   Set base net
+% --------------------------------------------------------------
+    function setBaseNet(bn)
+        if ~isempty(baseNet)
+            baseNet = bn;
+        end
+    end
 
 
 % --------------------------------------------------------------
@@ -172,6 +181,7 @@ end
 %                 Return network and set internal variable to {}
 % --------------------------------------------------------------
     function newNet = getNetwork()
+        backUpNet = net;
 
         %do blobProcess
         blobProcess();
@@ -307,7 +317,7 @@ end
 
         %return net
         newNet = net;
-        net = {};
+        net = backUpNet;
     end
 
 
