@@ -1,4 +1,4 @@
-function [net, batchStructTrain, batchStructVal] = train(net, batchStructTrain, batchStructVal, opts_user)
+function [net, batchStructTrain, batchStructVal] = train(netObj, batchStructTrain, batchStructVal, opts_user)
 %TRAIN  (Based on the example code of Matconvnet)
 %
 %  NOTE
@@ -45,6 +45,24 @@ else
     error('You must set opts.numEpochs OR opts.numInterations.');
 end
 
+% -------------------------------------------------------------------------
+%                                                    Network initialization
+% -------------------------------------------------------------------------
+
+evaluateMode = isempty(batchStructTrain) ;
+
+% setup GPUs
+numGpus = numel(opts.gpus) ;
+if numGpus > 1
+    if isempty(gcp('nocreate')),
+        parpool('local',numGpus) ;
+        spmd, gpuDevice(opts.gpus(labindex)), end
+    end
+elseif numGpus == 1
+    gpuDevice(opts.gpus)
+end
+
+net = netObj.getNet();
 
 % -------------------------------------------------------------------------
 %                                           Find train/valid phase layer ID
@@ -86,25 +104,6 @@ for i=1:numel(net.layers)
         visitLayerID_train = [visitLayerID_train, i]; %#ok
         visitLayerID_valid = [visitLayerID_valid, i]; %#ok
     end
-end
-
-% -------------------------------------------------------------------------
-%                                                    Network initialization
-% -------------------------------------------------------------------------
-
-
-
-evaluateMode = isempty(batchStructTrain) ;
-
-% setup GPUs
-numGpus = numel(opts.gpus) ;
-if numGpus > 1
-    if isempty(gcp('nocreate')),
-        parpool('local',numGpus) ;
-        spmd, gpuDevice(opts.gpus(labindex)), end
-    end
-elseif numGpus == 1
-    gpuDevice(opts.gpus)
 end
 
 % initialize some variable for this function

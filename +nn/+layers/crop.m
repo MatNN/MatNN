@@ -1,4 +1,4 @@
-function o = crop()
+function o = crop(varargin)
 %CROP Crop Large data to a smaller size
 %  NOTICE:
 %    bottom{1} is the desired blob need to be croped

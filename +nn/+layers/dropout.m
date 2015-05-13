@@ -1,4 +1,4 @@
-function o = dropout()
+function o = dropout(varargin)
 %DROPOUT ...
 
 o.name         = 'Dropout';

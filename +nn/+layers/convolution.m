@@ -1,4 +1,4 @@
-function o = convolution()
+function o = convolution(varargin)
 %CONVOLUTION Compute mean class accuracy for you
 
 o.name         = 'Convolution';

@@ -1,4 +1,4 @@
-function o = softmax()
+function o = softmax(varargin)
 %LOGISTICLOSS 
 %
 % NOTICE

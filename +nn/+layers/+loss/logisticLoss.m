@@ -1,4 +1,4 @@
-function o = logisticLoss()
+function o = logisticLoss(varargin)
 %LOGISTICLOSS 
 %
 % NOTICE

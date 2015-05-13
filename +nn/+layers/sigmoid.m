@@ -1,4 +1,4 @@
-function o = sigmoid()
+function o = sigmoid(varargin)
 %CONVOLUTION Compute mean class accuracy for you
 
 o.name         = 'Sigmoid';

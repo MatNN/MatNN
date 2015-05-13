@@ -16,10 +16,16 @@ function netObj = buildnet(netName, baseNet)
 %  (no need to put ',' to separate keys).
 %  
 %  NETOBJ.getNet() process and return your network for nn.train use.
-%  NETOBJ.getNet(phase) Like first form, but specific for phase
-%  equal to 'train' or 'val'. When specifying phase to 'train', 
-%  then all layers with parameter .phase='val' will be deleted,
-%  vise versa.
+%  NETOBJ.getNet(architecture) preprocess your network with sepcified
+%  architecture name, which can be 'default', 'cuda kernel', 
+%  'cuda cublas', 'cuda cudnn'. if you not specify an argument, will 
+%  use 'default', which is a hybrid code of ordinary array + gpuArray
+%  ; 'cuda kernel' means most of the computation will happened on 
+%  precompiled CUDA kernels, slightly faster then gpuArray; 
+%  'cuda cublas' uses mex files compiled with CUDA kernels and uses 
+%  cuBlas to accelerate computation; 'cuda cudnn' uses cuda cublas + 
+%  nVIDIA's cuDNN library to accelerate some kind of CNN computation,
+%  this is the fastest option.
 %
 %  NETOBJ.setDataBlobSize(blobName, blobsize)
 %  Because we don't have data layers, so you need to specify it here,
@@ -78,6 +84,7 @@ netObj.newLayer = @newLayer;
 netObj.getNet = @getNetwork;
 netObj.setDataBlobSize = @setDataBlobSize;
 netObj.setLayerRootFolder = @setLayerRootFolder;
+netObj.computeMode = @computeMode;
 
 
 net = {};
@@ -105,6 +112,7 @@ net.blobConnectId     = {}; %Specify a blob(assume it's a top blob) be used in w
 %net.displayLossBlobId = [];
 
 tmp.blobSizes         = {}; % each cell is the blob size
+architecture          = 'default';
 
 
 %NOTICE: variable 'baseNet' have all the element of variable 'net'
@@ -135,14 +143,8 @@ end
 %                                                   Remove Phase
 % --------------------------------------------------------------
     % 把有設定phase的去掉
-    function removePhase(pha)
-        for i=1:numel(net.layers)
-            if isfield(net.layers{i}, 'phase')
-                if ~strcmpi(net.layers{i}.phase, pha)
-                    net.layers{i} = [];
-                end
-            end
-        end
+    function computeMode(modeName)
+        architecture = modeName;
     end
 
 % --------------------------------------------------------------
@@ -170,11 +172,6 @@ end
 %                 Return network and set internal variable to {}
 % --------------------------------------------------------------
     function newNet = getNetwork()
-        %removePhase
-        %if nargin == 1
-        %    removePhase(phase);
-        %end
-
 
         %do blobProcess
         blobProcess();
@@ -198,7 +195,7 @@ end
         net.weightsShareId = {};
         for i=1:numel(net.layers)
             tmpHandle = str2func([LayerRootFolder,'.', net.layers{i}.type]);
-            net.layerobjs{i} = tmpHandle(); % execute layer function!!!
+            net.layerobjs{i} = tmpHandle(architecture); % execute layer function!!!
             if ~isempty(net.layers{i}.bottom)
                 [res, topSizes, param] = net.layerobjs{i}.setup(net.layers{i}, tmp.blobSizes(net.layers{i}.bottom));
             else

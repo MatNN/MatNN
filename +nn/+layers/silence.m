@@ -1,4 +1,4 @@
-function o = silence()
+function o = silence(varargin)
 %RELU Compute mean class accuracy for you
 
 o.name         = 'Silence';

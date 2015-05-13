@@ -1,4 +1,4 @@
-function o = pooling()
+function o = pooling(varargin)
 %POOLING Compute mean class accuracy for you
 
 o.name         = 'Pooling';

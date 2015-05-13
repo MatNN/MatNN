@@ -1,4 +1,4 @@
-function o = softmaxLoss()
+function o = softmaxLoss(varargin)
 %SOFTMAXLOSS 
 %
 % NOTICE

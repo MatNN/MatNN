@@ -1,4 +1,4 @@
-function o = deconvolution()
+function o = deconvolution(varargin)
 %DECONVOLUTION Compute mean class accuracy for you
 
 o.name         = 'Deconvolution';

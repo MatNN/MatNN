@@ -1,4 +1,4 @@
-function o = accuracy()
+function o = accuracy(varargin)
 %ACCURACY 
 %
 % NOTICE

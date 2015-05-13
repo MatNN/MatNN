@@ -1,4 +1,4 @@
-function o = relu()
+function o = relu(varargin)
 %RELU Compute mean class accuracy for you
 
 o.name         = 'ReLU';

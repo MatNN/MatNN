@@ -1,15 +1,32 @@
-function o = contrastiveLoss()
+function o = contrastiveLoss(architecture)
 %LOGISTICLOSS 
 %
 % NOTICE
 %   label index starts from 0 (compatible with other NN tools)
 %   you can specify begining index from parameter
 
+if nargin == 0
+    architecture = 'default';
+end
+
 o.name         = 'contrastiveLoss';
 o.generateLoss = true;
-o.setup        = @setup;
-o.forward      = @forward;
-o.backward     = @backward;
+
+% process architecture
+if strcmp(architecture, 'cuda kernel')
+    o.forward         = @forward_CUDAKernel;
+    o.backward        = @backward_CUDAKernel;
+    o.setup           = @setup_CUDAKernel;
+    cuKernel.forward  = [];
+    cuKernel.backward = [];
+    d                 = 0;
+else
+    o.setup        = @setup;
+    o.forward      = @forward;
+    o.backward     = @backward;
+    d_ = 0;
+    d = 0;
+end
 
 
 default_contrastiveLoss_param = {
@@ -17,10 +34,6 @@ default_contrastiveLoss_param = {
            'threshold' single(1e-20) ...
               'margin' single(1)     ...
 };
-
-% Save Forward result for faster computation
-d_ = 0;
-d = 0;
 
     function [resource, topSizes, param] = setup(l, bottomSizes)
         resource = {};
@@ -48,6 +61,27 @@ d = 0;
         topSizes = {[1, 1, 1, 1]};
 
     end
+    function [resource, topSizes, param] = setup_CUDAKernel(l, bottomSizes)
+        [resource, topSizes, param] = setup(l, bottomSizes);
+        ptxFile = fullfile('+nn','+layers','+loss','contrastiveLoss.ptx');
+        cuFile = fullfile('+nn','+layers','+loss','contrastiveLoss.cu');
+
+        % setup forward kernel
+        cuKernel.forward = parallel.gpu.CUDAKernel(ptxFile, cuFile, 'forward');
+        maxThreads = (floor(prod(bottomSizes{1})/cuKernel.forward.MaxThreadsPerBlock)+1)*bottomSizes{1}(4);
+        maxBlocks = prod(bottomSizes{1})/maxThreads;
+        cuKernel.forward.ThreadBlockSize = [maxThreads, 1, 1];
+        cuKernel.forward.GridSize = [maxBlocks, 1, 1];
+
+        % setup backward kernel
+        cuKernel.backward = parallel.gpu.CUDAKernel(ptxFile, cuFile, 'backward');
+        maxThreads = (floor(prod(bottomSizes{1})/cuKernel.backward.MaxThreadsPerBlock)+1)*bottomSizes{1}(4);
+        maxBlocks = prod(bottomSizes{1})/maxThreads;
+        cuKernel.backward.ThreadBlockSize = [maxThreads, 1, 1];
+        cuKernel.backward.GridSize = [maxBlocks, 1, 1];
+    end
+
+
     function [outputBlob, weightUpdate] = forward(opts, l, weights, blob)
         weightUpdate = {};
         d_ = blob{1}-blob{2};
@@ -57,6 +91,15 @@ d = 0;
         outputBlob = {E};
 
     end
+    function [outputBlob, weightUpdate] = forward_CUDAKernel(opts, l, weights, blob)
+        weightUpdate = {};
+        d = sum((blob{1}-blob{2}).^2, 3);
+        E = d*0;
+        E = feval(cuKernel.forward, E, blob{3}, d, l.contrastiveLoss_param.margin, numel(d));
+        outputBlob = {E};
+
+    end
+
     function [outputdzdx, outputdzdw] = backward(opts, l, weights, blob, dzdy)
         outputdzdw = {};
         outputdzdx = cell(1,3);
@@ -66,5 +109,9 @@ d = 0;
         y = blob{3};
         outputdzdx{1} = dzdy{1} * (bsxfun(@times, d_, y) - bsxfun(@times, rightTerm, 1-y));% / size(blob{1}, 4);
         outputdzdx{2} = -outputdzdx{1};
+    end
+    function [outputdzdx, outputdzdw] = backward_CUDAKernel(opts, l, weights, blob, dzdy)
+        outputdzdw = {};
+        [outputdzdx{1}, outputdzdx{2}] = feval(cuKernel.backward, blob{1}, blob{2}, dzdy{1}, blob{3}, d, l.contrastiveLoss_param.margin, numel(blob{1}), numel(blob{1})/numel(blob{3}));
     end
 end
