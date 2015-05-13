@@ -1,4 +1,4 @@
-function [ o ] = example()
+function [ o ] = example(varargin)
 %EXAMPLE Layer
 
 
