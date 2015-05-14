@@ -26,6 +26,13 @@ to make your training progress more efficient, and the entire framework is built
 - Provide the elastic workflow and maintain the computation efficiency. We will separate each core functions into modules so that you can do less work to make them fit your need.
 - Test your ideas and validate them quickly. Although learning other tools/programming languages may not be a problem, use you exists matlab code with MatNN is time reserved compared to learn a new language. We provide familiar definition of Caffe, if you have learned it, then you can get started quickly.
 
+## Installation
+
+1. Download source code
+2. Install [MatConvNet](http://www.vlfeat.org/matconvnet), and set matlab path
+2. (optional) use NVCC to compile .cu code into .ptx
+3. You are done! Happy training!
+
 ## License
 
 **MatNN** is under the Simplified BSD License.
