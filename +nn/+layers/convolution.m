@@ -89,10 +89,10 @@ default_convolution_param = {
     function [mydzdx, mydzdw] = backward(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
         %numel(mydzdx) = numel(blob), numel(mydzdw) = numel(weights)
         if mydzdwCumu(1) && mydzdwCumu(2)
-            [ mydzdx{1}, outputdzdw{1}, outputdzdw{2} ]= ...
+            [ mydzdx{1}, a, b ]= ...
                              vl_nnconv(blob{1}, weights{1}, weights{2}, dzdy{1}, 'pad', l.convolution_param.pad, 'stride', l.convolution_param.stride);
-            mydzdw{1} = mydzdw{1} + outputdzdw{1};
-            mydzdw{2} = mydzdw{2} + outputdzdw{2};
+            mydzdw{1} = mydzdw{1} + a;
+            mydzdw{2} = arrayfun(@plus, mydzdw{2}, b);
         elseif mydzdwCumu(1)
             [ mydzdx{1}, outputdzdw, mydzdw{2} ]= ...
                              vl_nnconv(blob{1}, weights{1}, weights{2}, dzdy{1}, 'pad', l.convolution_param.pad, 'stride', l.convolution_param.stride);

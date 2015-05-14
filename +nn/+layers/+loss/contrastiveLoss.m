@@ -101,8 +101,8 @@ default_contrastiveLoss_param = {
     end
     function [outputBlob, weights] = forward_CUDAKernel(opts, l, weights, blob)
         d = sum((blob{1}-blob{2}).^2, 3);
-        E = d*0;
-        E = feval(cuKernel.forward, E, blob{3}, d, l.contrastiveLoss_param.margin, numel(d));
+        %d = sum(arrayfun(@(a,b) (a-b).^2, blob{1}, blob{2} ), 3);
+        E = feval(cuKernel.forward, 0, blob{3}, d, l.contrastiveLoss_param.margin, numel(d));
         outputBlob = {E};
     end
 
