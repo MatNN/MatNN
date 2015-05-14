@@ -44,8 +44,8 @@ default_dropout_param = {
     end
 
 
-    function [outputBlob, weightUpdate] = forward(opts, l, weights, blob)
-        weightUpdate = {};
+    function [outputBlob, weights] = forward(opts, l, weights, blob)
+
         if opts.disableDropout || ~l.dropout_param.enable_terms
             outputBlob{1} = blob{1};
         elseif opts.freezeDropout
@@ -58,7 +58,7 @@ default_dropout_param = {
                 mask = single(1 / (1 - opts.rate)) * (rand(topSizes,'single') >= wp.rate);
                 outputBlob{1} = blob{1} .* mask;
             end
-            weightUpdate = {1, mask};
+            weights{1} = mask;
         end
     end
 

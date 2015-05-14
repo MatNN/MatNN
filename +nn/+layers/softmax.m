@@ -22,9 +22,7 @@ o.backward     = @backward;
         param = {};
 
     end
-    function [outputBlob, weightUpdate] = forward(opts, l, weights, blob)
-        weightUpdate = {};
-
+    function [outputBlob, weights] = forward(opts, l, weights, blob)
         y = exp( bsxfun(@minus, blob{1}, max(blob{1}, [], 3)) );
         y = bsxfun(@rdivide, y, sum(y,3));
         outputBlob = { y };

@@ -58,12 +58,10 @@ end
     end
 
 
-    function [outputBlob, weightUpdate] = forward(opts, l, weights, blob)
+    function [outputBlob, weights] = forward(opts, l, weights, blob)
         outputBlob{1} = max(blob{1}, 0);
-        weightUpdate = {};
     end
-    function [outputBlob, weightUpdate] = forward_CUDAKernel(opts, l, weights, blob)
-        weightUpdate = {};
+    function [outputBlob, weights] = forward_CUDAKernel(opts, l, weights, blob)
         outputBlob{1} = feval(cuKernel.forward, blob{1}, numel(blob{1}));
     end
 

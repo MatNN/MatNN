@@ -48,9 +48,7 @@ N          = [];
         topSizes = {[1, 1, 1, 1]};
 
     end
-    function [outputBlob, weightUpdate] = forward(opts, l, weights, blob)
-        weightUpdate = {};
-
+    function [outputBlob, weights] = forward(opts, l, weights, blob)
         resultBlob = max(blob{1}, l.softmaxLoss_param.threshold);
         resSize = size(resultBlob);
         labelSize = size(blob{2});

@@ -92,22 +92,18 @@ default_contrastiveLoss_param = {
     end
 
 
-    function [outputBlob, weightUpdate] = forward(opts, l, weights, blob)
-        weightUpdate = {};
+    function [outputBlob, weights] = forward(opts, l, weights, blob)
         d_ = blob{1}-blob{2};
         d = sum((d_).^2, 3);
         y = blob{3};
         E = 0.5 * sum(  y.*d + (1-y).*max(l.contrastiveLoss_param.margin - d, single(0))  );%/size(blob{1},4);
         outputBlob = {E};
-
     end
-    function [outputBlob, weightUpdate] = forward_CUDAKernel(opts, l, weights, blob)
-        weightUpdate = {};
+    function [outputBlob, weights] = forward_CUDAKernel(opts, l, weights, blob)
         d = sum((blob{1}-blob{2}).^2, 3);
         E = d*0;
         E = feval(cuKernel.forward, E, blob{3}, d, l.contrastiveLoss_param.margin, numel(d));
         outputBlob = {E};
-
     end
 
     function [mydzdx, mydzdw] = backward(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)

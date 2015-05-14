@@ -81,12 +81,10 @@ default_deconvolution_param = {
     end
 
 
-    function [outputBlob, weightUpdate] = forward(opts, l, weights, blob)
+    function [outputBlob, weights] = forward(opts, l, weights, blob)
         [ y, ~, ~ ] = vl_nnconv(blob{1}, weights{1}, weights{2}, blob{1}, 'pad', l.deconvolution_param.pad, 'stride', l.deconvolution_param.stride);
         y = bsxfun(@plus, y, reshape(weights{2},1,1,[],1));
         outputBlob{1} = y;
-
-        weightUpdate = {};
     end
 
 

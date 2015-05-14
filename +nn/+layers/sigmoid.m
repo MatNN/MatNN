@@ -25,9 +25,8 @@ o.backward     = @backward;
     end
 
 
-    function [outputBlob, weightUpdate] = forward(opts, l, weights, blob)
+    function [outputBlob, weights] = forward(opts, l, weights, blob)
         outputBlob{1} = 1./(1+exp(-blob{1}));
-        weightUpdate = {};
     end
 
 

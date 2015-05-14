@@ -46,7 +46,7 @@ default_crop_param = {
     end
 
 
-    function [outputBlob, weightUpdate] = forward(opts, l, weights, blob)
+    function [outputBlob, weights] = forward(opts, l, weights, blob)
         s = [1,1,1,1];
         sizeofBlob2 = size(blob{2});%small
         sizeofBlob1 = size(blob{1});%large
@@ -57,8 +57,6 @@ default_crop_param = {
             o = -round((s(1:2) - sizeofBlob1(1:2))/2);% compatible with FCN's crop layer??
         end
         outputBlob{1} = blob{1}(o(1)+1:o(1)+s(1), o(2)+1:o(2)+s(2), :, :);
-
-        weightUpdate = {};
     end
 
 

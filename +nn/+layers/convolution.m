@@ -81,9 +81,8 @@ default_convolution_param = {
     end
 
 
-    function [outputBlob, weightUpdate] = forward(opts, l, weights, blob)
+    function [outputBlob, weights] = forward(opts, l, weights, blob)
         outputBlob{1} = vl_nnconv(blob{1}, weights{1}, weights{2}, 'pad', l.convolution_param.pad, 'stride', l.convolution_param.stride);
-        weightUpdate = {};
     end
 
 

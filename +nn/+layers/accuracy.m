@@ -42,8 +42,7 @@ default_accuracy_param = {
         topSizes = {[1, 1, 1, 1]};
 
     end
-    function [outputBlob, weightUpdate] = forward(opts, l, weights, blob)
-        weightUpdate = {};
+    function [outputBlob, weights] = forward(opts, l, weights, blob)
         % if size(prediction) == HxWxCxN, divide cumulative acc by HxWxN, size(label) == HxWx1xN
         % if size(prediction) == 1x1xCxN, divide cumulative acc by N, size(label) == 1x1x1xN
         % if size(prediction) == 1x1x1xN, divide cumulative acc by N, size(label) == 1x1x1xN

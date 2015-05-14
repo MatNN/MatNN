@@ -52,9 +52,8 @@ default_pooling_param = {
     end
 
 
-    function [outputBlob, weightUpdate] = forward(opts, l, weights, blob)
+    function [outputBlob, weights] = forward(opts, l, weights, blob)
         outputBlob{1} = vl_nnpool(blob{1}, l.pooling_param.kernel_size, 'pad', l.pooling_param.pad, 'stride', l.pooling_param.stride, 'method', l.pooling_param.method);
-        weightUpdate = {};
     end
 
 

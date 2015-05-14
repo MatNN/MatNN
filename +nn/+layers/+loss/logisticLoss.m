@@ -47,8 +47,7 @@ N          = [];
         topSizes = {[1, 1, 1, 1]};
 
     end
-    function [outputBlob, weightUpdate] = forward(opts, l, weights, blob)
-        weightUpdate = {};
+    function [outputBlob, weights] = forward(opts, l, weights, blob)
 
         resultBlob = min(blob{1}, l.logisticLoss_param.threshold);
         resSize = size(resultBlob);
