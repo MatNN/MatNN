@@ -73,15 +73,13 @@ N          = [];
         outputBlob = {- sum(log(resultBlob(ind)))/N };
 
     end
-    function [outputdzdx, outputdzdw] = backward(opts, l, weights, blob, dzdy)
-        outputdzdw = {};
-
+    function [mydzdx, mydzdw] = backward(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
         dzdx = -(1./resultBlob) * (dzdy{1}/N);
 
         % only ground truth label are correct, set others to zero
         outdzdx = dzdx*0; % faster than zeros(size(dzdx)); ?
         outdzdx(ind) = dzdx(ind);
-        outputdzdx = {outdzdx,[]};
+        mydzdx = {outdzdx,[]};
 
     end
 end

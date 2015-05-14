@@ -63,14 +63,13 @@ default_dropout_param = {
     end
 
 
-    function [outputdzdx, outputdzdw] = backward(opts, l, weights, blob, dzdy)
-        %numel(outputdzdx) = numel(blob), numel(outputdzdw) = numel(weights)
+    function [mydzdx, mydzdw] = backward(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
+        %numel(mydzdx) = numel(blob), numel(mydzdw) = numel(weights)
         if opts.disableDropout || ~l.dropout_param.enable_terms
-            outputdzdx{1} = dzdy{1};
+            mydzdx{1} = dzdy{1};
         else
-            outputdzdx{1} = dzdy{1} .* weights{1};
+            mydzdx{1} = dzdy{1} .* weights{1};
         end
-        outputdzdw{1} = [];
     end
 
 

@@ -53,8 +53,7 @@ default_accuracy_param = {
         outputBlob{1} = sum(k(:))/(size(blob{1},1)*size(blob{1},2));%*size(blob{1},4)); don't divide N here, because train.m will do it for us
 
     end
-    function [outputdzdx, outputdzdw] = backward(opts, l, weights, blob, dzdy)
-        outputdzdw = {};
-        outputdzdx = {[],[]};
+    function [mydzdx, mydzdw] = backward(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
+        mydzdx = {[],[]};
     end
 end

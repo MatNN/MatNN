@@ -31,21 +31,19 @@ o.backward     = @backward;
     end
 
 
-    function [outputdzdx, outputdzdw] = backward(opts, l, weights, blob, dzdy)
-        %numel(outputdzdx) = numel(blob), numel(outputdzdw) = numel(weights)
-        
+    function [mydzdx, mydzdw] = backward(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
+        %numel(mydzdx) = numel(blob), numel(mydzdw) = numel(weights)
         if opts.gpu
             zero = gpuArray(0);
             for i=1:numel(blob)
-                outputdzdx{1} = blob{1}*zero;
+                mydzdx{1} = blob{1}*zero;
             end
         else
             for i=1:numel(blob)
-                outputdzdx{1} = blob{1}*0;
+                mydzdx{1} = blob{1}*0;
             end
         end
-        
-        outputdzdw = {};
+
     end
 
 end

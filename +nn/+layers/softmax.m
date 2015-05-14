@@ -30,13 +30,10 @@ o.backward     = @backward;
         outputBlob = { y };
 
     end
-    function [outputdzdx, outputdzdw] = backward(opts, l, weights, blob, dzdy)
-        outputdzdw = {};
-
+    function [mydzdx, mydzdw] = backward(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
         y = exp( bsxfun(@minus, blob{1}, max(blob{1}, [], 3)) );
         y = bsxfun(@rdivide, y, sum(y,3));
         y = y .* bsxfun(@minus, dzdy{1}, sum(dzdy{1} .* y, 3));
-        outputdzdx = { y };
-
+        mydzdx = { y };
     end
 end

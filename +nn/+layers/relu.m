@@ -67,14 +67,12 @@ end
         outputBlob{1} = feval(cuKernel.forward, blob{1}, numel(blob{1}));
     end
 
-    function [outputdzdx, outputdzdw] = backward(opts, l, weights, blob, dzdy)
-        %numel(outputdzdx) = numel(blob), numel(outputdzdw) = numel(weights)
-        outputdzdx{1} = (blob{1} > 0) .* dzdy{1};
-        outputdzdw = {};
+    function [mydzdx, mydzdw] = backward(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
+        %numel(mydzdx) = numel(blob), numel(mydzdw) = numel(weights)
+        mydzdx{1} = (blob{1} > 0) .* dzdy{1};
     end
-    function [outputdzdx, outputdzdw] = backward_CUDAKernel(opts, l, weights, blob, dzdy)
-        outputdzdx{1} = feval(cuKernel.backward, blob{1}, dzdy{1}, numel(blob{1}));
-        outputdzdw = {};
+    function [mydzdx, mydzdw] = backward_CUDAKernel(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
+        mydzdx{1} = feval(cuKernel.backward, blob{1}, dzdy{1}, numel(blob{1}));
     end
 
 end

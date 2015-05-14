@@ -110,18 +110,18 @@ default_contrastiveLoss_param = {
 
     end
 
-    function [outputdzdx, outputdzdw] = backward(opts, l, weights, blob, dzdy)
-        outputdzdw = {};
-        outputdzdx = cell(1,3);
+    function [mydzdx, mydzdw] = backward(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
+        %mydzdw = {};
+        mydzdx = cell(1,3);
         m_d = l.contrastiveLoss_param.margin - d;
         rightTerm = d_;
         rightTerm(:,:,:,m_d(:)<=0) = 0;
         y = blob{3};
-        outputdzdx{1} = dzdy{1} * (bsxfun(@times, d_, y) - bsxfun(@times, rightTerm, 1-y));% / size(blob{1}, 4);
-        outputdzdx{2} = -outputdzdx{1};
+        mydzdx{1} = dzdy{1} * (bsxfun(@times, d_, y) - bsxfun(@times, rightTerm, 1-y));% / size(blob{1}, 4);
+        mydzdx{2} = -mydzdx{1};
     end
-    function [outputdzdx, outputdzdw] = backward_CUDAKernel(opts, l, weights, blob, dzdy)
-        outputdzdw = {};
-        [outputdzdx{1}, outputdzdx{2}] = feval(cuKernel.backward, blob{1}, blob{2}, dzdy{1}, blob{3}, d, l.contrastiveLoss_param.margin, numel(blob{1}), numel(blob{1})/numel(blob{3}));
+    function [mydzdx, mydzdw] = backward_CUDAKernel(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
+        %mydzdw = {};
+        [mydzdx{1}, mydzdx{2}] = feval(cuKernel.backward, blob{1}, blob{2}, dzdy{1}, blob{3}, d, l.contrastiveLoss_param.margin, numel(blob{1}), numel(blob{1})/numel(blob{3}));
     end
 end

@@ -62,8 +62,8 @@ default_crop_param = {
     end
 
 
-    function [outputdzdx, outputdzdw] = backward(opts, l, weights, blob, dzdy)
-        %numel(outputdzdx) = numel(blob), numel(outputdzdw) = numel(weights)
+    function [mydzdx, mydzdw] = backward(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
+        %numel(mydzdx) = numel(blob), numel(mydzdw) = numel(weights)
         s = [1,1,1,1];
         sizeofBlob2 = size(blob{2});
         sizeofBlob1 = size(blob{1});
@@ -73,12 +73,10 @@ default_crop_param = {
         if isempty(o)
             o = -round((s(1:2) - sizeofBlob1(1:2))/2);% compatible with FCN's crop layer??
         end
-        outputdzdx{1} = blob{1}*0; %use this trick if you dont want to use 'if opt.gpu ...'
-        outputdzdx{1}(o(1)+1:o(1)+s(1), o(2)+1:o(2)+s(2), :, :) = dzdy{1};
-        outputdzdx{2} = [];
+        mydzdx{1} = blob{1}*0; %use this trick if you dont want to use 'if opt.gpu ...'
+        mydzdx{1}(o(1)+1:o(1)+s(1), o(2)+1:o(2)+s(2), :, :) = dzdy{1};
+        mydzdx{2} = [];
 
-        
-        outputdzdw = {};
     end
 
 end

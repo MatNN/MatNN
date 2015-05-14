@@ -90,11 +90,25 @@ default_deconvolution_param = {
     end
 
 
-    function [outputdzdx, outputdzdw] = backward(opts, l, weights, blob, dzdy)
-        %numel(outputdzdx) = numel(blob), numel(outputdzdw) = numel(weights)
+    function [mydzdx, mydzdw] = backward(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
+        %numel(mydzdx) = numel(blob), numel(mydzdw) = numel(weights)
 
         [~, outputdzdw{1}, outputdzdw{2}] = vl_nnconv(dzdy{1}, weights{1}, weights{2}, blob{1}, 'pad', l.deconvolution_param.pad, 'stride', l.deconvolution_param.stride);
-        outputdzdx{1}                     = vl_nnconv(dzdy{1}, weights{1}, weights{2}, 'pad', l.deconvolution_param.pad, 'stride', l.deconvolution_param.stride);
+        mydzdx{1}                         = vl_nnconv(dzdy{1}, weights{1}, weights{2}, 'pad', l.deconvolution_param.pad, 'stride', l.deconvolution_param.stride);
+
+        if mydzdwCumu(1) && mydzdwCumu(2)
+            mydzdw{1} = mydzdw{1}+outputdzdw{1};
+            mydzdw{2} = mydzdw{2}+outputdzdw{2};
+        elseif mydzdwCumu(1)
+            mydzdw{1} = mydzdw{1}+outputdzdw{1};
+            mydzdw{2} = outputdzdw{2};
+        elseif mydzdwCumu(2)
+            mydzdw{1} = outputdzdw{1};
+            mydzdw{2} = mydzdw{2}+outputdzdw{2};
+        else
+            mydzdw{1} = outputdzdw{1};
+            mydzdw{2} = outputdzdw{2};
+        end
 
     end
 

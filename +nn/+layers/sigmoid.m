@@ -31,11 +31,11 @@ o.backward     = @backward;
     end
 
 
-    function [outputdzdx, outputdzdw] = backward(opts, l, weights, blob, dzdy)
-        %numel(outputdzdx) = numel(blob), numel(outputdzdw) = numel(weights)
+    function [mydzdx, mydzdw] = backward(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
+        %numel(mydzdx) = numel(blob), numel(mydzdw) = numel(weights)
         sigmoid =  1./(1+exp(-blob{1})) ;
-        outputdzdx{1} = dzdy{1}.*(sigmoid.*(1-sigmoid));
-        outputdzdw = {};
+        mydzdx{1} = dzdy{1}.*(sigmoid.*(1-sigmoid));
+        mydzdw = {};
     end
 
 end

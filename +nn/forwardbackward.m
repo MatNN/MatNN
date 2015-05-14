@@ -61,7 +61,11 @@ for i = opts.visitLayerID
   
     % optionally forget intermediate results
     if forget && (~isfield(l, 'rememberOutput') || ~l.rememberOutput)
-        res.blob(l.bottom) = {0};
+        if opts.gpuMode
+            res.blob(l.bottom) = {gpuArray(single(0))};
+        else
+            res.blob(l.bottom) = {single(0)};
+        end
     end
     if waitGPU
         % This should make things slower, but on MATLAB 2014a it is necessary
@@ -84,8 +88,8 @@ if opts.doder
     for i = opts.visitLayerID(end:-1:1)
         l = net.layers{i};
     
-        [tmpdzdx, tmpdzdw] = net.layerobjs{i}.backward(opts, l, net.weights(l.weights), res.blob(l.bottom), res.dzdx(l.top));
-
+        [tmpdzdx, res.dzdw(l.weights)] = net.layerobjs{i}.backward(opts, l, net.weights(l.weights), res.blob(l.bottom), res.dzdx(l.top), res.dzdw(l.weights), res.dzdwVisited(l.weights));
+        res.dzdwVisited(l.weights) = true;
         % Don't try to clear res.dzdx or res.dzdw at first, you will get terrble performace!!
         % If you try to clear them at first so you can get rid of if-statement of opts.accumulate
         % , the performance will drain a lot.
@@ -102,22 +106,25 @@ if opts.doder
             res.dzdx(l.bottom(dzdxEmpty)) = tmpdzdx(dzdxEmpty);
         end
         
+        %{
         % be careful of modifying this.
         dzdwEmpty = ~cellfun('isempty', tmpdzdw);
-        st = res.dzdwVisited(l.weights) | opts.accumulate;
-        %dzdwEmpty1 = dzdwEmpty & st;
-        dzdwEmpty2 = dzdwEmpty & ~st;
-        for w = find(dzdwEmpty & st)
+        dzdwEmpty2 = dzdwEmpty & ~res.dzdwVisited(l.weights);
+        for w = find(dzdwEmpty & res.dzdwVisited(l.weights))
             res.dzdw{l.weights(w)} = res.dzdw{l.weights(w)} + tmpdzdw{w};
         end
         % blow is slightly slower than loop (above)
         %res.dzdw(l.weights(dzdwEmpty1)) = cellfun(@plus, res.dzdw(l.weights(dzdwEmpty1)), tmpdzdw(dzdwEmpty1), 'UniformOutput', false);
         res.dzdw(l.weights(dzdwEmpty2)) = tmpdzdw(dzdwEmpty2);
-    
         res.dzdwVisited(l.weights(dzdwEmpty)) = true;
+        %}
     
         if opts.conserveMemory %delete used dzdx{top}, no need to consider loss or accuracy, because der(loss)=1, and accuracy has no backward computation
-            res.dzdx(l.top) = {0};
+            if opts.gpuMode
+                res.dzdx(l.top) = {gpuArray(single(0))};
+            else
+                res.dzdx(l.top) = {single(0)};
+            end
         end
         if waitGPU
             wait(gpuDevice);

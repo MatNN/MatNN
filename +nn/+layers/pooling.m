@@ -58,10 +58,10 @@ default_pooling_param = {
     end
 
 
-    function [outputdzdx, outputdzdw] = backward(opts, l, weights, blob, dzdy)
-        %numel(outputdzdx) = numel(blob), numel(outputdzdw) = numel(weights)
-        outputdzdx{1} = vl_nnpool(blob{1}, l.pooling_param.kernel_size, dzdy{1}, 'pad', l.pooling_param.pad, 'stride', l.pooling_param.stride, 'method', l.pooling_param.method);
-        outputdzdw = {};
+    function [mydzdx, mydzdw] = backward(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
+        %numel(mydzdx) = numel(blob), numel(mydzdw) = numel(weights)
+        mydzdx{1} = vl_nnpool(blob{1}, l.pooling_param.kernel_size, dzdy{1}, 'pad', l.pooling_param.pad, 'stride', l.pooling_param.stride, 'method', l.pooling_param.method);
+        %mydzdw = {};
     end
 
 end

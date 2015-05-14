@@ -306,6 +306,7 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
             end
         end
         res.dzdwVisited = res.dzdwVisited & false;
+        
         cumuTrainedDataNumber = cumuTrainedDataNumber+dataN;
         if training
             if numGpus <= 1

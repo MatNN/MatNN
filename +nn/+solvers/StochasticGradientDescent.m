@@ -42,14 +42,13 @@ for w = 1:numel(res.dzdw)
     %}
     thisDecay = opts.weightDecay * net.weightDecay(w) ;
     thisLR = lr * net.learningRate(w) / batchSize ;
-    net.momentum{w} = arrayfun(@mofun, opts.momentum, net.momentum{w}, thisLR, thisDecay, net.weights{w}, res.dzdw{w});
-    %net.momentum{w} = opts.momentum * net.momentum{w} - thisLR*(thisDecay * net.weights{w} + res.dzdw{w}) ;
-    net.weights{w}  = net.weights{w} + net.momentum{w} ;
+    [net.weights{w}, net.momentum{w}] = arrayfun(@mofun, opts.momentum, net.momentum{w}, thisLR, thisDecay, net.weights{w}, res.dzdw{w});
 end
 
 
 end
 
-function mo1 = mofun(mo, mo1,lr,dc,w,dzdw)
+function [w, mo1] = mofun(mo, mo1,lr,dc,w,dzdw)
     mo1  = mo.*mo1 - lr.*(dc.*w + dzdw);
+    w = w+mo1;
 end

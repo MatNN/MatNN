@@ -50,7 +50,7 @@ N          = [];
     end
     function [outputBlob, weightUpdate] = forward(opts, l, weights, blob)
         weightUpdate = {};
-        %{-
+
         resultBlob = max(blob{1}, l.softmaxLoss_param.threshold);
         resSize = size(resultBlob);
         labelSize = size(blob{2});
@@ -78,26 +78,13 @@ N          = [];
             y = LogSumExp(resultBlob, 3);
         end
         outputBlob = { sum( y(:)'-resultBlob(ind) )/N };
-        %}
-        %{
-        y=vl_nnsoftmaxloss(blob{1},blob{2}+1);
-        outputBlob = { y };
-        %}
     end
-    function [outputdzdx, outputdzdw] = backward(opts, l, weights, blob, dzdy)
-        outputdzdw = {};
-
-        %{-
+    function [mydzdx, mydzdw] = backward(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
         %compute derivative
         y = Exp(resultBlob, 3);
         y = bsxfun(@rdivide, y, sum(y,3));
         y(ind) = y(ind)-1;
-        outputdzdx = { y*dzdy{1}/N , []};
-        %}
-        %{
-        y=vl_nnsoftmaxloss(blob{1},blob{2}+1, dzdy{1});
-        outputdzdx = { y,[] };
-        %}
+        mydzdx = { y*dzdy{1}/N , []};
     end
 end
 
