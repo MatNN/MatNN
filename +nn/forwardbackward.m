@@ -28,12 +28,19 @@ function res = forwardbackward(net, x, dzdy, res, opts)
 %  opts.visitLayerID = 1:numel(net.layers);
 %  opts.gpuMode = false;
 %  opts.doder = false;
-
+forget = opts.conserveMemory & ~opts.doder;
+waitGPU = opts.gpuMode & opts.sync;
 
 if isempty(res)
-    res.blob  = num2cell(zeros(1, numel(net.blobNames), 'single'));
-    res.dzdx  = num2cell(zeros(1, numel(net.blobNames), 'single')); % each cell contains another cell, and the inner cell's length is respected to the number of bottoms that a layer accepts
-    res.dzdw  = num2cell(zeros(1, numel(net.weightsNames), 'single')); % Each dzdw{w} corresponds to a net.weights{w}, no separate dzdw for each layer
+    if opts.gpuMode
+        res.blob  = num2cell(gpuArray.zeros(1, numel(net.blobNames), 'single'));
+        res.dzdx  = num2cell(gpuArray.zeros(1, numel(net.blobNames), 'single')); % each cell contains another cell, and the inner cell's length is respected to the number of bottoms that a layer accepts
+        res.dzdw  = num2cell(gpuArray.zeros(1, numel(net.weightsNames), 'single')); % Each dzdw{w} corresponds to a net.weights{w}, no separate dzdw for each layer
+    else
+        res.blob  = num2cell(zeros(1, numel(net.blobNames), 'single'));
+        res.dzdx  = num2cell(zeros(1, numel(net.blobNames), 'single')); % each cell contains another cell, and the inner cell's length is respected to the number of bottoms that a layer accepts
+        res.dzdw  = num2cell(zeros(1, numel(net.weightsNames), 'single')); % Each dzdw{w} corresponds to a net.weights{w}, no separate dzdw for each layer
+    end
     res.dzdwVisited = false(size(res.dzdw));
 end
 
@@ -44,24 +51,19 @@ end
 
 for i = opts.visitLayerID
     l = net.layers{i};
-    lo = net.layerobjs{i};
   
-    [topBlob, weightUpdate] = lo.forward(opts, l, net.weights(l.weights), res.blob(l.bottom));
-    res.blob(l.top) = topBlob; % if a layer don't generate output, it still should fill topBlob as {[],[],...}
+    % if a layer don't generate output, it still should fill topBlob as {[],[],...}
+    [res.blob(l.top), weightUpdate] = net.layerobjs{i}.forward(opts, l, net.weights(l.weights), res.blob(l.bottom));
   
     if ~isempty(weightUpdate)
         net.weights(l.weights(weightUpdate{1})) = weightUpdate{2};
     end
   
     % optionally forget intermediate results
-    forget = opts.conserveMemory;
-    forget = forget & (~opts.doder || strcmp(lo.name, 'ReLU'));
-    forget = forget & ~lo.generateLoss;
-    forget = forget & (~isfield(l, 'rememberOutput') || ~l.rememberOutput);
-    if forget
-        res.blob(l.top) = {[]};
+    if forget && (~isfield(l, 'rememberOutput') || ~l.rememberOutput)
+        res.blob(l.bottom) = {0};
     end
-    if opts.gpuMode && opts.sync
+    if waitGPU
         % This should make things slower, but on MATLAB 2014a it is necessary
         % for any decent performance.
         wait(gpuDevice);
@@ -83,7 +85,6 @@ if opts.doder
         l = net.layers{i};
     
         [tmpdzdx, tmpdzdw] = net.layerobjs{i}.backward(opts, l, net.weights(l.weights), res.blob(l.bottom), res.dzdx(l.top));
-        
 
         % Don't try to clear res.dzdx or res.dzdw at first, you will get terrble performace!!
         % If you try to clear them at first so you can get rid of if-statement of opts.accumulate
@@ -116,9 +117,9 @@ if opts.doder
         res.dzdwVisited(l.weights(dzdwEmpty)) = true;
     
         if opts.conserveMemory %delete used dzdx{top}, no need to consider loss or accuracy, because der(loss)=1, and accuracy has no backward computation
-            res.dzdx(l.top) = {[]};
+            res.dzdx(l.top) = {0};
         end
-        if opts.gpuMode && opts.sync
+        if waitGPU
             wait(gpuDevice);
         end
     end
