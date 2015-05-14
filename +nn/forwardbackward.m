@@ -53,17 +53,18 @@ for i = opts.visitLayerID
     l = net.layers{i};
   
     % if a layer don't generate output, it still should fill topBlob as {[],[],...}
-    if ~isempty(l.weights)
+    %if ~isempty(l.weights)
         [res.blob(l.top), net.weights(l.weights)] = net.layerobjs{i}.forward(opts, l, net.weights(l.weights), res.blob(l.bottom));
-    else
-        [res.blob(l.top), ~] = net.layerobjs{i}.forward(opts, l, {}, res.blob(l.bottom));
-    end
+    %else
+    %    [res.blob(l.top), ~] = net.layerobjs{i}.forward(opts, l, {}, res.blob(l.bottom));
+    %end
+
     % optionally forget intermediate results
     if forget && (~isfield(l, 'rememberOutput') || ~l.rememberOutput)
         if opts.gpuMode
-            res.blob(l.bottom) = {gpuArray(single(0))};
+            res.blob(l.top) = {gpuArray(single(0))};
         else
-            res.blob(l.bottom) = {single(0)};
+            res.blob(l.top) = {single(0)};
         end
     end
     if waitGPU

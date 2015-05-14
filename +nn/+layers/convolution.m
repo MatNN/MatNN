@@ -92,7 +92,7 @@ default_convolution_param = {
             [ mydzdx{1}, a, b ]= ...
                              vl_nnconv(blob{1}, weights{1}, weights{2}, dzdy{1}, 'pad', l.convolution_param.pad, 'stride', l.convolution_param.stride);
             mydzdw{1} = mydzdw{1} + a;
-            mydzdw{2} = arrayfun(@plus, mydzdw{2}, b);
+            mydzdw{2} = mydzdw{2} + b;
         elseif mydzdwCumu(1)
             [ mydzdx{1}, outputdzdw, mydzdw{2} ]= ...
                              vl_nnconv(blob{1}, weights{1}, weights{2}, dzdy{1}, 'pad', l.convolution_param.pad, 'stride', l.convolution_param.stride);
