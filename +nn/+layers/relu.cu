@@ -1,7 +1,14 @@
-__global__ void backward( float * dzdx, const float dzdy, const float * bottom, const int len) 
+__global__ void forward(float * bottom, const int len) 
 {
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
     if (idx >= len) return;
     
-    dzdx[idx] = bottom[idx] > 0.0f ? dzdy:0.0f;
+    bottom[idx] = max(bottom[idx], 0.0f);
+}
+__global__ void backward(float * bottom, const float * dzdy, const int len) 
+{
+    int idx = threadIdx.x + blockIdx.x * blockDim.x;
+    if (idx >= len) return;
+    
+    bottom[idx] = bottom[idx] > 0.0f ? dzdy[idx]:0.0f;
 }
