@@ -1,4 +1,4 @@
-function [net, net_trained] = mnist(baseNet)
+function [net_trained] = mnist(baseNet)
 if nargin == 1
     no = nn.buildnet('MNIST', baseNet);
 else

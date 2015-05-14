@@ -1,4 +1,4 @@
-function [net, net_trained] = mnist_siamese(baseNet)
+function [net_trained] = mnist_siamese(baseNet)
 if nargin == 1
     no = nn.buildnet('MNIST_siamese', baseNet);
 else
@@ -292,7 +292,7 @@ opts.learningRateGamma = 0.0001;
 opts.learningRatePower = 0.75;
 opts.weightDecay = 0.0000;
 
-opts.continue = [] ; % if you specify the saving's iteration/epoch number, you can load it
+opts.continue = []; % if you specify the saving's iteration/epoch number, you can load it
 opts.expDir = fullfile('data','exp') ;
 opts.conserveMemory = false ;
 opts.sync = false ;
