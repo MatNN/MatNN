@@ -159,6 +159,9 @@ end
 
 %saveTimes = numel(startInd:opts.numToSave:(runTimes-1))+1;
 
+% Save current time
+startTime = tic;
+
 %rngState = rng;
 % start training from the last position
 for i = startInd:opts.numToSave:(runTimes-1)
@@ -210,6 +213,9 @@ end
 %restores rng state
 %rng(rngState);
 
+% Report training/evaluation time
+startTime = toc(startTime);
+fprintf('<strong>Total running time:</strong> %.2fs\n', startTime);
 
 % ---- main function's end
 end
@@ -256,6 +262,17 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
         opts.displayIter = rangeNumber;
     end
 
+    %create options for forwardbackward
+    optFB.accumulate = false;
+    optFB.conserveMemory = opts.conserveMemory;
+    optFB.sync = opts.sync;
+    optFB.disableDropout = ~training;
+    optFB.freezeDropout = false;
+    optFB.visitLayerID = visitLayerID;
+    optFB.gpuMode = numGpus >= 1;
+    optFB.doder = training;
+
+
     accumulateOutBlobs = zeros(size(outputBlobID));
     res = [];
     count = 1;
@@ -278,13 +295,9 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
         for s=1:numSubBatches
             % evaluate CNN
             if training, dzdy = one; else, dzdy = []; end
-            res = nn.forwardbackward(net, data{s}, dzdy, res, ...
-                        'visitLayerID', visitLayerID, ...
-                        'accumulate', s ~= 1, ...
-                        'disableDropout', ~training, ...
-                        'conserveMemory', opts.conserveMemory, ...
-                        'sync', opts.sync, ...
-                        'gpuMode', numGpus >= 1) ;
+            optFB.accumulate = s ~= 1;
+            res = nn.forwardbackward(net, data{s}, dzdy, res, optFB);
+
             % accumulate training errors
             % assume all output blobs are loss-like blobs
             for ac = 1:numel(accumulateOutBlobs)

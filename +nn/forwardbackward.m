@@ -1,4 +1,4 @@
-function res = forwardbackward(net, x, dzdy, res, varargin)
+function res = forwardbackward(net, x, dzdy, res, opts)
 %FORWARDBACKWARD  Evaluates a neural network built with buildnet.m
 %
 %
@@ -16,33 +16,25 @@ function res = forwardbackward(net, x, dzdy, res, varargin)
 %  NOTICE
 %  if your layer produces .misc, you need to maintain its gpu/cpu array consistency.
 %
+%  Default values: (for faster computation, disable value checking, you should
+%                   provide all of the following options)
+%
+%  
+%  opts.accumulate = false;
+%  opts.conserveMemory = false;
+%  opts.sync = false;
+%  opts.disableDropout = false;
+%  opts.freezeDropout = false;
+%  opts.visitLayerID = 1:numel(net.layers);
+%  opts.gpuMode = false;
+%  opts.doder = false;
 
-opts.accumulate = false;
-opts.conserveMemory = false;
-opts.sync = false;
-opts.disableDropout = false;
-opts.freezeDropout = false;
-opts.visitLayerID = 1:numel(net.layers);
-opts.gpuMode = false;
 
-opts = nn.utils.vararginHelper(opts, varargin);
-
-
-n = numel(net.layers) ;
-
-if (nargin <= 2) || isempty(dzdy)
-    doder = false ;
-else
-    doder = true ;
-end
-
-if nargin <= 3 || isempty(res)
+if isempty(res)
     res.blob  = num2cell(zeros(1, numel(net.blobNames), 'single'));
     res.dzdx  = num2cell(zeros(1, numel(net.blobNames), 'single')); % each cell contains another cell, and the inner cell's length is respected to the number of bottoms that a layer accepts
     res.dzdw  = num2cell(zeros(1, numel(net.weightsNames), 'single')); % Each dzdw{w} corresponds to a net.weights{w}, no separate dzdw for each layer
     res.dzdwVisited = false(size(res.dzdw));
-    res.time  = zeros(1,n+1);
-    res.backwardTime = zeros(1,n+1);
 end
 
 for i = fieldnames(x)'
@@ -51,10 +43,10 @@ for i = fieldnames(x)'
 end
 
 for i = opts.visitLayerID
-    l = net.layers{i} ;
-    forwardBegin = tic ;
+    l = net.layers{i};
+    lo = net.layerobjs{i};
   
-    [topBlob, weightUpdate] = net.layerobjs{i}.forward(opts, l, net.weights(l.weights), res.blob(l.bottom));
+    [topBlob, weightUpdate] = lo.forward(opts, l, net.weights(l.weights), res.blob(l.bottom));
     res.blob(l.top) = topBlob; % if a layer don't generate output, it still should fill topBlob as {[],[],...}
   
     if ~isempty(weightUpdate)
@@ -62,23 +54,22 @@ for i = opts.visitLayerID
     end
   
     % optionally forget intermediate results
-    forget = opts.conserveMemory ;
-    forget = forget & (~doder || strcmp(~net.layerobjs{i}.name, 'ReLU')) ;
-    forget = forget & ~net.layerobjs{i}.generateLoss ;
-    forget = forget & (~isfield(l, 'rememberOutput') || ~l.rememberOutput) ;
+    forget = opts.conserveMemory;
+    forget = forget & (~opts.doder || strcmp(lo.name, 'ReLU'));
+    forget = forget & ~lo.generateLoss;
+    forget = forget & (~isfield(l, 'rememberOutput') || ~l.rememberOutput);
     if forget
-        res.blob(l.top) = {[]} ;
+        res.blob(l.top) = {[]};
     end
     if opts.gpuMode && opts.sync
         % This should make things slower, but on MATLAB 2014a it is necessary
         % for any decent performance.
-        wait(gpuDevice) ;
+        wait(gpuDevice);
     end
-    res.time(i) = toc(forwardBegin) ;
 end
 
 
-if doder
+if opts.doder
 
     % Make output blobs have their derivatives
     % consider the derivatives of all output blobs are
@@ -86,11 +77,10 @@ if doder
     % You can make a weight scaler for loss, just write a
     % custom layer that multiplies the scaler onto it
     outputBlob = cellfun('isempty', net.blobConnectId);
-    res.dzdx(outputBlob) = {dzdy} ;
+    res.dzdx(outputBlob) = {dzdy};
   
     for i = opts.visitLayerID(end:-1:1)
-        l = net.layers{i} ;
-        backwardBegin = tic ;
+        l = net.layers{i};
     
         [tmpdzdx, tmpdzdw] = net.layerobjs{i}.backward(opts, l, net.weights(l.weights), res.blob(l.bottom), res.dzdx(l.top));
         
@@ -114,9 +104,9 @@ if doder
         % be careful of modifying this.
         dzdwEmpty = ~cellfun('isempty', tmpdzdw);
         st = res.dzdwVisited(l.weights) | opts.accumulate;
-        dzdwEmpty1 = dzdwEmpty & st;
+        %dzdwEmpty1 = dzdwEmpty & st;
         dzdwEmpty2 = dzdwEmpty & ~st;
-        for w = find(dzdwEmpty1)
+        for w = find(dzdwEmpty & st)
             res.dzdw{l.weights(w)} = res.dzdw{l.weights(w)} + tmpdzdw{w};
         end
         % blow is slightly slower than loop (above)
@@ -126,12 +116,10 @@ if doder
         res.dzdwVisited(l.weights(dzdwEmpty)) = true;
     
         if opts.conserveMemory %delete used dzdx{top}, no need to consider loss or accuracy, because der(loss)=1, and accuracy has no backward computation
-            res.dzdx(l.top) = {[]} ;
+            res.dzdx(l.top) = {[]};
         end
         if opts.gpuMode && opts.sync
-            wait(gpuDevice) ;
+            wait(gpuDevice);
         end
-        res.backwardTime(i) = toc(backwardBegin) ;
-  
     end
 end
