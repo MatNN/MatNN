@@ -23,6 +23,9 @@ default_deconvolution_param = {
           'stride' [1 1] ...
 };
 
+%
+topSizes = [];
+
     function [resource, topSizes, param] = setup(l, bottomSizes)
         % resource only have .weights
         % if you have other outputs you want to save or share
@@ -82,7 +85,13 @@ default_deconvolution_param = {
 
 
     function [outputBlob, weights] = forward(opts, l, weights, blob)
-        [ y, ~, ~ ] = vl_nnconv(blob{1}, weights{1}, weights{2}, blob{1}, 'pad', l.deconvolution_param.pad, 'stride', l.deconvolution_param.stride);
+        if opts.gpuMode
+            y = gpuArray.zeros(topSizes, 'single');
+        else
+            y = zeros(topSizes, 'single');
+        end
+
+        [ y, ~, ~ ] = vl_nnconv(y, weights{1}, weights{2}, blob{1}, 'pad', l.deconvolution_param.pad, 'stride', l.deconvolution_param.stride);
         y = bsxfun(@plus, y, reshape(weights{2},1,1,[],1));
         outputBlob{1} = y;
     end
