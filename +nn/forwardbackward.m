@@ -19,6 +19,7 @@ function res = forwardbackward(net, x, dzdy, res, opts)
 %  opts.visitLayerID = 1:numel(net.layers);
 %  opts.gpuMode = false;
 %  opts.doder = false;
+
 forget = opts.conserveMemory & ~opts.doder;
 waitGPU = opts.gpuMode & opts.sync;
 outputBlobCount = cellfun(@numel, net.blobConnectId);

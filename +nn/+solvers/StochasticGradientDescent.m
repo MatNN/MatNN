@@ -37,7 +37,7 @@ function obj = StochasticGradientDescent(architecture, net)
             %      sum up gradient!!!
             %
             % Solution:
-            % 1.2.3. solved by simplenn, direct add dzdx to corresponds top's dzdx
+            % 1.2.3. solved by forwardbackward, direct add dzdx to corresponds top's dzdx
             %        becuase currently not yet implemnt a layer with wights+ multiple tops
             %        so need to verify 2. !!!!!!!!!
             % 4-2.   same as 2.
