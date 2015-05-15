@@ -21,6 +21,7 @@ opts.learningRateSteps = 1000;
 opts.learningRatePolicy = @(currentBatchNumber, lr, gamma, power, steps) lr*(gamma^floor(currentBatchNumber/steps));
 opts.weightDecay = 0.0005;
 opts.momentum = 0.9;
+opts.solver   = nn.solvers.StochasticGradientDescent;
 
 opts.continue = [] ; % if you specify the saving's iteration/epoch number, then you can load it
 opts.expDir = fullfile('data','exp');
@@ -161,6 +162,9 @@ end
 
 % Save current time
 startTime = tic;
+
+% setup solver
+opts.solver.solve = opts.solver.setup(opts.computeMode);
 
 %rngState = rng;
 % start training from the last position
@@ -306,16 +310,16 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
             end
         end
         res.dzdwVisited = res.dzdwVisited & false;
-        
+
         cumuTrainedDataNumber = cumuTrainedDataNumber+dataN;
         if training
             if numGpus <= 1
-                net = nn.solvers.StochasticGradientDescent(opts, learningRate, dataN, net, res);
+                net = opts.solver.solve(opts, learningRate, dataN, net, res);
             else
                 labBarrier();
                 %accumulate weights from other labs
                 res.dzdw = gop(@(a,b) cellfun(@plus, a,b, 'UniformOutput', false), res.dzdw);
-                net = nn.solvers.StochasticGradientDescent(opts, learningRate, dataN, net, res);
+                net = opts.solver.solve(opts, learningRate, dataN, net, res);
             end
             % print learning statistics
             
