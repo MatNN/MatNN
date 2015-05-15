@@ -2,8 +2,8 @@ function batchStruct = generate(useGpu, varargin)
 %GENERATE Given a set of parameters and gerante a batch structure for you.
 %
 %  USAGE
-%  GENERATE(USEGPU, 'File', list, 'ProcessFunction', @handle, 'BatchSize', N)
-%  GENERATE(USEGPU, 'File', list, 'BatchSize', N)
+%  GENERATE(USEGPU, 'Name', name, 'File', list, 'ProcessFunction', @handle, 'BatchSize', N)
+%  GENERATE(USEGPU, 'Name', name, 'File', list, 'BatchSize', N)
 %  this means you write a @handle to load image
 %  your handle must has one input to accept a subset of list.
 %  'ProcessFunction' indicates that your data needs read and processing.
