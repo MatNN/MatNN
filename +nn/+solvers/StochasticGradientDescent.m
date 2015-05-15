@@ -6,7 +6,7 @@ function obj = StochasticGradientDescent()
 
     function solve = setup(architecture)
         if strcmp(architecture, 'cuda kernel')
-            solve = @solver;
+            solve = @solver_CUDAKernel;
             ptxFile = fullfile('+nn','+solvers','StochasticGradientDescent.ptx');
             cuFile = fullfile('+nn','+solvers','StochasticGradientDescent.cu');
 
