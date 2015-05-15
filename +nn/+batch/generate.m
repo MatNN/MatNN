@@ -7,7 +7,7 @@ function batchStruct = generate(useGpu, varargin)
 %  this means you write a @handle to load image
 %  your handle must has one input to accept a subset of list.
 %  'ProcessFunction' indicates that your data needs read and processing.
-%  Note: 1. If your @handle return is not in WHCN shape, than you must specify
+%  Note: 1. If your @handle return is not in HWCN shape, than you must specify
 %           @handle2 to process your data
 %        2. If you don't specify @handle , your list will be treated as
 %           an jpeg image list, and read it use vl_imreadjpeg without prefetch.
