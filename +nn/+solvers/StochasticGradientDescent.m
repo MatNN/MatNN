@@ -14,8 +14,7 @@ function obj = StochasticGradientDescent()
             cuKernel = parallel.gpu.CUDAKernel(ptxFile, cuFile, 'forward');
             cuKernel.ThreadBlockSize = cuKernel.MaxThreadsPerBlock;
             N = cellfun(@numel, net.weights);
-            N = max(N);
-            cuKernel.GridSize = ceil(N/cuKernel.MaxThreadsPerBlock);
+            cuKernel.GridSize = ceil(max(N)/cuKernel.MaxThreadsPerBlock);
         end
     end
     function net = solver(opts, lr, batchSize, net, res)

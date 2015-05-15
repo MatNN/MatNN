@@ -22,6 +22,9 @@ function res = forwardbackward(net, x, dzdy, res, opts)
 forget = opts.conserveMemory & ~opts.doder;
 waitGPU = opts.gpuMode & opts.sync;
 outputBlobCount = cellfun(@numel, net.blobConnectId);
+ll = net.layers;
+lo = net.layerobjs;
+ww = net.weights;
 
 if isempty(res)
     if opts.gpuMode
@@ -44,11 +47,11 @@ for i = fieldnames(x)'
 end
 
 for i = opts.visitLayerID
-    l = net.layers{i};
+    l = ll{i};
   
     % if a layer don't generate output, it still should fill topBlob as {[],[],...}
     %if ~isempty(l.weights)
-        [res.blob(l.top), net.weights(l.weights)] = net.layerobjs{i}.forward(opts, l, net.weights(l.weights), res.blob(l.bottom));
+        [res.blob(l.top), ww(l.weights)] = lo{i}.forward(opts, l, ww(l.weights), res.blob(l.bottom));
     %else
     %    [res.blob(l.top), ~] = net.layerobjs{i}.forward(opts, l, {}, res.blob(l.bottom));
     %end
@@ -85,11 +88,11 @@ if opts.doder
     % custom layer that multiplies the scaler onto it
     outputBlob = cellfun('isempty', net.blobConnectId);
     res.dzdx(outputBlob) = {dzdy};
-  
-    for i = opts.visitLayerID(end:-1:1)
-        l = net.layers{i};
     
-        [tmpdzdx, res.dzdw(l.weights)] = net.layerobjs{i}.backward(opts, l, net.weights(l.weights), res.blob(l.bottom), res.dzdx(l.top), res.dzdw(l.weights), res.dzdwVisited(l.weights));
+    for i = opts.visitLayerID(end:-1:1)
+        l = ll{i};
+    
+        [tmpdzdx, res.dzdw(l.weights)] = lo{i}.backward(opts, l, ww(l.weights), res.blob(l.bottom), res.dzdx(l.top), res.dzdw(l.weights), res.dzdwVisited(l.weights));
         res.dzdwVisited(l.weights) = true;
         % Don't try to clear res.dzdx or res.dzdw at first, you will get terrble performace!!
         % If you try to clear them at first so you can get rid of if-statement of opts.accumulate
