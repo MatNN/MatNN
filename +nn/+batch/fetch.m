@@ -3,7 +3,7 @@ function [fourDdata, dataN, batchStruct] = fetch(batchStruct, useGpu, sliceNumbe
 %  USAGE
 %  [fourDdata, dataN, batchStruct] = fetch(batchStruct)
 %
-%  dataN is the fourth dimension size of data
+%  dataN is the data number
 %
 %  NOTICE 1
 %  Each time you call this function you will get a net batchStruct, which stores the current batch informations.
@@ -15,11 +15,11 @@ function [fourDdata, dataN, batchStruct] = fetch(batchStruct, useGpu, sliceNumbe
 %  or raise the probability of the data you want to sampled.
 %
 %  NOTICE 3
-%  Your training procedure must change the value of batchStruct.lastErrorRateOfData if you use your own
-%  random procedure.
+%  Training procedure must change the value of batchStruct.lastErrorRateOfData (if you use your own
+%  random procedure.)
 %
 %  NOTICE 4
-%  sliceNumber > 1 will slice fourDdata.() into equal number parts.
+%  sliceNumber > 1 will slice fourDdata.('***') into equal number of parts.
 %  eg. if your original data is fourDdata.data, and fourDdata.label
 %      sliceNumber = 3, then the final fourDdata is a cell, size of 3:
 %      fourDdata{1}.data, .label; fourDdata{2}.data, .label; fourDdata{3}.data, .label
@@ -78,7 +78,7 @@ end
 
 batchStruct.totalTimesOfDataSampled(ind) = batchStruct.totalTimesOfDataSampled(ind) + 1;
 
-fourDdata = {};
+
 dataN = 0;
 for i = 1:S
     tmpData = [];
@@ -96,6 +96,7 @@ for i = 1:S
     if ~isempty(tmpData) %if tmpData isempty, must be prefetch
         dataN = size(tmpData, 4);
         subbatchInd = [1:ceil(dataN/sliceNumber):dataN, dataN+1];
+        fourDdata = cell(1,numel(subbatchInd)-1);
         for d = 1:(numel(subbatchInd)-1)
             smalldata = tmpData(:,:,:,subbatchInd(d):subbatchInd(d+1)-1);
             if useGpu >= 1
