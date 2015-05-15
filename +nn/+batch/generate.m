@@ -21,30 +21,35 @@ function batchStruct = generate(useGpu, varargin)
 %  Use this if your data is a 4-D HWCN tensor.
 %
 %  GENERATE('Attach', batchStruct1, batchStruct2, ...)
-%  Use this if you want to fetch multiple data from different source
-%  Notice, in order to syncronize the actual index of data, the Random function other than 'batchStruct1' will
+%  Use this if you want to fetch multiple data from different sources.
+%  Notice, in order to synchronize the actual index of data, the Random function other than 'batchStruct1' will
 %  be discard.
-%  :    generate('Attach', dataStruct, labelStruct)
-%  and fetch() will generate index using the ProcessFunction of Data, and pass it to the ProcessFunction of label
-%  After doing the fetch function call, you will get a struct, each field is the data/label name you defined
+%  eg.
+%  
+%  generate('Attach', dataStruct, labelStruct)
+% 
+%  In this case, fetch() will generate data index using the ProcessFunction of dataStruct, and pass it 
+%  to the ProcessFunction of labelStruct.
+%  After doing the fetch function call, you will get a structure, each field is the data/label name you defined
 %
 %
 %
 %  Other parameters:
 %  'Random'         0: don't randomize data
-%                   1: if you want each time get a batch of random sampled data
+%                   1: random data for each iteration
 %                   2: random all data each full iter and get batch in order.
 %                   @handle: your own random function, you can implement a random algorithm
-%                            follows the error rate or get rare data more frequently.
+%                            follows the error rate or get rare class of data more frequently.
 %                            your @handle must accept 4 inputs,
 %                            (totalTimesOfDataSampled, lastErrorRateOfData, lastBatchIndices, lastBatchErrors)
 %                   Note, only 0 and 2 support epoch training, 1 and @handle do not.
-%  'Prefetch'       True/False
-%                   If your ProcessFunction using prefetch paradigm, you should specify here.
+%  'Prefetch'       true/false
+%                   If your ProcessFunction using prefetch paradigm, you should set this true.
 %                   Prefetch paradigm:
-%                       The first call will return an empty data, and starts read data on background.
-%                       The second call will return the last readed data.
-%                       Repeat above process.
+%                       0. The first function call will return data.
+%                       1. The second call will return an empty data, and starts reading data on background.
+%                       2. The third call will retrun last time readed data.
+%                       Then repeat 1~2.
 %            
 %  NOTICE:
 %  Your ProcessFunction should output a 'single' type tensor.
