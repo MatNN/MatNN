@@ -21,7 +21,7 @@ opts.learningRateSteps = 1000;
 opts.learningRatePolicy = @(currentBatchNumber, lr, gamma, power, steps) lr*(gamma^floor(currentBatchNumber/steps));
 opts.weightDecay = 0.0005;
 opts.momentum = 0.9;
-opts.solver   = nn.solvers.StochasticGradientDescent;
+opts.solver   = @nn.solvers.StochasticGradientDescent;
 
 opts.continue = [] ; % if you specify the saving's iteration/epoch number, then you can load it
 opts.expDir = fullfile('data','exp');
@@ -164,7 +164,7 @@ end
 startTime = tic;
 
 % setup solver
-opts.solver.solve = opts.solver.setup(opts.computeMode, net);
+opts.solver = opts.solver(opts.computeMode, net);
 
 %rngState = rng;
 % start training from the last position
