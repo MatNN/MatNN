@@ -31,7 +31,7 @@ to make your training progress more efficient, and the entire framework is built
 1. Download source code
 2. Install [MatConvNet](http://www.vlfeat.org/matconvnet), and set matlab path
 2. (optional) use NVCC to compile .cu code into .ptx
-3. You are done! Happy training!
+3. Done!
 
 ## License
 
