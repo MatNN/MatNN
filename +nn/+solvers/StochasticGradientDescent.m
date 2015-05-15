@@ -4,7 +4,7 @@ function obj = StochasticGradientDescent()
     obj.solve = @solver;
     cuKernel = [];
 
-    function solve = setup(architecture)
+    function solve = setup(architecture, net)
         if strcmp(architecture, 'cuda kernel')
             solve = @solver_CUDAKernel;
             ptxFile = fullfile('+nn','+solvers','StochasticGradientDescent.ptx');
@@ -13,7 +13,9 @@ function obj = StochasticGradientDescent()
             % setup forward kernel
             cuKernel = parallel.gpu.CUDAKernel(ptxFile, cuFile, 'forward');
             cuKernel.ThreadBlockSize = cuKernel.MaxThreadsPerBlock;
-            %cuKernel.GridSize = [];
+            N = cellfun(@numel, net.weights);
+            N = max(N);
+            cuKernel.GridSize = ceil(N/cuKernel.MaxThreadsPerBlock);
         end
     end
     function net = solver(opts, lr, batchSize, net, res)

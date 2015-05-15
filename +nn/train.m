@@ -164,7 +164,7 @@ end
 startTime = tic;
 
 % setup solver
-opts.solver.solve = opts.solver.setup(opts.computeMode);
+opts.solver.solve = opts.solver.setup(opts.computeMode, net);
 
 %rngState = rng;
 % start training from the last position
