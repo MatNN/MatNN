@@ -68,10 +68,10 @@ function obj = StochasticGradientDescent(architecture, net)
 
     end
     function net = solver_CUDAKernel(opts, lr, batchSize, net, res)
+        thisDecay = opts.weightDecay .* net.weightDecay;
+        thisLR = lr .* net.learningRate./batchSize;
         for w = 1:numel(res.dzdw)
-            thisDecay = opts.weightDecay * net.weightDecay(w) ;
-            thisLR = lr * net.learningRate(w) / batchSize ;
-            [net.weights{w}, net.momentum{w}] = feval(cuKernel, net.weights{w}, net.momentum{w}, thisLR, thisDecay, opts.momentum, res.dzdw{w}, numel(net.weights{w}));
+            [net.weights{w}, net.momentum{w}] = feval(cuKernel, net.weights{w}, net.momentum{w}, thisLR(w), thisDecay(w), opts.momentum, res.dzdw{w}, numel(net.weights{w}));
         end
         
     end
