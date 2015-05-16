@@ -17,12 +17,11 @@ function res = forwardbackward(net, x, dzdy, res, opts)
 %  opts.disableDropout = false;
 %  opts.freezeDropout = false;
 %  opts.visitLayerID = 1:numel(net.layers);
+%  opts.outputBlobCount = cellfun(@numel, net.blobConnectId);
 %  opts.gpuMode = false;
 %  opts.doder = false;
 
 forget = opts.conserveMemory & ~opts.doder;
-waitGPU = opts.gpuMode & opts.sync;
-outputBlobCount = cellfun(@numel, net.blobConnectId);
 ll = net.layers;
 lo = net.layerobjs;
 ww = net.weights;
@@ -31,14 +30,15 @@ if isempty(res)
     if opts.gpuMode
         res.blob  = num2cell(gpuArray.zeros(1, numel(net.blobNames), 'single'));
         res.dzdx  = num2cell(gpuArray.zeros(1, numel(net.blobNames), 'single')); % each cell contains another cell, and the inner cell's length is respected to the number of bottoms that a layer accepts
-        res.dzdw  = num2cell(gpuArray.zeros(1, numel(net.weightsNames), 'single')); % Each dzdw{w} corresponds to a net.weights{w}, no separate dzdw for each layer
+        
         filler    = gpuArray(single(0));
     else
         res.blob  = num2cell(zeros(1, numel(net.blobNames), 'single'));
         res.dzdx  = num2cell(zeros(1, numel(net.blobNames), 'single')); % each cell contains another cell, and the inner cell's length is respected to the number of bottoms that a layer accepts
-        res.dzdw  = num2cell(zeros(1, numel(net.weightsNames), 'single')); % Each dzdw{w} corresponds to a net.weights{w}, no separate dzdw for each layer
+        %res.dzdw  = num2cell(zeros(1, numel(net.weightsNames), 'single')); % Each dzdw{w} corresponds to a net.weights{w}, no separate dzdw for each layer
         filler    = single(0);
     end
+    res.dzdw  = cellfun(@(dd) dd.*single(0), net.weights, 'UniformOutput', false); % Each dzdw{w} corresponds to a net.weights{w}, no separate dzdw for each layer
     res.dzdwVisited = false(size(res.dzdw));
 end
 
@@ -60,22 +60,16 @@ for i = opts.visitLayerID
     % optionally forget intermediate results
     if forget && (~isfield(l, 'rememberOutput') || ~l.rememberOutput)
         for c = l.bottom
-            co = outputBlobCount(c);
+            co = opts.outputBlobCount(c);
             if co > 1
-                outputBlobCount(c) = outputBlobCount(c)-1;
+                opts.outputBlobCount(c) = opts.outputBlobCount(c)-1;
             elseif co == 1
-                outputBlobCount(c) = 0;
+                opts.outputBlobCount(c) = 0;
                 res.blob(l.bottom(c)) = filler;
             elseif co == 0
-                outputBlobCount(c) = -1;
+                opts.outputBlobCount(c) = -1;
             end
         end
-    end
-
-    if waitGPU
-        % This should make things slower, but on MATLAB 2014a it is necessary
-        % for any decent performance.
-        wait(gpuDevice);
     end
 end
 
@@ -87,8 +81,8 @@ if opts.doder
     % scalers, which are 1
     % You can make a weight scaler for loss, just write a
     % custom layer that multiplies the scaler onto it
-    outputBlob = cellfun('isempty', net.blobConnectId);
-    res.dzdx(outputBlob) = {dzdy};
+
+    res.dzdx(opts.outputBlobCount==0) = {dzdy};
     
     for i = opts.visitLayerID(end:-1:1)
         l = ll{i};
@@ -128,9 +122,6 @@ if opts.doder
     
         if opts.conserveMemory %delete used dzdx{top}, no need to consider loss or accuracy, because der(loss)=1, and accuracy has no backward computation
             res.dzdx(l.top) = {filler};
-        end
-        if waitGPU
-            wait(gpuDevice);
         end
     end
 end

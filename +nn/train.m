@@ -273,6 +273,7 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
     optFB.disableDropout = ~training;
     optFB.freezeDropout = false;
     optFB.visitLayerID = visitLayerID;
+    optFB.outputBlobCount = cellfun(@numel, net.blobConnectId);
     optFB.gpuMode = numGpus >= 1;
     optFB.doder = training;
 
