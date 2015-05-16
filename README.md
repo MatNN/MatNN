@@ -29,6 +29,7 @@ to make your training progress more efficient, and the entire framework is built
 ## Installation
 
 Prequisition: **Parallel computing toolbox** for Matlab
+
 1. Download source code
 2. Install [MatConvNet](http://www.vlfeat.org/matconvnet), and set matlab path
 2. (optional) use NVCC to compile .cu code into .ptx
