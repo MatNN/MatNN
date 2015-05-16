@@ -1,4 +1,4 @@
-# MatNN: A NN framework for MATLAB
+# MatNN: An NN framework for MATLAB
 
 **MatNN** is a MATLAB framework for neural network training and testing. It aims to provide the similarity of [Caffe](http://caffe.berkeleyvision.org), and elastic workflow of [MatConvNet](http://www.vlfeat.org/matconvnet).
 
