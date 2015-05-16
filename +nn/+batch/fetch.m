@@ -52,7 +52,7 @@ end
 %Generate data indices
 if isa(batchStruct.rnd, 'function_handle')
     tp = batchStruct.rnd(batchStruct.totalTimesOfDataSampled, batchStruct.lastErrorRateOfData, batchStruct.lastBatchIndices, batchStruct.lastBatchErrors, batchStruct.N);
-    batchStruct.lastBatchIndices = repmat(tp,S,1);
+    batchStruct.lastBatchIndices = repmat(tp,S/size(tp,1),1);
 elseif batchStruct.rnd == 0
     batchStruct.lastBatchIndices = min(batchStruct.lastIndOfPermute+1, batchStruct.m):min(batchStruct.lastIndOfPermute+batchStruct.N, batchStruct.m);
     batchStruct.lastIndOfPermute = batchStruct.lastBatchIndices(end);
@@ -80,6 +80,7 @@ batchStruct.totalTimesOfDataSampled(ind) = batchStruct.totalTimesOfDataSampled(i
 
 
 dataN = 0;
+fourDdata = [];
 for i = 1:S
     tmpData = [];
     if ~batchStruct.fourD(i)
@@ -96,7 +97,6 @@ for i = 1:S
     if ~isempty(tmpData) %if tmpData isempty, must be prefetch
         dataN = size(tmpData, 4);
         subbatchInd = [1:ceil(dataN/sliceNumber):dataN, dataN+1];
-        fourDdata = cell(1,numel(subbatchInd)-1);
         for d = 1:(numel(subbatchInd)-1)
             smalldata = tmpData(:,:,:,subbatchInd(d):subbatchInd(d+1)-1);
             if useGpu >= 1
