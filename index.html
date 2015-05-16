@@ -1,0 +1,98 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>MatNN by Jerrynet</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/github-light.css">
+    <script src="javascripts/scale.fix.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1 class="header">MatNN</h1>
+        <p class="header">A Neural Network framework for MATLAB</p>
+
+        <ul>
+          <li class="download"><a class="buttons" href="https://github.com/Jerrynet/MatNN/zipball/master">Download ZIP</a></li>
+          <li class="download"><a class="buttons" href="https://github.com/Jerrynet/MatNN/tarball/master">Download TAR</a></li>
+          <li><a class="buttons github" href="https://github.com/Jerrynet/MatNN">View On GitHub</a></li>
+        </ul>
+
+        <p class="header">This project is maintained by <a class="header name" href="https://github.com/Jerrynet">Jerrynet</a></p>
+
+
+      </header>
+      <section>
+        <h1>
+<a id="matnn-a-nn-framework-for-matlab" class="anchor" href="#matnn-a-nn-framework-for-matlab" aria-hidden="true"><span class="octicon octicon-link"></span></a>MatNN: A NN framework for MATLAB</h1>
+
+<p><strong>MatNN</strong> is a MATLAB framework for neural network training and testing. It aims to provide the similarity of <a href="http://caffe.berkeleyvision.org">Caffe</a>, and elastic workflow of <a href="http://www.vlfeat.org/matconvnet">MatConvNet</a>.</p>
+
+<p>This toolbox requires <a href="http://www.vlfeat.org/matconvnet">MatConvNet</a> to be installed in your system and added to your MATLAB path.</p>
+
+<h2>
+<a id="features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h2>
+
+<p><strong>MatNN</strong> provides some features you may familiar with Caffe or other CNN tools:</p>
+
+<ul>
+<li>Weight Sharing</li>
+<li>Multiple Losses</li>
+<li>Custom data sampling algorithm</li>
+<li>Custom layer with custom parameters/weights/loss/...</li>
+<li>Multiple GPUs support</li>
+</ul>
+
+<p>Note that we don't provide data layers, you should design your data sampling and fetching routines.</p>
+
+<h2>
+<a id="functionality" class="anchor" href="#functionality" aria-hidden="true"><span class="octicon octicon-link"></span></a>Functionality</h2>
+
+<p><strong>MatNN</strong> uses the CUDA/C++ code from <a href="http://www.vlfeat.org/matconvnet">MatConvNet</a>
+to make your training progress more efficient, and the entire framework is built on top of <a href="http://www.vlfeat.org/matconvnet">MatConvNet</a>.</p>
+
+<h2>
+<a id="goal" class="anchor" href="#goal" aria-hidden="true"><span class="octicon octicon-link"></span></a>Goal</h2>
+
+<ul>
+<li>
+<strong><em>Minimal reuqirement of external libraries.</em></strong> We will provide a pure matlab code version and a matlab+cuda kernel version, so your code is portable (no need to compile external libraries). And also include the basic version based on MatConvNet. Because you can easily customize a layer, so any exists libraries, like CUDA/cuBlas/cuDNN can be added to your workflow if you want. A cuBlas/cuDNN version will be considered after this project is out of beta. Note that even the pure matlab version will have GPU support from parallel computing toolbox of Matlab.</li>
+<li>
+<strong><em>Provide the elastic workflow and maintain the computation efficiency.</em></strong> We will separate each core functions into modules so that you can do less work to make them fit your need.</li>
+<li>
+<strong><em>Test your ideas and validate them quickly.</em></strong> Although learning other tools/programming languages may not be a problem, use you exists matlab code with MatNN is time reserved compared to learn a new language. We provide familiar definition of Caffe, if you have learned it, then you can get started quickly.</li>
+</ul>
+
+<h2>
+<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>Prerequisite: <strong>Parallel computing toolbox</strong> for Matlab</p>
+
+<ol>
+<li>Download source code</li>
+<li>Install <a href="http://www.vlfeat.org/matconvnet">MatConvNet</a>, and set matlab path</li>
+<li>(optional) use NVCC to compile .cu code into .ptx</li>
+<li>Done!</li>
+</ol>
+
+<h2>
+<a id="license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p><strong>MatNN</strong> is under the Simplified BSD License.
+If you use <strong>MatNN</strong> in your work, please refer to the homepage of this project.</p>
+      </section>
+      <footer>
+        <p><small>Hosted on <a href="https://pages.github.com">GitHub Pages</a> using the Dinky theme</small></p>
+      </footer>
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+		
+  </body>
+</html>
