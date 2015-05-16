@@ -19,8 +19,8 @@ default_weight_param = {
 default_deconvolution_param = {
       'num_output' 1     ...
      'kernel_size' [3 3] ...
-             'pad' [0 0] ...
-          'stride' [1 1] ...
+            'crop' [0 0] ...
+      'upsampling' [1 1] ...
 };
 
 %
@@ -85,36 +85,29 @@ topSizes = [];
 
 
     function [outputBlob, weights] = forward(opts, l, weights, blob)
-        if opts.gpuMode
-            y = gpuArray.zeros(topSizes, 'single');
-        else
-            y = zeros(topSizes, 'single');
-        end
-
-        [ y, ~, ~ ] = vl_nnconv(y, weights{1}, weights{2}, blob{1}, 'pad', l.deconvolution_param.pad, 'stride', l.deconvolution_param.stride);
-        y = bsxfun(@plus, y, reshape(weights{2},1,1,[],1));
-        outputBlob{1} = y;
+        outputBlob{1} = vl_nnconvt(blob{1}, weights{1}, weights{2}, 'Crop', l.deconvolution_param.crop, 'Upsampling', l.deconvolution_param.upsampling);
     end
 
 
     function [mydzdx, mydzdw] = backward(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
         %numel(mydzdx) = numel(blob), numel(mydzdw) = numel(weights)
 
-        [~, outputdzdw{1}, outputdzdw{2}] = vl_nnconv(dzdy{1}, weights{1}, weights{2}, blob{1}, 'pad', l.deconvolution_param.pad, 'stride', l.deconvolution_param.stride);
-        mydzdx{1}                         = vl_nnconv(dzdy{1}, weights{1}, weights{2}, 'pad', l.deconvolution_param.pad, 'stride', l.deconvolution_param.stride);
-
         if mydzdwCumu(1) && mydzdwCumu(2)
-            mydzdw{1} = mydzdw{1}+outputdzdw{1};
-            mydzdw{2} = mydzdw{2}+outputdzdw{2};
+            [ mydzdx{1}, a, b ]= ...
+                             vl_nnconvt(blob{1}, weights{1}, weights{2}, dzdy{1}, 'Crop', l.deconvolution_param.crop, 'Upsampling', l.deconvolution_param.upsampling);
+            mydzdw{1} = mydzdw{1} + a;
+            mydzdw{2} = mydzdw{2} + b;
         elseif mydzdwCumu(1)
-            mydzdw{1} = mydzdw{1}+outputdzdw{1};
-            mydzdw{2} = outputdzdw{2};
+            [ mydzdx{1}, outputdzdw, mydzdw{2} ]= ...
+                             vl_nnconvt(blob{1}, weights{1}, weights{2}, dzdy{1}, 'Crop', l.deconvolution_param.crop, 'Upsampling', l.deconvolution_param.upsampling);
+            mydzdw{1} = mydzdw{1} + outputdzdw;
         elseif mydzdwCumu(2)
-            mydzdw{1} = outputdzdw{1};
-            mydzdw{2} = mydzdw{2}+outputdzdw{2};
+            [ mydzdx{1}, mydzdw{1}, outputdzdw ]= ...
+                             vl_nnconvt(blob{1}, weights{1}, weights{2}, dzdy{1}, 'Crop', l.deconvolution_param.crop, 'Upsampling', l.deconvolution_param.upsampling);
+            mydzdw{2} = mydzdw{2} + outputdzdw;
         else
-            mydzdw{1} = outputdzdw{1};
-            mydzdw{2} = outputdzdw{2};
+            [ mydzdx{1}, mydzdw{1}, mydzdw{2} ]= ...
+                             vl_nnconvt(blob{1}, weights{1}, weights{2}, dzdy{1}, 'Crop', l.deconvolution_param.crop, 'Upsampling', l.deconvolution_param.upsampling);
         end
 
     end
