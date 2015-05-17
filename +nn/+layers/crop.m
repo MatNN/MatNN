@@ -52,11 +52,11 @@ default_crop_param = {
         sizeofBlob1 = size(blob{1});%large
         s(1:numel(sizeofBlob2)) = sizeofBlob2;
 
-        o = l.crop_param.offset;
-        if isempty(o)
-            o = -round((s(1:2) - sizeofBlob1(1:2))/2);% compatible with FCN's crop layer??
+        c = l.crop_param.offset;
+        if isempty(c)
+            c = -round((s(1:2) - sizeofBlob1(1:2))/2);% compatible with FCN's crop layer??
         end
-        outputBlob{1} = blob{1}(o(1)+1:o(1)+s(1), o(2)+1:o(2)+s(2), :, :);
+        outputBlob{1} = blob{1}(c(1)+1:c(1)+s(1), c(2)+1:c(2)+s(2), :, :);
     end
 
 
@@ -67,12 +67,12 @@ default_crop_param = {
         sizeofBlob1 = size(blob{1});
         s(1:numel(sizeofBlob2)) = sizeofBlob2;
 
-        o = l.crop_param.offset;
-        if isempty(o)
-            o = -round((s(1:2) - sizeofBlob1(1:2))/2);% compatible with FCN's crop layer??
+        c = l.crop_param.offset;
+        if isempty(c)
+            c = -round((s(1:2) - sizeofBlob1(1:2))/2);% compatible with FCN's crop layer??
         end
         mydzdx{1} = blob{1}*0; %use this trick if you dont want to use 'if opt.gpu ...'
-        mydzdx{1}(o(1)+1:o(1)+s(1), o(2)+1:o(2)+s(2), :, :) = dzdy{1};
+        mydzdx{1}(c(1)+1:c(1)+s(1), c(2)+1:c(2)+s(2), :, :) = dzdy{1};
         mydzdx{2} = [];
 
     end
