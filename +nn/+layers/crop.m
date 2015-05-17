@@ -31,8 +31,8 @@ default_crop_param = {
         assert(numel(l.bottom)==2);
         assert(numel(l.top)==1);
 
-        HW1 = l.bottom{1}(1:2);
-        HW2 = l.bottom{2}(1:2);
+        HW1 = bottomSizes{1}(1:2);
+        HW2 = bottomSizes{2}(1:2);
 
         % use smallest bottom size as top size
         if HW1(1) >= HW2(1) && HW1(2) >= HW1(2)

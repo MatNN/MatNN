@@ -47,7 +47,7 @@ topSizes = [];
         end
 
 
-        assert(numel(l.bottom)==2);
+        assert(numel(l.bottom)==1);
         assert(numel(l.top)==1);
 
 
@@ -55,26 +55,30 @@ topSizes = [];
         if numel(kernel_size) == 1
             kernel_size = [kernel_size, kernel_size];
         end
-        stride_size = wp2.stride;
+        stride_size = wp2.upsampling;
         if numel(stride_size) == 1
             stride_size = [stride_size, stride_size];
         end
-        pad_size = wp2.pad;
+        pad_size = wp2.crop;
         if numel(pad_size) == 1
             pad_size = [pad_size, pad_size, pad_size, pad_size];
+        elseif numel(pad_size) == 2
+            pad_size = [pad_size(1), pad_size(1), pad_size(2), pad_size(2)];
         end
 
 
         resource.weight = {[],[]};
         btmSize = bottomSizes{1};
-        topSizes = {[ceil([(btmSize(1)+2*pad_size(1)-kernel_size(1))/stride_size(1)+1, (btmSize(2)+2*pad_size(2)-kernel_size(2))/stride_size(2)+1]), wp2.num_output, btmSize(4)]};
+        topSizes = {[ceil([(btmSize(1)-1)*stride_size(1)+pad_size(1)+pad_size(2)+kernel_size(1), ...
+                           (btmSize(2)-1)*stride_size(2)+pad_size(3)+pad_size(4)+kernel_size(2)]), ...
+                            wp2.num_output, btmSize(4)]};
 
 
-        if wp.enable_terms(1)
+        if wp1.enable_terms(1)
             resource.weight{1} = wp1.generator{1}([kernel_size(1), kernel_size(2), bottomSizes{1}(3), wp2.num_output], wp1.generator_param{1});
         end
 
-        if wp.enable_terms(2)
+        if wp1.enable_terms(2)
             resource.weight{2} = wp1.generator{2}([1, wp2.num_output], wp1.generator_param{2});
         end
 
