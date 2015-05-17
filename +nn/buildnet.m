@@ -28,14 +28,15 @@ function netObj = buildnet(netName, baseNet)
 %  this is the fastest option.
 %
 %  NETOBJ.setDataBlobSize(blobName, blobsize)
-%  Because we don't have data layers, so you need to specify it here,
-%  also works for mutiple data inputs (with different blobName)
-%  blobName is equal to the first layer's bottom name
+%  Because we don't have data layers, so you need to specify data 
+%  size here, also works for mutiple data inputs (with different 
+%  blobName).
+%  BlobName is equal to the first layer's bottom name
 %
 %  NETOBJ.setLayerRootFolder(folder)
-%  layer's type set to 'nn.layers.???' will have a prefix comes from
-%  this. By default, layer folder root will be 'nn.', so all of your
-%  layer type will be cap with this value, 
+%  layer's type set to 'nn.layers.???' will have a prefix comes 
+%  from this. By default, layer folder root will be 'nn.', so 
+%  all of your layer type will be cap with this value, 
 %  eg 'layers.relu' to 'nn.layers.relu'
 %
 %
@@ -43,7 +44,9 @@ function netObj = buildnet(netName, baseNet)
 %  1. you MUST place your layer in processing order.
 %     Currently no ordering mechanism provided.
 %  2. you SHOULD give all of your tops different names.
-%     No checking routine currently.
+%     No routine checking currently.
+%     Unless, you're sure the two layers use the same top name 
+%     are direct relative to each other, and is the only parent/child pair
 %  3. 
 % 
 %  Common layer phrases:
@@ -86,6 +89,7 @@ netObj.setDataBlobSize = @setDataBlobSize;
 netObj.setLayerRootFolder = @setLayerRootFolder;
 netObj.computeMode = @computeMode;
 netObj.setBaseNet = @setBaseNet;
+netObj.convert = @convertToMatNN;
 
 
 net = {};
@@ -130,6 +134,50 @@ if nargin == 2
 else
     baseNet = {};
 end
+
+% --------------------------------------------------------------
+%                                                Convert baseNet
+% --------------------------------------------------------------
+
+    function newNet = convertToMatNN(matconvnetLayers)
+        if isempty(net.dataLayer)
+            error('Set data/label blobs size first.');
+        end
+        for i=1:numel(matconvnetLayers)
+            l = matconvnetLayers{i};
+            switch lower(l.type)
+                case {'conv', 'convolution'}
+                    l.type = ['layers.', 'convolution'];
+                    s = size(l.weights{1});
+                    l.convolution_param = {'num_output',size(l.weights{1},4),'kernel_size',s(1:2),'pad',l.pad,'stride',l.stride};
+                case {'deconv', 'deconvolution', 'unconv', 'unconvolution'}
+                    l.type = ['layers.', 'deconvolution'];
+                    s = size(l.weights{1});
+                    l.deconvolution_param = {'num_output',size(l.weights{1},4),'kernel_size',s(1:2),'crop',l.pad,'upsampling',l.stride};
+                case 'relu'
+                    l.type = ['layers.', 'relu'];
+                case {'pool', 'pooling'}
+                    l.type = ['layers.', 'pooling'];
+                    l.pooling_param = {'method',l.method,'kernel_size',l.pool,'pad',l.pad,'stride',l.stride};
+                case 'dropout'
+                    l.type = ['layers.', 'dropout'];
+                    l.dropout_param = {'rate', l.rate};
+                case {'eltwise_product', 'eltwise'}
+                    l.type = ['layers.', 'eltwise'];
+                    l.eltwise_param = {'operation', lower(l.operation)};
+                case 'crop'
+                    l.type = ['layers.', 'crop'];
+                otherwise
+                    error(['Don''t recognise layer type:', matconvnetLayers{1}.type]);
+            end
+            matconvnetLayers{i} = l;
+        end
+        net.layers = matconvnetLayers;
+        baseNet = {};
+        newNet  = getNetwork();
+    end
+
+
 % --------------------------------------------------------------
 %                                                   Set base net
 % --------------------------------------------------------------
@@ -147,9 +195,8 @@ end
 
 
 % --------------------------------------------------------------
-%                                                   Remove Phase
+%                                                Set computeMode
 % --------------------------------------------------------------
-    % 把有設定phase的去掉
     function computeMode(modeName)
         architecture = modeName;
     end
@@ -208,6 +255,32 @@ end
                 [res, topSizes, param] = net.layerobjs{i}.setup(net.layers{i}, tmp.blobSizes(net.layers{i}.bottom));
             else
                 [res, topSizes, param] = net.layerobjs{i}.setup(net.layers{i}, {});
+            end
+            
+            % print size
+            for t = 1:numel(topSizes)
+                tt = topSizes{t};
+                fprintf('top(''%s'') size = [%d, %d, %d, %d]\n', net.blobNames{net.layers{i}.top(t)}, tt(1),tt(2),tt(3),tt(4));
+            end
+            
+            % if user defines their weights
+            if isfield(net.layers{i}, 'weights') + isfield(res, 'weight') == 2
+                if numel(net.layers{i}.weights) == numel(res.weight)
+                    for ww=1:numel(net.layers{i}.weights)
+                        if isequal(size(net.layers{i}.weights{ww}), size(res.weight{ww}))
+                            res.weight{ww} = net.layers{i}.weights{ww};
+                        else
+                            error('weights size mismatch.');
+                        end
+                    end
+                else
+                    error('number of weights mismatch.');
+                end
+            elseif isfield(net.layers{i}, 'weights') + isfield(res, 'weight') == 1
+                if isfield(net.layers{i}, 'weights') && numel(net.layers{i}.weights) == 0
+                else
+                    error('Settings of number of weights is not match actual weights number.');
+                end
             end
 
             % update param for particular layer
@@ -364,6 +437,7 @@ end
         tops = {};
         for i = 1:NLayers
             if isfield(net.layers{i}, 'name')
+                net.layers{i}.name = convertToValidName(net.layers{i}.name);
                 names{i} = net.layers{i}.name;
                 if isempty(names{i})
                     error('layer name must not be empty.');
@@ -375,13 +449,15 @@ end
                 tt = net.layers{i}.top;
                 if ischar(tt)
                     tt = {tt};
-                    net.layers{i}.top = tt;
+                    net.layers{i}.top = {convertToValidName(net.layers{i}.top)};
                 end
                 for j=1:numel(tt)
                     if isempty(tt{j})
                         error('layer top must not be empty.');
                     end
-                    tops = [tops, tt(j)];
+                    tc = convertToValidName(tt{j});
+                    net.layers{i}.top{j} = tc;
+                    tops = [tops, {tc}];
                 end
             end
         end
@@ -391,13 +467,15 @@ end
                 tt = net.layers{i}.bottom;
                 if ischar(tt)
                     tt = {tt};
-                    net.layers{i}.bottom = tt;
+                    net.layers{i}.bottom = {convertToValidName(net.layers{i}.bottom)};
                 end
                 for j = 1:numel(tt)
                     if isempty(tt{j})
                         error('layer bottom must not be empty.');
                     end
-                    bottoms = [bottoms, tt(j)];
+                    tc = convertToValidName(tt{j});
+                    net.layers{i}.bottom{j} = tc;
+                    bottoms = [bottoms, {tc}];
                 end
             end
         end
@@ -468,5 +546,17 @@ function blobCount = traceBottom(startName, ba, link, blobCount)
         else
             error('You have a counter references bottom <-> top.');
         end
+    end
+end
+
+function stringName = convertToValidName(stringName)
+    origName = stringName;
+    stringName = strtrim(stringName);
+    stringName = strrep(stringName, '-', '_');
+    if ~isletter(stringName(1))
+        stringName = ['prefix_',stringName(2:end)];
+    end
+    if ~strcmp(origName, stringName)
+        fprintf('Convert ''%s'' to ''%s''\n', origName, stringName);
     end
 end
