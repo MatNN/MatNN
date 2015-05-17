@@ -49,7 +49,7 @@ backwardFunc = @back_plus;
                 error(['Not support operation:', wp.operation]);
         end
 
-n        topSizes = bottomSizes(1);
+        topSizes = bottomSizes(1);
 
         %return updated param
         param.eltwise_param = wp;
