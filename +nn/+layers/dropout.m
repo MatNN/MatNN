@@ -33,7 +33,7 @@ default_dropout_param = {
         topSizes = bottomSizes(1);
         if wp.enable_terms
             scale = single(1 / (1 - wp.rate)) ;
-            resource.misc{1} = rand(topSizes{1},'single') >= wp.rate;
+            resource.misc{1} = scale(rand(topSizes{1},'single') >= wp.rate);
         end
 
         %return updated param
