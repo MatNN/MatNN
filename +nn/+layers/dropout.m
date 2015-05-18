@@ -54,10 +54,10 @@ default_dropout_param = {
             top{1} = bottom{1}.*misc{1};
         else
             if isa(bottom{1},'gpuArray')
-                mask = single(1 / (1 - opts.rate)) * (gpuArray.rand(topSizes,'single') >= wp.rate);
+                mask = single(1 / (1 - opts.rate)) .* (gpuArray.rand(topSizes,'single') >= wp.rate);
                 top{1} = bottom{1} .* mask;
             else
-                mask = single(1 / (1 - opts.rate)) * (rand(topSizes,'single') >= wp.rate);
+                mask = single(1 / (1 - opts.rate)) .* (rand(topSizes,'single') >= wp.rate);
                 top{1} = bottom{1} .* mask;
             end
             misc{1} = mask;
