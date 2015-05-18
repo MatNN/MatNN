@@ -49,7 +49,7 @@ default_accuracy_param = {
         label = bottom{2} - l.accuracy_param.labelIndex_start;
         [~, argMax] = max(bottom{1}, [], 3);
         k = (argMax -1 + l.accuracy_param.labelIndex_start) == label;
-        top{1} = sum(k(:))/(size(blob{1},1)*size(blob{1},2));%*size(blob{1},4)); don't divide N here, because train.m will do it for us
+        top{1} = sum(k(:))/(size(bottom{1},1)*size(bottom{1},2));%*size(bottom{1},4)); don't divide N here, because train.m will do it for us
 
     end
     function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
