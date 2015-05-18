@@ -46,34 +46,33 @@ default_crop_param = {
     end
 
 
-    function [outputBlob, weights] = forward(opts, l, weights, blob)
+    function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
         s = [1,1,1,1];
-        sizeofBlob2 = size(blob{2});%small
-        sizeofBlob1 = size(blob{1});%large
+        sizeofBlob2 = size(bottom{2});%small
+        sizeofBlob1 = size(bottom{1});%large
         s(1:numel(sizeofBlob2)) = sizeofBlob2;
 
         c = l.crop_param.offset;
         if isempty(c)
             c = -round((s(1:2) - sizeofBlob1(1:2))/2);% compatible with FCN's crop layer??
         end
-        outputBlob{1} = blob{1}(c(1)+1:c(1)+s(1), c(2)+1:c(2)+s(2), :, :);
+        top{1} = bottom{1}(c(1)+1:c(1)+s(1), c(2)+1:c(2)+s(2), :, :);
     end
 
 
-    function [mydzdx, mydzdw] = backward(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
-        %numel(mydzdx) = numel(blob), numel(mydzdw) = numel(weights)
+    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
         s = [1,1,1,1];
-        sizeofBlob2 = size(blob{2});
-        sizeofBlob1 = size(blob{1});
+        sizeofBlob2 = size(bottom{2});
+        sizeofBlob1 = size(bottom{1});
         s(1:numel(sizeofBlob2)) = sizeofBlob2;
 
         c = l.crop_param.offset;
         if isempty(c)
             c = -round((s(1:2) - sizeofBlob1(1:2))/2);% compatible with FCN's crop layer??
         end
-        mydzdx{1} = blob{1}*0; %use this trick if you dont want to use 'if opt.gpu ...'
-        mydzdx{1}(c(1)+1:c(1)+s(1), c(2)+1:c(2)+s(2), :, :) = dzdy{1};
-        mydzdx{2} = [];
+        bottom_diff{1} = bottom{1}*0; %use this trick if you dont want to use 'if opt.gpu ...'
+        bottom_diff{1}(c(1)+1:c(1)+s(1), c(2)+1:c(2)+s(2), :, :) = top_diff{1};
+        bottom_diff{2} = [];
 
     end
 

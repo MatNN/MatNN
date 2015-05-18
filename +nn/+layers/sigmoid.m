@@ -25,16 +25,15 @@ o.backward     = @backward;
     end
 
 
-    function [outputBlob, weights] = forward(opts, l, weights, blob)
-        outputBlob{1} = 1./(1+exp(-blob{1}));
+    function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
+        top{1} = 1./(1+exp(-bottom{1}));
     end
 
 
-    function [mydzdx, mydzdw] = backward(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
-        %numel(mydzdx) = numel(blob), numel(mydzdw) = numel(weights)
-        sigmoid =  1./(1+exp(-blob{1})) ;
-        mydzdx{1} = dzdy{1}.*(sigmoid.*(1-sigmoid));
-        mydzdw = {};
+    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
+        sigmoid =  1./(1+exp(-bottom{1})) ;
+        bottom_diff{1} = top_diff{1}.*(sigmoid.*(1-sigmoid));
+        %weights_diff = {};
     end
 
 end

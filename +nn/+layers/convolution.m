@@ -83,29 +83,29 @@ default_convolution_param = {
     end
 
 
-    function [outputBlob, weights] = forward(opts, l, weights, blob)
-        outputBlob{1} = vl_nnconv(blob{1}, weights{1}, weights{2}, 'pad', l.convolution_param.pad, 'stride', l.convolution_param.stride);
+    function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
+        top{1} = vl_nnconv(bottom{1}, weights{1}, weights{2}, 'pad', l.convolution_param.pad, 'stride', l.convolution_param.stride);
     end
 
 
-    function [mydzdx, mydzdw] = backward(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
-        %numel(mydzdx) = numel(blob), numel(mydzdw) = numel(weights)
-        if mydzdwCumu(1) && mydzdwCumu(2)
-            [ mydzdx{1}, a, b ]= ...
-                             vl_nnconv(blob{1}, weights{1}, weights{2}, dzdy{1}, 'pad', l.convolution_param.pad, 'stride', l.convolution_param.stride);
-            mydzdw{1} = mydzdw{1} + a;
-            mydzdw{2} = mydzdw{2} + b;
-        elseif mydzdwCumu(1)
-            [ mydzdx{1}, outputdzdw, mydzdw{2} ]= ...
-                             vl_nnconv(blob{1}, weights{1}, weights{2}, dzdy{1}, 'pad', l.convolution_param.pad, 'stride', l.convolution_param.stride);
-            mydzdw{1} = mydzdw{1} + outputdzdw;
-        elseif mydzdwCumu(2)
-            [ mydzdx{1}, mydzdw{1}, outputdzdw ]= ...
-                             vl_nnconv(blob{1}, weights{1}, weights{2}, dzdy{1}, 'pad', l.convolution_param.pad, 'stride', l.convolution_param.stride);
-            mydzdw{2} = mydzdw{2} + outputdzdw;
+    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
+        %numel(bottom_diff) = numel(bottom), numel(weights_diff) = numel(weights)
+        if weights_diff_isCumulate(1) && weights_diff_isCumulate(2)
+            [ bottom_diff{1}, a, b ]= ...
+                             vl_nnconv(bottom{1}, weights{1}, weights{2}, top_diff{1}, 'pad', l.convolution_param.pad, 'stride', l.convolution_param.stride);
+            weights_diff{1} = weights_diff{1} + a;
+            weights_diff{2} = weights_diff{2} + b;
+        elseif weights_diff_isCumulate(1)
+            [ bottom_diff{1}, outputdzdw, weights_diff{2} ]= ...
+                             vl_nnconv(bottom{1}, weights{1}, weights{2}, top_diff{1}, 'pad', l.convolution_param.pad, 'stride', l.convolution_param.stride);
+            weights_diff{1} = weights_diff{1} + outputdzdw;
+        elseif weights_diff_isCumulate(2)
+            [ bottom_diff{1}, weights_diff{1}, outputdzdw ]= ...
+                             vl_nnconv(bottom{1}, weights{1}, weights{2}, top_diff{1}, 'pad', l.convolution_param.pad, 'stride', l.convolution_param.stride);
+            weights_diff{2} = weights_diff{2} + outputdzdw;
         else
-            [ mydzdx{1}, mydzdw{1}, mydzdw{2} ]= ...
-                             vl_nnconv(blob{1}, weights{1}, weights{2}, dzdy{1}, 'pad', l.convolution_param.pad, 'stride', l.convolution_param.stride);
+            [ bottom_diff{1}, weights_diff{1}, weights_diff{2} ]= ...
+                             vl_nnconv(bottom{1}, weights{1}, weights{2}, top_diff{1}, 'pad', l.convolution_param.pad, 'stride', l.convolution_param.stride);
         end
     end
 

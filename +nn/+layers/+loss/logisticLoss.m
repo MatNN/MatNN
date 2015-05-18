@@ -47,19 +47,19 @@ N          = [];
         topSizes = {[1, 1, 1, 1]};
 
     end
-    function [outputBlob, weights] = forward(opts, l, weights, blob)
+    function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
 
-        resultBlob = min(blob{1}, l.logisticLoss_param.threshold);
+        resultBlob = min(bottom{1}, l.logisticLoss_param.threshold);
         resSize = size(resultBlob);
-        labelSize = size(blob{2});
-        if resSize(4) == numel(blob{2})
-            label = reshape(blob{2}, [1, 1, 1 resSize(4)]) ;
+        labelSize = size(bottom{2});
+        if resSize(4) == numel(bottom{2})
+            label = reshape(bottom{2}, [1, 1, 1 resSize(4)]) ;
             label = repmat(label, [resSize(1), resSize(2)]) ;
         else
             if ~isequal(resSize([1,2,4]), labelSize([1,2,4]))
                 error('Label size must be Nx1, 1xN or HxWx1xN.');
             else
-                label = blob{2};
+                label = bottom{2};
             end
         end
         label = label - l.logisticLoss_param.labelIndex_start;
@@ -69,16 +69,16 @@ N          = [];
                 + N * label(:)' ...
                 + N*resSize(3) * floor(ind/(resSize(1)*resSize(2)));
 
-        outputBlob = {- sum(log(resultBlob(ind)))/N };
+        top{1} = -sum(log(resultBlob(ind)))/N;
 
     end
-    function [mydzdx, mydzdw] = backward(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
-        dzdx = -(1./resultBlob) * (dzdy{1}/N);
+    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
+        dzdx = -(1./resultBlob) * (top_diff{1}/N);
 
         % only ground truth label are correct, set others to zero
         outdzdx = dzdx*0; % faster than zeros(size(dzdx)); ?
         outdzdx(ind) = dzdx(ind);
-        mydzdx = {outdzdx,[]};
+        bottom_diff = {outdzdx,[]};
 
     end
 end

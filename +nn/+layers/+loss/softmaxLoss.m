@@ -48,18 +48,18 @@ N          = [];
         topSizes = {[1, 1, 1, 1]};
 
     end
-    function [outputBlob, weights] = forward(opts, l, weights, blob)
-        resultBlob = max(blob{1}, l.softmaxLoss_param.threshold);
+    function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
+        resultBlob = max(bottom{1}, l.softmaxLoss_param.threshold);
         resSize = size(resultBlob);
-        labelSize = size(blob{2});
-        if resSize(4) == numel(blob{2})
-            label = reshape(blob{2}, [1, 1, 1 resSize(4)]) ;
+        labelSize = size(bottom{2});
+        if resSize(4) == numel(bottom{2})
+            label = reshape(bottom{2}, [1, 1, 1 resSize(4)]) ;
             label = repmat(label, [resSize(1), resSize(2)]) ;
         else
             if ~isequal(resSize([1,2,4]), labelSize([1,2,4]))
                 error('Label size must be Nx1, 1xN or HxWx1xN.');
             else
-                label = blob{2};
+                label = bottom{2};
             end
         end
         label = label - l.softmaxLoss_param.labelIndex_start;
@@ -75,14 +75,14 @@ N          = [];
         else
             y = LogSumExp(resultBlob, 3);
         end
-        outputBlob = { sum( y(:)'-resultBlob(ind) )/N };
+        top{1} = sum( y(:)'-resultBlob(ind) )/N;
     end
-    function [mydzdx, mydzdw] = backward(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
+    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
         %compute derivative
         y = Exp(resultBlob, 3);
         y = bsxfun(@rdivide, y, sum(y,3));
         y(ind) = y(ind)-1;
-        mydzdx = { y*dzdy{1}/N , []};
+        bottom_diff = { y*top_diff{1}/N , []};
     end
 end
 

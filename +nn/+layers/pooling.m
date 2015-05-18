@@ -52,14 +52,13 @@ default_pooling_param = {
     end
 
 
-    function [outputBlob, weights] = forward(opts, l, weights, blob)
-        outputBlob{1} = vl_nnpool(blob{1}, l.pooling_param.kernel_size, 'pad', l.pooling_param.pad, 'stride', l.pooling_param.stride, 'method', l.pooling_param.method);
+    function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
+        top{1} = vl_nnpool(bottom{1}, l.pooling_param.kernel_size, 'pad', l.pooling_param.pad, 'stride', l.pooling_param.stride, 'method', l.pooling_param.method);
     end
 
 
-    function [mydzdx, mydzdw] = backward(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
-        %numel(mydzdx) = numel(blob), numel(mydzdw) = numel(weights)
-        mydzdx{1} = vl_nnpool(blob{1}, l.pooling_param.kernel_size, dzdy{1}, 'pad', l.pooling_param.pad, 'stride', l.pooling_param.stride, 'method', l.pooling_param.method);
+    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
+        bottom_diff{1} = vl_nnpool(bottom{1}, l.pooling_param.kernel_size, top_diff{1}, 'pad', l.pooling_param.pad, 'stride', l.pooling_param.stride, 'method', l.pooling_param.method);
         %mydzdw = {};
     end
 

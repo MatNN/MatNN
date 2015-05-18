@@ -42,17 +42,17 @@ default_accuracy_param = {
         topSizes = {[1, 1, 1, 1]};
 
     end
-    function [outputBlob, weights] = forward(opts, l, weights, blob)
+    function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
         % if size(prediction) == HxWxCxN, divide cumulative acc by HxWxN, size(label) == HxWx1xN
         % if size(prediction) == 1x1xCxN, divide cumulative acc by N, size(label) == 1x1x1xN
         % if size(prediction) == 1x1x1xN, divide cumulative acc by N, size(label) == 1x1x1xN
-        label = blob{2} - l.accuracy_param.labelIndex_start;
-        [~, argMax] = max(blob{1}, [], 3);
+        label = bottom{2} - l.accuracy_param.labelIndex_start;
+        [~, argMax] = max(bottom{1}, [], 3);
         k = (argMax -1 + l.accuracy_param.labelIndex_start) == label;
-        outputBlob{1} = sum(k(:))/(size(blob{1},1)*size(blob{1},2));%*size(blob{1},4)); don't divide N here, because train.m will do it for us
+        top{1} = sum(k(:))/(size(blob{1},1)*size(blob{1},2));%*size(blob{1},4)); don't divide N here, because train.m will do it for us
 
     end
-    function [mydzdx, mydzdw] = backward(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
-        mydzdx = {[],[]};
+    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
+        bottom_diff = {[],[]};
     end
 end

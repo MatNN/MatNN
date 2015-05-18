@@ -15,8 +15,8 @@ function obj = StochasticGradientDescent(architecture, net)
         cuKernel.GridSize = ceil(max(N)/cuKernel.MaxThreadsPerBlock);
     end
 
-    function net = solver(opts, lr, batchSize, net, res)
-        for w = 1:numel(res.dzdw)
+    function net = solver(opts, lr, batchSize, net, res, updateWeightsInd)
+        for w = updateWeightsInd
             %There are 3 cases
             % 1. layer1 -> layer2 -> ...
             %    just compute corresponds dzdw
@@ -67,10 +67,10 @@ function obj = StochasticGradientDescent(architecture, net)
         end
 
     end
-    function net = solver_CUDAKernel(opts, lr, batchSize, net, res)
+    function net = solver_CUDAKernel(opts, lr, batchSize, net, res, updateWeightsInd)
         thisDecay = opts.weightDecay .* net.weightDecay;
         thisLR = lr .* net.learningRate./batchSize;
-        for w = 1:numel(res.dzdw)
+        for w = updateWeightsInd
             [net.weights{w}, net.momentum{w}] = feval(cuKernel, net.weights{w}, net.momentum{w}, thisLR(w), thisDecay(w), opts.momentum, res.dzdw{w}, numel(net.weights{w}));
         end
         

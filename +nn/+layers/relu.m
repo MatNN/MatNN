@@ -58,19 +58,18 @@ end
     end
 
 
-    function [outputBlob, weights] = forward(opts, l, weights, blob)
-        outputBlob{1} = max(blob{1}, 0);
+    function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
+        top{1} = max(bottom{1}, 0);
     end
-    function [outputBlob, weights] = forward_CUDAKernel(opts, l, weights, blob)
-        outputBlob{1} = feval(cuKernel.forward, blob{1}, numel(blob{1}));
+    function [top, weights, misc] = forward_CUDAKernel(opts, l, weights, misc, bottom, top)
+        top{1} = feval(cuKernel.forward, bottom{1}, numel(bottom{1}));
     end
 
-    function [mydzdx, mydzdw] = backward(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
-        %numel(mydzdx) = numel(blob), numel(mydzdw) = numel(weights)
-        mydzdx{1} = (blob{1} > 0) .* dzdy{1};
+    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
+        bottom_diff{1} = (bottom{1} > 0) .* top_diff{1};
     end
-    function [mydzdx, mydzdw] = backward_CUDAKernel(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
-        mydzdx{1} = feval(cuKernel.backward, blob{1}, dzdy{1}, numel(blob{1}));
+    function [bottom_diff, weights_diff, misc] = backward_CUDAKernel(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
+        bottom_diff{1} = feval(cuKernel.backward, bottom{1}, top_diff{1}, numel(bottom{1}));
     end
 
 end

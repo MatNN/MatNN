@@ -277,6 +277,9 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
     optFB.gpuMode = numGpus >= 1;
     optFB.doder = training;
 
+    % find initial weightLR ~= 0 to update them
+    needToUpdatedWeightsInd = find(~net.weightsIsMisc);
+
 
     accumulateOutBlobs = zeros(size(outputBlobID));
     res = [];
@@ -315,12 +318,12 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
         cumuTrainedDataNumber = cumuTrainedDataNumber+dataN;
         if training
             if numGpus <= 1
-                net = opts.solver.solve(opts, learningRate, dataN, net, res);
+                net = opts.solver.solve(opts, learningRate, dataN, net, res, needToUpdatedWeightsInd);
             else
                 labBarrier();
                 %accumulate weights from other labs
                 res.dzdw = gop(@(a,b) cellfun(@plus, a,b, 'UniformOutput', false), res.dzdw);
-                net = opts.solver.solve(opts, learningRate, dataN, net, res);
+                net = opts.solver.solve(opts, learningRate, dataN, net, res, needToUpdatedWeightsInd);
             end
             % print learning statistics
             

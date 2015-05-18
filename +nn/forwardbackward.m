@@ -52,7 +52,9 @@ for i = opts.visitLayerID
   
     % if a layer don't generate output, it still should fill topBlob as {[],[],...}
     %if ~isempty(l.weights)
-        [res.blob(l.top), ww(l.weights)] = lo{i}.forward(opts, l, ww(l.weights), res.blob(l.bottom));
+        weightsInd = l.weights(~net.weightsIsMisc(l.weights));
+        miscInd = l.weights(net.weightsIsMisc(l.weights));
+        [res.blob(l.top), ww(weightsInd), ww(miscInd)] = lo{i}.forward(opts, l, ww(weightsInd), ww(miscInd), res.blob(l.bottom), res.blob(l.top));
     %else
     %    [res.blob(l.top), ~] = net.layerobjs{i}.forward(opts, l, {}, res.blob(l.bottom));
     %end
@@ -86,9 +88,11 @@ if opts.doder
     
     for i = opts.visitLayerID(end:-1:1)
         l = ll{i};
-    
-        [tmpdzdx, res.dzdw(l.weights)] = lo{i}.backward(opts, l, ww(l.weights), res.blob(l.bottom), res.dzdx(l.top), res.dzdw(l.weights), res.dzdwVisited(l.weights));
-        res.dzdwVisited(l.weights) = true;
+        
+        weightsInd = l.weights(~net.weightsIsMisc(l.weights));
+        miscInd = l.weights(net.weightsIsMisc(l.weights));
+        [tmpdzdx, res.dzdw(weightsInd), ww(miscInd)] = lo{i}.backward(opts, l, ww(weightsInd), ww(miscInd), res.blob(l.bottom), res.blob(l.top), res.dzdx(l.top), res.dzdw(weightsInd), res.dzdwVisited(weightsInd));
+        res.dzdwVisited(weightsInd) = true;
         % Don't try to clear res.dzdx or res.dzdw at first, you will get terrble performace!!
         % If you try to clear them at first so you can get rid of if-statement of opts.accumulate
         % , the performance will drain a lot.

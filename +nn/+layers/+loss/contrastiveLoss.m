@@ -92,32 +92,30 @@ default_contrastiveLoss_param = {
     end
 
 
-    function [outputBlob, weights] = forward(opts, l, weights, blob)
-        d_ = blob{1}-blob{2};
+    function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
+        d_ = bottom{1}-bottom{2};
         d = sum((d_).^2, 3);
-        y = blob{3};
+        y = bottom{3};
         E = 0.5 * sum(  y.*d + (1-y).*max(l.contrastiveLoss_param.margin - d, single(0))  );%/size(blob{1},4);
-        outputBlob = {E};
+        top{1} = E;
     end
-    function [outputBlob, weights] = forward_CUDAKernel(opts, l, weights, blob)
-        d = sum((blob{1}-blob{2}).^2, 3);
+    function [top, weights, misc] = forward_CUDAKernel(opts, l, weights, misc, bottom, top)
+        d = sum((bottom{1}-bottom{2}).^2, 3);
         %d = sum(arrayfun(@(a,b) (a-b).^2, blob{1}, blob{2} ), 3);
-        E = feval(cuKernel.forward, 0, blob{3}, d, l.contrastiveLoss_param.margin, numel(d));
-        outputBlob = {E};
+        E = feval(cuKernel.forward, 0, bottom{3}, d, l.contrastiveLoss_param.margin, numel(d));
+        top{1} = E;
     end
 
-    function [mydzdx, mydzdw] = backward(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
-        %mydzdw = {};
-        mydzdx = cell(1,3);
+    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
+        bottom_diff = cell(1,3);
         m_d = l.contrastiveLoss_param.margin - d;
         rightTerm = d_;
         rightTerm(:,:,:,m_d(:)<=0) = 0;
-        y = blob{3};
-        mydzdx{1} = dzdy{1} * (bsxfun(@times, d_, y) - bsxfun(@times, rightTerm, 1-y));% / size(blob{1}, 4);
-        mydzdx{2} = -mydzdx{1};
+        y = bottom{3};
+        bottom_diff{1} = top_diff{1} * (bsxfun(@times, d_, y) - bsxfun(@times, rightTerm, 1-y));% / size(blob{1}, 4);
+        bottom_diff{2} = -bottom_diff{1};
     end
-    function [mydzdx, mydzdw] = backward_CUDAKernel(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
-        %mydzdw = {};
-        [mydzdx{1}, mydzdx{2}] = feval(cuKernel.backward, blob{1}, blob{2}, dzdy{1}, blob{3}, d, l.contrastiveLoss_param.margin, numel(blob{1}), numel(blob{1})/numel(blob{3}));
+    function [bottom_diff, weights_diff, misc] = backward_CUDAKernel(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
+        [bottom_diff{1}, bottom_diff{2}] = feval(cuKernel.backward, bottom{1}, bottom{2}, top_diff{1}, bottom{3}, d, l.contrastiveLoss_param.margin, numel(bottom{1}), numel(bottom{1})/numel(bottom{3}));
     end
 end

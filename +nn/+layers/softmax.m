@@ -22,16 +22,16 @@ o.backward     = @backward;
         param = {};
 
     end
-    function [outputBlob, weights] = forward(opts, l, weights, blob)
-        y = exp( bsxfun(@minus, blob{1}, max(blob{1}, [], 3)) );
+    function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
+        y = exp( bsxfun(@minus, bottom{1}, max(bottom{1}, [], 3)) );
         y = bsxfun(@rdivide, y, sum(y,3));
-        outputBlob = { y };
+        top{1} = y;
 
     end
-    function [mydzdx, mydzdw] = backward(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
-        y = exp( bsxfun(@minus, blob{1}, max(blob{1}, [], 3)) );
+    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
+        y = exp( bsxfun(@minus, bottom{1}, max(bottom{1}, [], 3)) );
         y = bsxfun(@rdivide, y, sum(y,3));
-        y = y .* bsxfun(@minus, dzdy{1}, sum(dzdy{1} .* y, 3));
-        mydzdx = { y };
+        y = y .* bsxfun(@minus, top_diff{1}, sum(top_diff{1} .* y, 3));
+        bottom_diff = { y };
     end
 end

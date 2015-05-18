@@ -56,15 +56,13 @@ backwardFunc = @back_plus;
     end
 
 
-    function [outputBlob, weights] = forward(opts, l, weights, blob)
-        outputBlob{1} = operator(blob{1}, blob{2});
+    function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
+        top{1} = operator(bottom{1}, bottom{2});
     end
 
 
-    function [mydzdx, mydzdw] = backward(opts, l, weights, blob, dzdy, mydzdw, mydzdwCumu)
-        %numel(mydzdx) = numel(blob), numel(mydzdw) = numel(weights)
-        [mydzdx{1}, mydzdx{2}] = backwardFunc(dzdy, blob{1}, blob{2});
-        %mydzdw = {};
+    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
+        [bottom_diff{1}, bottom_diff{2}] = backwardFunc(top_diff, bottom{1}, bottom{2});
     end
 
     function [r1, r2] = back_plus(dzdy, ~, ~)

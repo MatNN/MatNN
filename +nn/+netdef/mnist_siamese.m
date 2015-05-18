@@ -258,10 +258,10 @@ no.newLayer({
     'top'    'loss'
     });
 
-[train4D, trainLabel, test4D, testLabel] = readMNISTDataset('train-images-idx3-ubyte', ...
-                                                            'train-labels-idx1-ubyte', ...
-                                                            't10k-images-idx3-ubyte', ...
-                                                            't10k-labels-idx1-ubyte');
+[train4D, trainLabel, test4D, testLabel] = readMNISTDataset('lib/matconvnet/examples/data/mnist/train-images-idx3-ubyte', ...
+                                                            'lib/matconvnet/examples/data/mnist/train-labels-idx1-ubyte', ...
+                                                            'lib/matconvnet/examples/data/mnist/t10k-images-idx3-ubyte', ...
+                                                            'lib/matconvnet/examples/data/mnist/t10k-labels-idx1-ubyte');
 
     function newInd = pairData(totalTimesOfDataSampled, lastErrorRateOfData, lastBatchIndices, lastBatchErrors, N) 
         m = numel(totalTimesOfDataSampled);
@@ -272,9 +272,9 @@ no.newLayer({
         newInd = [r; rr; labelInd'];
     end
 
-dataStruct  = nn.batch.generate(false, 'Name', dataBlobName,  'File', train4D,    'BatchSize', batchSize, 'Random', @pairData);
-datapStruct  = nn.batch.generate(false, 'Name', datapBlobName,  'File', train4D,    'BatchSize', batchSize, 'Random', @pairData);
-labelStruct = nn.batch.generate(false, 'Name', labelBlobName, 'File', [0 1], 'BatchSize', batchSize, 'Random', @pairData, 'Using4D', false);
+dataStruct  = nn.batch.generate(false, 'Name', dataBlobName,  'File', train4D, 'BatchSize', batchSize, 'Random', @pairData);
+datapStruct = nn.batch.generate(false, 'Name', datapBlobName, 'File', train4D, 'BatchSize', batchSize, 'Random', @pairData);
+labelStruct = nn.batch.generate(false, 'Name', labelBlobName, 'File', [0 1],   'BatchSize', batchSize, 'Random', @pairData, 'Using4D', false);
 batchStruct = nn.batch.generate('Attach', dataStruct, datapStruct, labelStruct);
 
 opts.numEpochs = [] ;

@@ -106,6 +106,7 @@ net.weightDecay  = []; % weight Decay of each weight
 net.weightsShareId    = {}; %Indicates which layer ids is share the same weight,          eg. {[1],[2],[3 4], ...}
 net.weightsNames      = {}; %weights names here                                           eg. {'conv1_w1', 'relu1', ...}
 net.weightsNamesIndex = {}; %Inverted index from weight name to weight index. A struct    eg. net.weightsNamesIndex.conv1_w1 = 1, ...
+net.weightsIsMisc     = {}; %Stores res.(***), ***= field name. because there are layers use .weights to store informations, not weights.
 
 net.layerNames        = {}; %Each layer's name
 net.layerNamesIndex   = {}; %Inverted index from layer name to layer index. A struct
@@ -228,13 +229,13 @@ end
     function newNet = getNetwork()
         backUpNet = net;
 
-        %do blobProcess
+        % do blobProcess
         blobProcess();
 
-        %set blobsize cell array
+        % set blobsize cell array
         tmp.blobSizes = cell(size(net.blobNames));
 
-        %set data blob size
+        % set data blob size
         for i=fieldnames(net.dataLayer)'
             if isfield(net.blobNamesIndex, i{1})
                 ind = net.blobNamesIndex.(i{1});
@@ -244,9 +245,10 @@ end
             end
         end
 
-        %Replace net.layer.weights to index, points to net.weights
+        % Replace net.layer.weights to index, points to net.weights
         net.layerobjs = cell(1, numel(net.layers));
         net.weightsNames = {};
+        tmp_weightsFieldNames = {};
         net.weightsShareId = {};
         for i=1:numel(net.layers)
             tmpHandle = str2func([LayerRootFolder,'.', net.layers{i}.type]);
@@ -257,15 +259,15 @@ end
                 [res, topSizes, param] = net.layerobjs{i}.setup(net.layers{i}, {});
             end
             
-            % print size
+            % Print blob size
             for t = 1:numel(topSizes)
                 tt = topSizes{t};
-                fprintf('top(''%s'') size = [%d, %d, %d, %d]\n', net.blobNames{net.layers{i}.top(t)}, tt(1),tt(2),tt(3),tt(4));
+                fprintf('Layer(''%s'').top(''%s'') -> [%d, %d, %d, %d]\n', net.layers{i}.name, net.blobNames{net.layers{i}.top(t)}, tt(1),tt(2),tt(3),tt(4));
             end
             
-            % if user defines their weights
+            % If user defines their weights
             if isfield(net.layers{i}, 'weights') + isfield(res, 'weight') == 2
-                if numel(net.layers{i}.weights) == numel(res.weight)
+                if numel(net.layers{i}.weights) == numel(res.weight) || numel(net.layers{i}.weights) == 0
                     for ww=1:numel(net.layers{i}.weights)
                         if isequal(size(net.layers{i}.weights{ww}), size(res.weight{ww}))
                             res.weight{ww} = net.layers{i}.weights{ww};
@@ -300,6 +302,11 @@ end
             resfield = [];
             if isstruct(res)
                 resfield = fieldnames(res)';
+                for fi = 1:numel(resfield)
+                    if ~strcmp(resfield{fi}, 'weight') && ~strcmp(resfield{fi}, 'misc')
+                        error('resoure fieldname must be ''weight'' or ''misc''.');
+                    end
+                end
             else
                 % skip current layer, because this layer don't need .weight
                 continue;
@@ -326,7 +333,7 @@ end
                         newName = sprintf([net.layers{i}.name, '_', resfield{fi}, '_%d_auto'], w);
                     end
                     
-                    [ind, rep] = checkWeightsNames(net.layers{i}.name, newName, res.(resfield{fi}){w}, param.(paName).learningRate(w), param.(paName).weightDecay(w));
+                    [ind, rep] = checkWeightsNames(net.layers{i}.name, resfield{fi}, newName, res.(resfield{fi}){w}, param.(paName).learningRate(w), param.(paName).weightDecay(w));
                     %if rep
                         if numel(net.weightsShareId) < ind
                             net.weightsShareId{ind} = i;
@@ -342,7 +349,7 @@ end
             end
 
         end
-        function [ind, replicated] = checkWeightsNames(layername, wname, theWeight, LR, decay)
+        function [ind, replicated] = checkWeightsNames(layername, wfieldname, wname, theWeight, LR, decay)
             replicated = false;
             if ismember(wname, net.weightsNames)
                 disp(['Same weights name detected: ''', wname, '''. Only the first encountered layer will initialize the weight,']);
@@ -351,6 +358,7 @@ end
                 replicated = true;
             else
                 net.weightsNames = [net.weightsNames, wname];
+                tmp_weightsFieldNames = [tmp_weightsFieldNames, wfieldname];
                 ind = numel(net.weightsNames);
                 net.weightsNamesIndex.(wname) = ind;
                 net.learningRate(ind) = LR;
@@ -372,6 +380,16 @@ end
         end
 
         clearvars res;
+
+
+        % Set ismisc
+        checkWeight = ismember(tmp_weightsFieldNames, {'weight'});
+        checkMisc   = ismember(tmp_weightsFieldNames, {'misc'});
+        if sum(checkWeight | checkMisc) ~= numel(tmp_weightsFieldNames)
+            error('resoure fieldname must be ''weight'' or ''misc''.');
+        end
+        net.weightsIsMisc = checkMisc;
+
 
         %find blobConnectId
         net.blobConnectId = cell(1, numel(net.blobNames));
