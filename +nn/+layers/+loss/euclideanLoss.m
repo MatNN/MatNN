@@ -52,19 +52,27 @@ areas = [];
 
 
     function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
-        if size(bottom{2},3) == 1 && size(bottom{1},3) > 1 % if label = HxWx1xN
+        channelNumberOfBtm1 = size(bottom{1},3);
+        if size(bottom{2},3) == 1 && channelNumberOfBtm1 > 1 % if label = HxWx1xN
             d_ = bottom{1};
-            for i = 1:size(bottom{1},3)
+            for i = 1:channelNumberOfBtm1
                 d_(:,:,i,:) = bsxfun(@minus, d_(:,:,i,:),  bottom{2}.*(bottom{2}==i) );
             end
             d2 = d_.^2;
             if l.euclideanLoss_param.per_channel_area
-                labels = sort(unique(bottom{2}));
-                labels(labels < labelIndex_start) = [];
-                areas  = arrayfun( @(x) sum(sum(bottom{2}==x,1),2), labels, 'UniformOutput', false ); %=cell array
-                areas  = cat(3, areas{:});
-
-                top{1} = 0.5 * sum(bsxfun(@rdivide, d2, areas));%/size(bottom{1},4);
+                if opts.gpuMode
+                    areas = gpuArray.zeros(1,1,channelNumberOfBtm1, size(bottom{1},4),'single');
+                else
+                    areas = zeros(1,1,channelNumberOfBtm1, size(bottom{1},4),'single');
+                end
+                for i=1:channelNumberOfBtm1
+                    areas(:,:,i,:) = sum(sum(bottom{2}==i,1),2);
+                end
+                %areas  = arrayfun( @(x) sum(sum(bottom{2}==x,1),2), 1:size(bottom{1},3), 'UniformOutput', false ); %=cell array
+                %areas  = cat(3, areas{:});
+                areas = max( areas, l.euclideanLoss_param.threshold);
+                E = bsxfun(@rdivide, d2, areas);
+                top{1} = 0.5 * sum(E(:));%/size(bottom{1},4);
             else
                 top{1} = 0.5 * sum(d2(:));%/size(bottom{1},4);
             end
@@ -72,11 +80,11 @@ areas = [];
             d_ = bottom{1}-bottom{2};
             d2 = d_.^2;
             if l.euclideanLoss_param.per_channel_area
-                areas  = single(min( sum(sum(bottom{2},1),2) , l.euclideanLoss_param.threshold) ); %dim=1x1xCxN
-
-                top{1} = 0.5 * sum(bsxfun(@rdivide, d2, areas));%/size(bottom{1},4);
+                areas  = single(max( sum(sum(bottom{2},1),2) , l.euclideanLoss_param.threshold) ); %dim=1x1xCxN
+                E = bsxfun(@rdivide, d2, areas);
+                top{1} = 0.5 * sum(E(:))/size(bottom{1},4);
             else
-                top{1} = 0.5 * sum(d2(:));%/size(bottom{1},4);
+                top{1} = 0.5 * sum(d2(:))/size(bottom{1},4);
             end
         end
         
@@ -85,11 +93,11 @@ areas = [];
 
     function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
         if l.euclideanLoss_param.per_channel_area
-            bottom_diff{1} = top_diff .* bsxfun(@rdivide, d_, areas);%/size(bottom{1},4);
-            bottom_diff{2} = -top_diff .* bsxfun(@rdivide, d_, areas);%/size(bottom{1},4);
+            bottom_diff{1} = top_diff{1} .* bsxfun(@rdivide, d_, areas);%/size(bottom{1},4);
+            bottom_diff{2} = -bottom_diff{1};
         else
-            bottom_diff{1} = top_diff .* d_;%/size(bottom{1},4);
-            bottom_diff{2} = -top_diff .* d_;%/size(bottom{1},4);
+            bottom_diff{1} = top_diff{1} .* d_ ./ size(bottom{1},4);
+            bottom_diff{2} = -bottom_diff{1};
         end
         
     end
