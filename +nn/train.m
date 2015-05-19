@@ -278,7 +278,7 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
     optFB.doder = training;
 
     % find initial weightLR ~= 0 to update them
-    needToUpdatedWeightsInd = find(~net.weightsIsMisc);
+    needToUpdatedWeightsInd = find(~net.weightsIsMisc & ~cellfun(@isempty,net.weights));
 
 
     accumulateOutBlobs = zeros(size(outputBlobID));
@@ -304,12 +304,7 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
             % evaluate CNN
             if training, dzdy = one; else, dzdy = []; end
             optFB.accumulate = s ~= 1;
-            if numGpus >= 1 % run time puts data into gpu, because GPU memory is small
-                gpuData = gpuArray(data{s});
-                res = nn.forwardbackward(net, gpuData, dzdy, res, optFB);
-            else
-                res = nn.forwardbackward(net, data{s}, dzdy, res, optFB);
-            end
+            res = nn.forwardbackward(net, data{s}, dzdy, res, optFB);
 
             % accumulate training errors
             % assume all output blobs are loss-like blobs
