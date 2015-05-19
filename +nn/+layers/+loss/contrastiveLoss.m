@@ -49,7 +49,7 @@ default_contrastiveLoss_param = {
         assert(numel(l.top)==1);
         
         resSize1 = bottomSizes{1};
-        resSize2 = bottomSizes{1};
+        resSize2 = bottomSizes{2};
         ansSize = bottomSizes{3};
 
         assert(isequal(resSize1, resSize2));
