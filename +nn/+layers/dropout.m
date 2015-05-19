@@ -54,10 +54,10 @@ default_dropout_param = {
             top{1} = bottom{1}.*misc{1};
         else
             if isa(bottom{1},'gpuArray')
-                mask = single(1 / (1 - opts.rate)) .* (gpuArray.rand(topSizes,'single') >= wp.rate);
+                mask = single(1 / (1 - l.dropout_param.rate)) .* (gpuArray.rand(size(bottom{1}),'single') >= l.dropout_param.rate);
                 top{1} = bottom{1} .* mask;
             else
-                mask = single(1 / (1 - opts.rate)) .* (rand(topSizes,'single') >= wp.rate);
+                mask = single(1 / (1 - l.dropout_param.rate)) .* (rand(size(bottom{1}),'single') >= l.dropout_param.rate);
                 top{1} = bottom{1} .* mask;
             end
             misc{1} = mask;
@@ -70,7 +70,7 @@ default_dropout_param = {
         if opts.disableDropout || ~l.dropout_param.enable_terms
             bottom_diff{1} = top_diff{1};
         else
-            bottom_diff{1} = top_diff{1} .* weights{1};
+            bottom_diff{1} = top_diff{1} .* misc{1};
         end
     end
 
