@@ -44,7 +44,7 @@ default_pooling_param = {
 
 
         btmSize = bottomSizes{1};
-        topSizes = {[ceil([(btmSize(1)+2*wp.pad(1)-wp.kernel_size(1))/wp.stride(1)+1, (btmSize(2)+2*wp.pad(2)-wp.kernel_size(2))/wp.stride(2)+1]), btmSize(3), btmSize(4)]};
+        topSizes = {[floor([(btmSize(1)+2*wp.pad(1)-wp.kernel_size(1))/wp.stride(1)+1, (btmSize(2)+2*wp.pad(2)-wp.kernel_size(2))/wp.stride(2)+1]), btmSize(3), btmSize(4)]};
 
 
         %return updated param
