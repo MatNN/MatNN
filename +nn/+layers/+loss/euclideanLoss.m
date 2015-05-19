@@ -1,5 +1,5 @@
 function o = euclideanLoss(architecture)
-%CONTRASTIVELOSS 
+%EUCLIDEANLOSS
 %
 % NOTICE
 %   label index starts from 0 (compatible with other NN tools)
