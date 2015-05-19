@@ -52,7 +52,7 @@ function batchStruct = generate(useGpu, varargin)
 %                       Then repeat 1~2.
 %            
 %  NOTICE:
-%  Your ProcessFunction should output a 'single' type tensor.
+%  Your ProcessFunction should output a 'single' type 4D-tensor.
 %
 %
 %
@@ -145,13 +145,13 @@ end
 
 end
 
-function fourDdata = defulat2DProcess(twoDdata)
+function fourDdata = defulat2DProcess(twoDdata, inds)
     % from HN11 to H11N
     [H, N] = size(twoDdata);
     fourDdata = reshape(twoDdata, H, 1, 1, N);
 end
 
-function fourDdata = defulatImgProcess(imgList)
+function fourDdata = defulatImgProcess(imgList, inds)
     % from HN11 to H11N
     fourDdata = [];
     imgCell = vl_imreadjpeg(imgList, 0);
@@ -164,7 +164,7 @@ function fourDdata = defulatImgProcess(imgList)
         end
     end
 end
-function fourDdata = defulatImgProcessGPU(imgList)
+function fourDdata = defulatImgProcessGPU(imgList, inds)
     % from HN11 to H11N
     fourDdata = [];
     imgCell = vl_imreadjpeg(imgList, 0);

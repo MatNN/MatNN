@@ -85,9 +85,11 @@ for i = 1:S
     tmpData = [];
     if ~batchStruct.fourD(i)
         if iscell(batchStruct.F{i})
-            tmpData = batchStruct.Process{i}(batchStruct.F{i}(ind(i,:)));
+            tmpData = batchStruct.Process{i}(batchStruct.F{i}(ind(i,:)), ind(i,:));
+        elseif isnumeric(batchStruct.F{i})
+            tmpData = batchStruct.Process{i}(batchStruct.F{i}(:,ind(i,:)), ind(i,:));
         else
-            tmpData = batchStruct.Process{i}(batchStruct.F{i}(:,ind(i,:)));
+            tmpData = batchStruct.Process{i}(batchStruct.F{i}, ind(i,:));
         end
     else
         tmpData = batchStruct.F{i}(:,:,:,ind(i,:));
