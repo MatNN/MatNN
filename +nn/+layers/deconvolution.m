@@ -69,13 +69,13 @@ topSizes = [];
 
         resource.weight = {[],[]};
         btmSize = bottomSizes{1};
-        topSizes = {[ceil([(btmSize(1)-1)*stride_size(1)+pad_size(1)+pad_size(2)+kernel_size(1), ...
+        topSizes = {[floor([(btmSize(1)-1)*stride_size(1)+pad_size(1)+pad_size(2)+kernel_size(1), ...
                            (btmSize(2)-1)*stride_size(2)+pad_size(3)+pad_size(4)+kernel_size(2)]), ...
                             wp2.num_output, btmSize(4)]};
 
 
         if wp1.enable_terms(1)
-            resource.weight{1} = wp1.generator{1}([kernel_size(1), kernel_size(2), bottomSizes{1}(3), wp2.num_output], wp1.generator_param{1});
+            resource.weight{1} = wp1.generator{1}([kernel_size(1), kernel_size(2), wp2.num_output, bottomSizes{1}(3)], wp1.generator_param{1});
         end
 
         if wp1.enable_terms(2)
@@ -89,7 +89,7 @@ topSizes = [];
 
 
     function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
-        top{1} = vl_nnconvt(bottom{1}, weights{1}, weights{2}, 'Crop', l.deconvolution_param.crop, 'Upsampling', l.deconvolution_param.upsampling);
+        top{1} = vl_nnconvt(bottom{1}, weights{1}, weights{2}, 'crop', l.deconvolution_param.crop, 'upsample', l.deconvolution_param.upsampling);
     end
 
 
@@ -97,20 +97,20 @@ topSizes = [];
 
         if weights_diff_isCumulate(1) && weights_diff_isCumulate(2)
             [ bottom_diff{1}, a, b ]= ...
-                             vl_nnconvt(bottom{1}, weights{1}, weights{2}, top_diff{1}, 'Crop', l.deconvolution_param.crop, 'Upsampling', l.deconvolution_param.upsampling);
+                             vl_nnconvt(bottom{1}, weights{1}, weights{2}, top_diff{1}, 'crop', l.deconvolution_param.crop, 'upsample', l.deconvolution_param.upsampling);
             weights_diff{1} = weights_diff{1} + a;
             weights_diff{2} = weights_diff{2} + b;
         elseif weights_diff_isCumulate(1)
             [ bottom_diff{1}, outputdzdw, weights_diff{2} ]= ...
-                             vl_nnconvt(bottom{1}, weights{1}, weights{2}, top_diff{1}, 'Crop', l.deconvolution_param.crop, 'Upsampling', l.deconvolution_param.upsampling);
+                             vl_nnconvt(bottom{1}, weights{1}, weights{2}, top_diff{1}, 'Crop', l.deconvolution_param.crop, 'Upsample', l.deconvolution_param.upsampling);
             weights_diff{1} = weights_diff{1} + outputdzdw;
         elseif weights_diff_isCumulate(2)
             [ bottom_diff{1}, weights_diff{1}, outputdzdw ]= ...
-                             vl_nnconvt(bottom{1}, weights{1}, weights{2}, top_diff{1}, 'Crop', l.deconvolution_param.crop, 'Upsampling', l.deconvolution_param.upsampling);
+                             vl_nnconvt(bottom{1}, weights{1}, weights{2}, top_diff{1}, 'Crop', l.deconvolution_param.crop, 'Upsample', l.deconvolution_param.upsampling);
             weights_diff{2} = weights_diff{2} + outputdzdw;
         else
             [ bottom_diff{1}, weights_diff{1}, weights_diff{2} ]= ...
-                             vl_nnconvt(bottom{1}, weights{1}, weights{2}, top_diff{1}, 'Crop', l.deconvolution_param.crop, 'Upsampling', l.deconvolution_param.upsampling);
+                             vl_nnconvt(bottom{1}, weights{1}, weights{2}, top_diff{1}, 'Crop', l.deconvolution_param.crop, 'Upsample', l.deconvolution_param.upsampling);
         end
 
     end
