@@ -62,7 +62,7 @@ backwardFunc = @back_plus;
 
 
     function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
-        [bottom_diff{1}, bottom_diff{2}] = backwardFunc(top_diff, bottom{1}, bottom{2});
+        [bottom_diff{1}, bottom_diff{2}] = backwardFunc(top_diff{1}, bottom{1}, bottom{2});
     end
 
     function [r1, r2] = back_plus(dzdy, ~, ~)
