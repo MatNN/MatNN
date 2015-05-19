@@ -44,7 +44,11 @@ end
 
 for i = fieldnames(x)'
     name2Ind = net.blobNamesIndex.(i{1});
-    res.blob{name2Ind} = x.(i{1}); %Because x is a structure, eg. x = struct('data',[],'label',[])
+    if opts.gpuMode
+        res.blob{name2Ind} = gpuArray(x.(i{1})); %Because x is a structure, eg. x = struct('data',[],'label',[])
+    else
+        res.blob{name2Ind} = x.(i{1}); %Because x is a structure, eg. x = struct('data',[],'label',[])
+    end
 end
 
 for i = opts.visitLayerID
@@ -101,7 +105,7 @@ if opts.doder
         if opts.accumulate
 
             for b = find(dzdxEmpty)
-                if any(net.blobConnectId(l.bottom(b)) == i)
+                if any(net.blobConnectId{l.bottom(b)} == i)
                     res.dzdx{l.bottom(b)} = res.dzdx{l.bottom(b)} + tmpdzdx{b};
                 else
                     res.dzdx(l.bottom(b)) = tmpdzdx(b);
