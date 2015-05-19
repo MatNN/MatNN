@@ -253,7 +253,11 @@ end
         tmp_weightsFieldNames = {};
         net.weightsShareId = {};
         for i=1:numel(net.layers)
-            tmpHandle = str2func([LayerRootFolder,'.', net.layers{i}.type]);
+            if LayerRootFolder == ''
+                tmpHandle = str2func(net.layers{i}.type);
+            else
+                tmpHandle = str2func([LayerRootFolder,'.', net.layers{i}.type]);
+            end
             net.layerobjs{i} = tmpHandle(architecture); % execute layer function!!!
             if ~isempty(net.layers{i}.bottom)
                 [res, topSizes, param] = net.layerobjs{i}.setup(net.layers{i}, tmp.blobSizes(net.layers{i}.bottom));
