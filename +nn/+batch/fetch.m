@@ -1,4 +1,4 @@
-function [fourDdata, dataN, batchStruct] = fetch(batchStruct, useGpu, sliceNumber)
+function [fourDdata, dataN, batchStruct] = fetch(batchStruct, sliceNumber)
 %FETCH fetch data for you
 %  USAGE
 %  [fourDdata, dataN, batchStruct] = fetch(batchStruct)
@@ -99,11 +99,7 @@ for i = 1:S
         subbatchInd = [1:ceil(dataN/sliceNumber):dataN, dataN+1];
         for d = 1:(numel(subbatchInd)-1)
             smalldata = tmpData(:,:,:,subbatchInd(d):subbatchInd(d+1)-1);
-            if useGpu >= 1
-                fourDdata{d}.(batchStruct.name{i}) = gpuArray(single(smalldata));
-            else
-                fourDdata{d}.(batchStruct.name{i}) = single(smalldata);
-            end
+            fourDdata{d}.(batchStruct.name{i}) = single(smalldata);
         end
         
     end

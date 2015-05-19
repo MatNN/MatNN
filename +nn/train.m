@@ -291,9 +291,9 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
         learningRate = opts.learningRatePolicy(globalBatchNum, opts.learningRate, opts.learningRateGamma, opts.learningRatePower, opts.learningRateSteps) ;
 
         % get batch data
-        [data, dataN, batchStruct] = nn.batch.fetch(batchStruct, numGpus >= 1, opts.numSubBatches);
+        [data, dataN, batchStruct] = nn.batch.fetch(batchStruct, opts.numSubBatches);
         if opts.prefetch
-            [~, ~, batchStruct] = nn.batch.fetch(batchStruct, numGpus >= 1, opts.numSubBatches);
+            [~, ~, batchStruct] = nn.batch.fetch(batchStruct, opts.numSubBatches);
         end
 
         %current subbatch number
@@ -304,7 +304,12 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
             % evaluate CNN
             if training, dzdy = one; else, dzdy = []; end
             optFB.accumulate = s ~= 1;
-            res = nn.forwardbackward(net, data{s}, dzdy, res, optFB);
+            if numGpus >= 1 % run time puts data into gpu, because GPU memory is small
+                gpuData = gpuArray(data{s});
+                res = nn.forwardbackward(net, gpuData, dzdy, res, optFB);
+            else
+                res = nn.forwardbackward(net, data{s}, dzdy, res, optFB);
+            end
 
             % accumulate training errors
             % assume all output blobs are loss-like blobs
