@@ -42,6 +42,8 @@ if isempty(res)
     res.dzdwVisited = false(size(res.dzdw));
 end
 
+res.dzdxVisited = false(size(res.dzdx));
+
 for i = fieldnames(x)'
     name2Ind = net.blobNamesIndex.(i{1});
     if opts.gpuMode
@@ -102,17 +104,14 @@ if opts.doder
         % , the performance will drain a lot.
         
         dzdxEmpty = ~cellfun('isempty', tmpdzdx);
-        if opts.accumulate
 
-            for b = find(dzdxEmpty)
-                if any(net.blobConnectId{l.bottom(b)} == i)
-                    res.dzdx{l.bottom(b)} = res.dzdx{l.bottom(b)} + tmpdzdx{b};
-                else
-                    res.dzdx(l.bottom(b)) = tmpdzdx(b);
-                end
+        for b = find(dzdxEmpty)
+            if any(net.blobConnectId{l.bottom(b)} == i) && (~any(net.replaceId{l.bottom(b)} == i) && ~isempty(net.replaceId{l.bottom(b)})) && res.dzdxVisited(l.bottom(b))
+                res.dzdx{l.bottom(b)} = res.dzdx{l.bottom(b)} + tmpdzdx{b};
+            else
+                res.dzdx(l.bottom(b)) = tmpdzdx(b);
             end
-        else
-            res.dzdx(l.bottom(dzdxEmpty)) = tmpdzdx(dzdxEmpty);
+            res.dzdxVisited(l.bottom(b)) = true;
         end
         
         %{

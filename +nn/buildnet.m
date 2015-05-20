@@ -74,6 +74,7 @@ function netObj = buildnet(netName, baseNet)
 %  net.blobNames
 %  net.blobNamesIndex
 %  net.blobConnectId
+%  net.replaceId
 %  
 
 % --------------------------------------------------------------
@@ -114,6 +115,7 @@ net.layerNamesIndex   = {}; %Inverted index from layer name to layer index. A st
 net.blobNames         = {}; %Each top/bottom's name
 net.blobNamesIndex    = {}; %Inverted index from top/bottom name to index. A struct
 net.blobConnectId     = {}; %Specify a blob(assume it's a top blob) be used in which layers as bottom (so no self layer)
+net.replaceId         = {}; %Specify if any layer uses the same name of bottoms and tops
 
 %net.displayLossBlobId = [];
 
@@ -157,6 +159,7 @@ end
                     s = size(l.weights{1});
                     l.deconvolution_param = {'num_output',size(l.weights{1},4),'kernel_size',s(1:2),'crop',l.pad,'upsampling',l.stride};
                     l.weight_param = {'enable_terms', ~cellfun('isempty', l.weights)};
+                    matconvnetLayers{i}.weights{1} = permute(matconvnetLayers{i}.weights{1},[1,2,4,3]);
                 case 'relu'
                     l.type = ['layers.', 'relu'];
                 case {'pool', 'pooling'}
@@ -253,7 +256,7 @@ end
         tmp_weightsFieldNames = {};
         net.weightsShareId = {};
         for i=1:numel(net.layers)
-            if LayerRootFolder == ''
+            if isempty(LayerRootFolder)
                 tmpHandle = str2func(net.layers{i}.type);
             else
                 tmpHandle = str2func([LayerRootFolder,'.', net.layers{i}.type]);
@@ -331,9 +334,9 @@ end
                 replaceWeights = zeros(1, numel(res.(resfield{fi})));
                 
                 for w=1:numel(res.(resfield{fi}))
-                    if net.layers{i}.(paName).enable_terms(w) == false
-                        continue;
-                    end
+                    %if net.layers{i}.(paName).enable_terms(w) == false
+                    %    continue;
+                    %end
                     
                     if ~isempty(net.layers{i}.(paName).name{w})
                         % concatenate user defined name with '_u' to avoid 
@@ -403,9 +406,13 @@ end
 
         %find blobConnectId
         net.blobConnectId = cell(1, numel(net.blobNames));
+        net.replaceId = cell(1, numel(net.blobNames)); % if any layer's btm and top use the same name
         for i = 1:numel(net.layers)
             if ~isempty(net.layers{i}.bottom)
                 for b = 1:numel(net.layers{i}.bottom)
+                    if any(net.layers{i}.top == net.layers{i}.bottom(b))
+                        net.replaceId{net.layers{i}.bottom(b)} = [net.replaceId{net.layers{i}.bottom(b)}, i];
+                    end
                     net.blobConnectId{net.layers{i}.bottom(b)} = [net.blobConnectId{net.layers{i}.bottom(b)}, i];
                 end
             end
