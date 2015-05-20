@@ -12,7 +12,7 @@ o.forward      = @forward;
 o.backward     = @backward;
 
 default_accuracy_param = {
-     'labelIndex_start' single(0)     ...
+    'labelIndex_start' single(0)     ...
 };
 
     function [resource, topSizes, param] = setup(l, bottomSizes)
@@ -47,8 +47,12 @@ default_accuracy_param = {
         % if size(prediction) == 1x1xCxN, divide cumulative acc by N, size(label) == 1x1x1xN
         % if size(prediction) == 1x1x1xN, divide cumulative acc by N, size(label) == 1x1x1xN
         label = bottom{2} - l.accuracy_param.labelIndex_start;
-        [~, argMax] = max(bottom{1}, [], 3);
-        k = (argMax -1 + l.accuracy_param.labelIndex_start) == label;
+        if size(bottom{1},3) > 1
+            [~, argMax] = max(bottom{1}, [], 3);
+            k = (argMax -1 + l.accuracy_param.labelIndex_start) == label;
+        else
+            k = bsxfun(@eq, bottom{1}, bottom{2});
+        end
         top{1} = sum(k(:))/(size(bottom{1},1)*size(bottom{1},2));%*size(bottom{1},4)); don't divide N here, because train.m will do it for us
 
     end
