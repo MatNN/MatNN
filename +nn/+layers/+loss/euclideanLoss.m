@@ -53,7 +53,7 @@ areas = [];
 
     function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
         if l.euclideanLoss_param.per_elementLoss
-            dividend = numel(bottom{1})/size(bottom{1}, 4);
+            dividend = numel(bottom{1})/size(bottom{1}, 3);%/size(bottom{1}, 4);
         else
             dividend = 1;%size(bottom{1}, 4);
         end
@@ -99,7 +99,7 @@ areas = [];
 
     function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
         if l.euclideanLoss_param.per_elementLoss
-            dividend = numel(bottom{1})/size(bottom{1}, 4);
+            dividend = numel(bottom{1})/size(bottom{1}, 3);%/size(bottom{1}, 4);
         else
             dividend = 1;%size(bottom{1}, 4);
         end
