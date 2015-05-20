@@ -53,7 +53,7 @@ areas = [];
 
     function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
         if l.euclideanLoss_param.per_elementLoss
-            dividend = numel(bottom{1})/size(bottom{1}, 3);%/size(bottom{1}, 4);
+            dividend = size(bottom{1},1)*size(bottom{1},2);%size(bottom{1}, 4);
         else
             dividend = 1;%size(bottom{1}, 4);
         end
@@ -62,7 +62,7 @@ areas = [];
         if size(bottom{2},3) == 1 && channelNumberOfBtm1 > 1 % if label = HxWx1xN
             d_ = bottom{1};
             for i = 1:channelNumberOfBtm1
-                d_(:,:,i,:) = bsxfun(@minus, d_(:,:,i,:),  bottom{2}.*(bottom{2}==i) );
+                d_(:,:,i,:) = bsxfun(@minus, d_(:,:,i,:),  bottom{2}.*(bottom{2}==(i-1+l.euclideanLoss_param.labelIndex_start)) );
             end
             d2 = d_.^2;
             if l.euclideanLoss_param.per_channel_area
@@ -72,7 +72,7 @@ areas = [];
                     areas = zeros(1,1,channelNumberOfBtm1, size(bottom{1}, 4),'single');
                 end
                 for i=1:channelNumberOfBtm1
-                    areas(:,:,i,:) = sum(sum(bottom{2}==i,1),2);
+                    areas(:,:,i,:) = sum(sum(bottom{2}==(i-1+l.euclideanLoss_param.labelIndex_start),1),2);
                 end
                 %areas  = arrayfun( @(x) sum(sum(bottom{2}==x,1),2), 1:size(bottom{1},3), 'UniformOutput', false ); %=cell array
                 %areas  = cat(3, areas{:});
@@ -99,7 +99,7 @@ areas = [];
 
     function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
         if l.euclideanLoss_param.per_elementLoss
-            dividend = numel(bottom{1})/size(bottom{1}, 3);%/size(bottom{1}, 4);
+            dividend = size(bottom{1},1)*size(bottom{1},2);%size(bottom{1}, 4);
         else
             dividend = 1;%size(bottom{1}, 4);
         end
