@@ -12,7 +12,7 @@ o.forward      = @forward;
 o.backward     = @backward;
 
 default_accuracy_param = {
-    'labelIndex_start' single(0)     ...
+    'labelIndex_start' single(0) ...
 };
 
     function [resource, topSizes, param] = setup(l, bottomSizes)
@@ -25,16 +25,14 @@ default_accuracy_param = {
         end
         param.accuracy_param = wp;
 
-
-        assert(numel(l.bottom)==2);
-        assert(numel(l.top)==1);
-        
-
         resSize = bottomSizes{1};
         ansSize = bottomSizes{2};
 
+        assert(numel(l.bottom)==2);
+        assert(numel(l.top)==1);
+
         if ~isequal(resSize(4),prod(ansSize))
-            if ~(isequal(resSize([1,2,4]), ansSize([1,2,4]) && ansSize(3)) == 1) && ~(isequal(resSize(4), ansSize(4)) && isequal(ansSize(1:3),[1 1 1]))
+            if ~(isequal(resSize([1,2,4]), ansSize([1,2,4])) && ansSize(3) == 1) && ~(isequal(resSize(4), ansSize(4)) && isequal(ansSize(1:3),[1 1 1]))
                 error('Label size must be Nx1, 1xN, 1x1x1xN or HxWx1xN.');
             end
         end
@@ -46,10 +44,10 @@ default_accuracy_param = {
         % if size(prediction) == HxWxCxN, divide cumulative acc by HxWxN, size(label) == HxWx1xN
         % if size(prediction) == 1x1xCxN, divide cumulative acc by N, size(label) == 1x1x1xN
         % if size(prediction) == 1x1x1xN, divide cumulative acc by N, size(label) == 1x1x1xN
-        label = bottom{2} - l.accuracy_param.labelIndex_start;
+
         if size(bottom{1},3) > 1
             [~, argMax] = max(bottom{1}, [], 3);
-            k = (argMax -1 + l.accuracy_param.labelIndex_start) == label;
+            k = (argMax -1 + l.accuracy_param.labelIndex_start) == bottom{2};
         else
             k = bsxfun(@eq, bottom{1}, bottom{2});
         end
