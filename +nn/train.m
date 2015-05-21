@@ -7,7 +7,8 @@ function [net, batchStructTrain, batchStructVal] = train(netObj, batchStructTrai
 
 opts.numEpochs = [];
 opts.numInterations = [];
-opts.numToSave = 10; %runs how many Epochs or iterations to save
+opts.numToTest = 1; %runs how many Epochs or iterations to test
+opts.numToSave = 10; % note, this value must be dvidable by opts.numToTest
 opts.displayIter = 10; %Show info every opts.displayIter iterations
 opts.batchSize = 256;
 opts.numSubBatches = 1;
@@ -158,7 +159,12 @@ if ~isempty(opts.continue)
     startInd = opts.continue+1;
 end
 
-%saveTimes = numel(startInd:opts.numToSave:(runTimes-1))+1;
+if opts.numToTest == 0 || numel(opts.numToTest) == 0
+    opts.numToTest = opts.numToSave;
+end
+
+
+%saveTimes = numel(startInd:opts.numToTest:(runTimes-1))+1;
 
 % Save current time
 startTime = tic;
@@ -168,7 +174,8 @@ opts.solver = opts.solver(opts.computeMode, net);
 
 %rngState = rng;
 % start training from the last position
-for i = startInd:opts.numToSave:(runTimes-1)
+lastSavePoint = floor((startInd-1)/opts.numToSave);
+for i = startInd:opts.numToTest:(runTimes-1)
     % move CNN to GPU as needed
     if numGpus == 1
         net = nn.utils.movenet(net, 'gpu') ;
@@ -179,12 +186,12 @@ for i = startInd:opts.numToSave:(runTimes-1)
     end
 
     %iter/epoch range
-    epitRange = i:min(i+opts.numToSave-1, runTimes);
+    epitRange = i:min(i+opts.numToTest-1, runTimes);
 
     %Generate randomSeed use current rng settings
     %randomSeed = randi(65536,1)-1;
 
-    % train one epoch (or achieved opts.numToSave) and validate
+    % train one epoch (or achieved opts.numToTest) and validate
     % process_runs msut accept startIndex and endIndex of iter/epoch
     if numGpus <= 1
         %generate random seed
@@ -201,17 +208,20 @@ for i = startInd:opts.numToSave:(runTimes-1)
     end
 
     % save model file
-    if numGpus > 1
-        spmd(numGpus)
-            net_ = nn.utils.movenet(net_, 'cpu') ;
-        end
-        net = net_{1} ;
-    else
-        net = nn.utils.movenet(net, 'cpu') ;
-    end
-    fprintf('Saving network model to %s ... \n',modelPath(epitRange(end)));
-    if ~evaluateMode, save(modelPath(epitRange(end)), 'net'); end
 
+    if floor(epitRange(end)/opts.numToSave)~=lastSavePoint || epitRange(end)==runTimes
+        if numGpus > 1
+            spmd(numGpus)
+                net_ = nn.utils.movenet(net_, 'cpu') ;
+            end
+            net = net_{1} ;
+        else
+            net = nn.utils.movenet(net, 'cpu') ;
+        end
+        fprintf('Saving network model to %s ... \n',modelPath(epitRange(end)));
+        if ~evaluateMode, save(modelPath(epitRange(end)), 'net'); end
+    end
+    lastSavePoint = floor(epitRange(end)/opts.numToSave);
 end
 
 %restores rng state
@@ -255,7 +265,7 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
         mode = 'training';
     else
         mode = 'validation';
-        opts.numToSave = 0;
+        opts.numToTest = 0;
         
         %opts.batchSize = 1;
         %opts.numSubBatches = 1;
