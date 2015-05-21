@@ -338,7 +338,7 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
             % print learning statistics
             
             if mod(count, opts.displayIter) == 0 || count == 1
-                fprintf('LabNo.%d - %s: %s %d (%d/%d), lr = %g ... ', labindex, mode, opts.epit, t(1), t(2), rangeNumber, learningRate); % eg. training iter 1600 (2/rangeNumber), lr = 0.001 ... %     training epoch 1 (2/batchNumber), lr = 0.001
+                preStr = sprintf('LabNo.%d - %s: %s %d (%d/%d), lr = %g ... ', labindex, mode, opts.epit, t(1), t(2), rangeNumber, learningRate); % eg. training iter 1600 (2/rangeNumber), lr = 0.001 ... %     training epoch 1 (2/batchNumber), lr = 0.001
                 batchTime = toc(batchTime) ;
                 speed = cumuTrainedDataNumber/batchTime;
                 
@@ -346,7 +346,11 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
                     if isinf(accumulateOutBlobs(ac))
                         error('A blob output = Inf');
                     elseif ~isempty(accumulateOutBlobs(ac))
+                        fprintf(preStr);
                         fprintf('blob(''%s'') = %.6g ', net.blobNames{outputBlobID(ac)}, accumulateOutBlobs(ac)/cumuTrainedDataNumber);
+                    end
+                    if ac~=numel(accumulateOutBlobs)
+                        fprintf('\n');
                     end
                 end
 
@@ -361,7 +365,7 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
                 disp('Validating...');
             end
             if mod(count, opts.displayIter) == 0
-                fprintf('LabNo.%d - %s: %s %d (%d/%d), ', labindex, mode, opts.epit, t(1), cumuTrainedDataNumber, batchStruct.m);
+                preStr = sprintf('LabNo.%d - %s: %s %d (%d/%d), ', labindex, mode, opts.epit, t(1), cumuTrainedDataNumber, batchStruct.m);
                 batchTime = toc(batchTime) ;
                 speed = cumuTrainedDataNumber/batchTime;
                 
@@ -369,7 +373,11 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
                     if isinf(accumulateOutBlobs(ac))
                         error('A blob output = Inf');
                     elseif ~isempty(accumulateOutBlobs(ac))
+                        fprintf(preStr);
                         fprintf('blob(''%s'') = %.6g ', net.blobNames{outputBlobID(ac)}, accumulateOutBlobs(ac)/cumuTrainedDataNumber);
+                    end
+                    if ac~=numel(accumulateOutBlobs)
+                        fprintf('\n');
                     end
                 end
 
