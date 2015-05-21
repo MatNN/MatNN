@@ -47,10 +47,8 @@ default_accuracy_param = {
 
         if size(bottom{1},3) > 1
             [~, argMax] = max(bottom{1}, [], 3);
-            mask = bottom{2} >= l.accuracy_param.labelIndex_start;
             argMax = argMax -1 + l.accuracy_param.labelIndex_start;
-            argMax
-            k = argMax(mask) == bottom{2};
+            k = argMax(bottom{2} >= l.accuracy_param.labelIndex_start) == bottom{2};
         else
             k = bsxfun(@eq, bottom{1}, bottom{2});
         end
