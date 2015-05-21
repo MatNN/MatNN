@@ -36,7 +36,7 @@ default_crop_param = {
 
         % use smallest bottom size as top size
         if HW1(1) >= HW2(1) && HW1(2) >= HW1(2)
-            topSizes = bottomSizes(2);
+            topSizes = {[bottomSizes{2}(1:2), bottomSizes{1}(3:4)]};
         else
             error('Crop Layer bottom size is wrong.');
         end
