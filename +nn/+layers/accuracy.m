@@ -48,7 +48,9 @@ default_accuracy_param = {
         if size(bottom{1},3) > 1
             [~, argMax] = max(bottom{1}, [], 3);
             argMax = argMax -1 + l.accuracy_param.labelIndex_start;
-            k = argMax(bottom{2} >= l.accuracy_param.labelIndex_start) == bottom{2};
+            argMax(bottom{2} < l.accuracy_param.labelIndex_start)    = 0; % Important: we just compare class ID >= "labelIndex_start", so class ID < "labelIndex_start" will be marked as correct.
+            bottom{2}(bottom{2} < l.accuracy_param.labelIndex_start) = 0; % this may not an necessary step, but for potentially risks.
+            k =  argMax == bottom{2};
         else
             k = bsxfun(@eq, bottom{1}, bottom{2});
         end
