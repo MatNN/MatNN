@@ -106,7 +106,8 @@ if opts.doder
         dzdxEmpty = ~cellfun('isempty', tmpdzdx);
 
         for b = find(dzdxEmpty)
-            if any(net.blobConnectId{l.bottom(b)} == i) && (~any(net.replaceId{l.bottom(b)} == i) && ~isempty(net.replaceId{l.bottom(b)})) && res.dzdxVisited(l.bottom(b))
+            if any(net.blobConnectId{l.bottom(b)} == i) && ((~any(net.replaceId{l.bottom(b)} == i) && ~isempty(net.replaceId{l.bottom(b)})) || isempty(net.replaceId{l.bottom(b)})) && res.dzdxVisited(l.bottom(b))
+                %fprintf('blob(%s)\n!!!', net.blobNames{l.bottom(b)});
                 res.dzdx{l.bottom(b)} = res.dzdx{l.bottom(b)} + tmpdzdx{b};
             else
                 res.dzdx(l.bottom(b)) = tmpdzdx(b);
