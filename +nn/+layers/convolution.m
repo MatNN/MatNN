@@ -43,7 +43,7 @@ default_convolution_param = {
             error('At least enable one weight.');
         end
 
-
+        assert(all(wp2.stride~=0));
         assert(numel(l.bottom)==1);
         assert(numel(l.top)==1);
 
