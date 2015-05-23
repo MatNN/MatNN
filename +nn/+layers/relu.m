@@ -41,8 +41,8 @@ end
             maxThreads = bottomSizes{1}(4);
         end
         maxBlocks = ceil(prod(bottomSizes{1})/maxThreads);
-        cuKernel.forward.ThreadBlockSize = [maxThreads, 1, 1];
-        cuKernel.forward.GridSize = [maxBlocks, 1, 1];
+        cuKernel.forward.ThreadBlockSize = maxThreads;
+        cuKernel.forward.GridSize = maxBlocks;
 
         % setup backward kernel
         cuKernel.backward = parallel.gpu.CUDAKernel(ptxFile, cuFile, 'backward');
@@ -53,8 +53,8 @@ end
             maxThreads = bottomSizes{1}(4);
         end
         maxBlocks = ceil(prod(bottomSizes{1})/maxThreads);
-        cuKernel.backward.ThreadBlockSize = [maxThreads, 1, 1];
-        cuKernel.backward.GridSize = [maxBlocks, 1, 1];
+        cuKernel.backward.ThreadBlockSize = maxThreads;
+        cuKernel.backward.GridSize = maxBlocks;
     end
 
 
