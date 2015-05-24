@@ -54,6 +54,9 @@ if isa(batchStruct.rnd, 'function_handle')
     tp = batchStruct.rnd(batchStruct.totalTimesOfDataSampled, batchStruct.lastErrorRateOfData, batchStruct.lastBatchIndices, batchStruct.lastBatchErrors, batchStruct.N);
     batchStruct.lastBatchIndices = repmat(tp,S/size(tp,1),1);
 elseif batchStruct.rnd == 0
+    if batchStruct.lastIndOfPermute == batchStruct.m
+        batchStruct.lastIndOfPermute = 0;
+    end
     batchStruct.lastBatchIndices = min(batchStruct.lastIndOfPermute+1, batchStruct.m):min(batchStruct.lastIndOfPermute+batchStruct.N, batchStruct.m);
     batchStruct.lastIndOfPermute = batchStruct.lastBatchIndices(end);
     batchStruct.lastBatchIndices = repmat(batchStruct.lastBatchIndices,S,1);
