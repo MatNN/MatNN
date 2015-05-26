@@ -62,9 +62,10 @@ N          = [];
                 label = bottom{2};
             end
         end
-        label = label - l.logisticLoss_param.labelIndex_start;
+        ll = label >= l.logisticLoss_param.labelIndex_start;
+        label = label(ll) - l.logisticLoss_param.labelIndex_start;
         N = resSize(1)*resSize(2);
-        ind = 0:(numel(label) - 1);
+        ind = find(ll)-1;
         ind = 1 + mod(ind, N)     ...
                 + N * label(:)' ...
                 + N*resSize(3) * floor(ind/(resSize(1)*resSize(2)));
