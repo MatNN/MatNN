@@ -52,6 +52,7 @@ N          = [];
         %resultBlob = max(bottom{1}, l.softmaxLoss_param.threshold);
         resultBlob = bottom{1}+l.softmaxLoss_param.threshold;
         resSize = size(resultBlob);
+        resSize(4) = size(resultBlob,4);
         labelSize = size(bottom{2});
         if resSize(4) == numel(bottom{2})
             label = reshape(bottom{2}, [1, 1, 1 resSize(4)]) ;

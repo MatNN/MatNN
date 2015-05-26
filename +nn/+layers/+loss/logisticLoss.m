@@ -53,6 +53,7 @@ N          = [];
         resultBlob = bottom{1}+l.logisticLoss_param.threshold;
 
         resSize = size(resultBlob);
+        resSize(4) = size(resultBlob,4);
         labelSize = size(bottom{2});
         if resSize(4) == numel(bottom{2})
             label = reshape(bottom{2}, [1, 1, 1 resSize(4)]) ;
