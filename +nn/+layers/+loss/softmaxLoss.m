@@ -62,12 +62,12 @@ N          = [];
                 label = bottom{2};
             end
         end
-        ll = label >= l.logisticLoss_param.labelIndex_start;
+        ll = label >= l.softmaxLoss_param.labelIndex_start;
         label = label(ll) - l.softmaxLoss_param.labelIndex_start;
         N = resSize(1)*resSize(2);
         ind = find(ll)-1;
-        ind = 1 + mod(ind, N)   ...
-                + N * label(:)' ...
+        ind = 1 + mod(ind, N)  ...
+                + N * label(:) ...
                 + N*resSize(3) * floor(ind/N);
 
         %compute logsumexp
@@ -76,7 +76,7 @@ N          = [];
         else
             y = LogSumExp(resultBlob, 3);
         end
-        top{1} = sum( y(:)'-resultBlob(ind) )/N;
+        top{1} = sum( y(ll)-resultBlob(ind) )/N;
     end
     function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
         %compute derivative
