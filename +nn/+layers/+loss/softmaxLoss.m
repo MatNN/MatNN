@@ -41,7 +41,7 @@ N          = [];
         resSize = bottomSizes{1};
         ansSize = bottomSizes{2};
         if ~isequal(resSize(4),prod(ansSize))
-            if ~(isequal(resSize([1,2,4]), ansSize([1,2,4]) && ansSize(3)) == 1) && ~(isequal(resSize(4), ansSize(4)) && isequal(ansSize(1:3),[1 1 1]))
+            if ~(isequal(resSize([1,2,4]), ansSize([1,2,4])) && ansSize(3) == 1) && ~(isequal(resSize(4), ansSize(4)) && isequal(ansSize(1:3),[1 1 1]))
                 error('Label size must be Nx1, 1xN or HxWx1xN.');
             end
         end
