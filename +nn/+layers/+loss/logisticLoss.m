@@ -14,7 +14,7 @@ o.backward     = @backward;
 
 default_logisticLoss_param = {
     'labelIndex_start' single(0)     ...
-           'threshold' single(1e-20) ...
+           'threshold' single(1e-4) ...
 };
 
 % Save Forward result for faster computation
@@ -49,7 +49,9 @@ N          = [];
     end
     function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
 
-        resultBlob = min(bottom{1}, l.logisticLoss_param.threshold);
+        %resultBlob = min(bottom{1}, l.logisticLoss_param.threshold);
+        resultBlob = bottom{1}+l.logisticLoss_param.threshold;
+
         resSize = size(resultBlob);
         labelSize = size(bottom{2});
         if resSize(4) == numel(bottom{2})

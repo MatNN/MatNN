@@ -14,7 +14,7 @@ o.backward     = @backward;
 
 default_softmaxLoss_param = {
      'labelIndex_start' single(0)     ...
-            'threshold' single(1e-20) ...
+            'threshold' single(1e-4) ...
     'ForceEliminateInf' false ... % CAUTIONS! Don't set to true in most cases, unless you are really sure other workaround is uesless
 };
 
@@ -49,7 +49,8 @@ N          = [];
 
     end
     function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
-        resultBlob = max(bottom{1}, l.softmaxLoss_param.threshold);
+        %resultBlob = max(bottom{1}, l.softmaxLoss_param.threshold);
+        resultBlob = bottom{1}+l.softmaxLoss_param.threshold;
         resSize = size(resultBlob);
         labelSize = size(bottom{2});
         if resSize(4) == numel(bottom{2})
@@ -65,7 +66,7 @@ N          = [];
         ll = label >= l.softmaxLoss_param.labelIndex_start;
         label = label(ll) - l.softmaxLoss_param.labelIndex_start;
         N = resSize(1)*resSize(2);
-        ind = find(ll)-1;
+        ind = find(ll)-1;%0:numel(label)-1
         ind = 1 + mod(ind, N)  ...
                 + N * label(:) ...
                 + N*resSize(3) * floor(ind/N);
