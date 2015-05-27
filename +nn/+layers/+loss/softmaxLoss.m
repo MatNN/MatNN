@@ -13,7 +13,7 @@ o.backward     = @backward;
 
 
 default_softmaxLoss_param = {
-     'labelIndex_start' single(0)     ...
+     'labelIndex_start' single(0)    ...
             'threshold' single(1e-4) ...
     'ForceEliminateInf' false ... % CAUTIONS! Don't set to true in most cases, unless you are really sure other workaround is uesless
 };
@@ -49,11 +49,12 @@ N          = [];
 
     end
     function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
-        %resultBlob = max(bottom{1}, l.softmaxLoss_param.threshold);
-        resultBlob = bottom{1}+l.softmaxLoss_param.threshold;
+        resultBlob = max(bottom{1}, l.softmaxLoss_param.threshold);
+        %resultBlob = bottom{1}+l.softmaxLoss_param.threshold;
         resSize = size(resultBlob);
         resSize(4) = size(resultBlob,4);
         labelSize = size(bottom{2});
+        labelSize(4) = size(bottom{2},4);
         if resSize(4) == numel(bottom{2})
             label = reshape(bottom{2}, [1, 1, 1 resSize(4)]) ;
             label = repmat(label, [resSize(1), resSize(2)]) ;
@@ -92,7 +93,7 @@ end
 function y = LogSumExp_noInf(X, dim)
     M = max(X, [], dim);
     m = min(X, [], dim);
-    y = M + log(sum(exp( bsxfun(@minus, X, M) ),dim));
+    y = M + log(sum(exp( bsxfun(@minus, X, M) ), dim));
     ind = isinf(y);
     ind_po = ind & y > 0;
     ind_ne = ind & y < 0;
