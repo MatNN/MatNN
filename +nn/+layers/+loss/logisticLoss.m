@@ -48,8 +48,9 @@ N          = [];
 
     end
     function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
+        %resultBlob = max(bottom{1}, l.logisticLoss_param.threshold);
+        resultBlob = bottom{1}+l.logisticLoss_param.threshold;
 
-        resultBlob = max(bottom{1}, l.logisticLoss_param.threshold);
         resSize = size(resultBlob);
         resSize(4) = size(resultBlob,4);
         labelSize = size(bottom{2});

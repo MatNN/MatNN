@@ -19,7 +19,6 @@ default_softmaxLoss_param = {
 };
 
 % Save Forward result for faster computation
-resultBlob = [];
 ind        = [];
 N          = [];
 
@@ -49,8 +48,8 @@ N          = [];
 
     end
     function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
-        resultBlob = max(bottom{1}, l.softmaxLoss_param.threshold);
-        %resultBlob = bottom{1}+l.softmaxLoss_param.threshold;
+        %resultBlob = max(bottom{1}, l.softmaxLoss_param.threshold);
+        resultBlob = bottom{1};
         resSize = size(resultBlob);
         resSize(4) = size(resultBlob,4);
         labelSize = size(bottom{2});
@@ -75,25 +74,25 @@ N          = [];
 
         %compute logsumexp
         if l.softmaxLoss_param.ForceEliminateInf
-            y = LogSumExp_noInf(resultBlob, 3);
+            y = LogSumExp_noInf(resultBlob, 3, l.softmaxLoss_param.threshold);
         else
-            y = LogSumExp(resultBlob, 3);
+            y = LogSumExp(resultBlob, 3, l.softmaxLoss_param.threshold);
         end
         top{1} = sum( y(ll)-resultBlob(ind) )/N;
     end
     function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
         %compute derivative
-        y = Exp(resultBlob, 3);
+        y = Exp(bottom{1}, 3)+l.softmaxLoss_param.threshold;
         y = bsxfun(@rdivide, y, sum(y,3));
         y(ind) = y(ind)-1;
         bottom_diff = { y*top_diff{1}/N , []};
     end
 end
 
-function y = LogSumExp_noInf(X, dim)
+function y = LogSumExp_noInf(X, dim, thres)
     M = max(X, [], dim);
     m = min(X, [], dim);
-    y = M + log(sum(exp( bsxfun(@minus, X, M) ), dim));
+    y = M + log(sum(exp( bsxfun(@minus, X, M) ), dim)+thres);
     ind = isinf(y);
     ind_po = ind & y > 0;
     ind_ne = ind & y < 0;
@@ -101,9 +100,9 @@ function y = LogSumExp_noInf(X, dim)
     y(ind_ne) = m(ind_ne);
 end
 
-function y = LogSumExp(X, dim)
+function y = LogSumExp(X, dim, thres)
     M = max(X, [], dim);
-    y = M + log(sum(exp( bsxfun(@minus, X, M) ), dim));
+    y = M + log(sum(exp( bsxfun(@minus, X, M) ), dim)+thres);
 end
 function [y] = Exp(X, dim)
     M = max(X, [], dim);
