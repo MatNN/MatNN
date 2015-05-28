@@ -354,8 +354,7 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
                     end
                 end
 
-                fprintf('%.2fs (%.1f data/s), ', batchTime, speed);
-                fprintf('\n') ;
+                fprintf('%.2fs (%.1f data/s)\n', batchTime, speed);
                 batchTime = tic;
                 accumulateOutBlobs = zeros(size(outputBlobID));
                 cumuTrainedDataNumber = 0;
@@ -381,8 +380,7 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
                     end
                 end
 
-                fprintf('%.2fs (%.1f data/s), ', batchTime, speed);
-                fprintf('\n') ;
+                fprintf('%.2fs (%.1f data/s)\n', batchTime, speed);
                 batchTime = tic;
                 accumulateOutBlobs = zeros(size(outputBlobID));
                 cumuTrainedDataNumber = 0;
