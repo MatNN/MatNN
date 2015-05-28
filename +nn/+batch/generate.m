@@ -40,7 +40,7 @@ function batchStruct = generate(useGpu, varargin)
 %                   2: random all data each full iter and get batch in order.
 %                   @handle: your own random function, you can implement a random algorithm
 %                            follows the error rate or get rare class of data more frequently.
-%                            your @handle must accept 4 inputs,
+%                            your @handle must accept 5 inputs,
 %                            (totalTimesOfDataSampled, lastErrorRateOfData, lastBatchIndices, lastBatchErrors, BatchNumber)
 %                   Note, only 0 and 2 support epoch training, 1 and @handle do not.
 %  'Prefetch'       true/false
@@ -123,9 +123,9 @@ if iscell(F)
     batchStruct.fourD = false;
     if isempty(P)
         if useGpu
-            batchStruct.Process  = {@defulatImgProcessGPU};
+            batchStruct.Process  = {@defaultImgProcessGPU};
         else
-            batchStruct.Process  = {@defulatImgProcess};
+            batchStruct.Process  = {@defaultImgProcess};
             warning('Use default image process procedure, no mean-substrction!!!');
         end
     else
@@ -134,7 +134,7 @@ if iscell(F)
 else
     if ~fourD
         if isempty(P)
-            batchStruct.Process  = {@defulat2DProcess};
+            batchStruct.Process  = {@default2DProcess};
         else
             batchStruct.Process = {P};
         end
@@ -145,13 +145,13 @@ end
 
 end
 
-function fourDdata = defulat2DProcess(twoDdata, inds)
+function fourDdata = default2DProcess(twoDdata, inds)
     % from HN11 to H11N
     [H, N] = size(twoDdata);
     fourDdata = reshape(twoDdata, H, 1, 1, N);
 end
 
-function fourDdata = defulatImgProcess(imgList, inds)
+function fourDdata = defaultImgProcess(imgList, inds)
     % from HN11 to H11N
     fourDdata = [];
     imgCell = vl_imreadjpeg(imgList, 0);
@@ -164,7 +164,7 @@ function fourDdata = defulatImgProcess(imgList, inds)
         end
     end
 end
-function fourDdata = defulatImgProcessGPU(imgList, inds)
+function fourDdata = defaultImgProcessGPU(imgList, inds)
     % from HN11 to H11N
     fourDdata = [];
     imgCell = vl_imreadjpeg(imgList, 0);
