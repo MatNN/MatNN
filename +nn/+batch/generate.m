@@ -41,7 +41,7 @@ function batchStruct = generate(useGpu, varargin)
 %                   @handle: your own random function, you can implement a random algorithm
 %                            follows the error rate or get rare class of data more frequently.
 %                            your @handle must accept 4 inputs,
-%                            (totalTimesOfDataSampled, lastErrorRateOfData, lastBatchIndices, lastBatchErrors)
+%                            (totalTimesOfDataSampled, lastErrorRateOfData, lastBatchIndices, lastBatchErrors, BatchNumber)
 %                   Note, only 0 and 2 support epoch training, 1 and @handle do not.
 %  'Prefetch'       true/false
 %                   If your ProcessFunction using prefetch paradigm, you should set this true.
