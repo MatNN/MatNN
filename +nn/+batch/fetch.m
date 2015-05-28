@@ -51,7 +51,7 @@ end
 
 %Generate data indices
 if isa(batchStruct.rnd, 'function_handle')
-    tp = batchStruct.rnd(batchStruct.totalTimesOfDataSampled, batchStruct.lastErrorRateOfData, batchStruct.lastBatchIndices, batchStruct.lastBatchErrors, batchStruct.N);
+    tp = batchStruct.rnd(batchStruct.totalTimesOfDataSampled, batchStruct.lastErrorRateOfData, batchStruct.lastBatchIndices, batchStruct.N);
     batchStruct.lastBatchIndices = repmat(tp,S/size(tp,1),1);
 elseif batchStruct.rnd == 0
     if batchStruct.lastIndOfPermute == batchStruct.m
