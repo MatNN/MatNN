@@ -331,11 +331,6 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
         res.dzdwVisited = res.dzdwVisited & false;
 
         cumuTrainedDataNumber = cumuTrainedDataNumber+dataN;
-        % update batchStruct
-        for ac = 1:numel(accumulateOutBlobs)
-            batchStruct.lastErrorRateOfData(ac, batchStruct.lastBatchIndices) = accumulateOutBlobs(ac)/cumuTrainedDataNumber;
-        end
-
         if training
             if numGpus <= 1
                 net = opts.solver.solve(opts, learningRate, dataN, net, res, needToUpdatedWeightsInd);
@@ -345,8 +340,13 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
                 res.dzdw = gop(@(a,b) cellfun(@plus, a,b, 'UniformOutput', false), res.dzdw);
                 net = opts.solver.solve(opts, learningRate, dataN, net, res, needToUpdatedWeightsInd);
             end
+
+            % update batchStruct
+            for ac = 1:numel(accumulateOutBlobs)
+                batchStruct.lastErrorRateOfData(ac, batchStruct.lastBatchIndices) = accumulateOutBlobs(ac)/cumuTrainedDataNumber;
+            end
+
             % print learning statistics
-            
             if mod(count, opts.displayIter) == 0 || count == 1
                 preStr = sprintf('LabNo.%d - %s: %s %d (%d/%d), lr = %g ... ', labindex, mode, opts.epit, t(1), t(2), rangeNumber, learningRate); % eg. training iter 1600 (2/rangeNumber), lr = 0.001 ... %     training epoch 1 (2/batchNumber), lr = 0.001
                 batchTime = toc(batchTime) ;
