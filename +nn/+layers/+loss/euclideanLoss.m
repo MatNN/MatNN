@@ -21,7 +21,6 @@ default_euclideanLoss_param = {
     'labelIndex_start' single(0)     ...
            'threshold' single(1)     ... % minimal area size = 1
     'per_channel_area' false         ... % this will divide each channel's distance with ground truth's area
-    'per_elementLoss'  false         ... % default divide by N, if you choose this, divide by numel(bottom)
 };
 
 d_ = [];
@@ -52,17 +51,13 @@ areas = [];
 
 
     function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
-        if l.euclideanLoss_param.per_elementLoss
-            dividend = size(bottom{1},1)*size(bottom{1},2);%size(bottom{1}, 4);
-        else
-            dividend = 1;%size(bottom{1}, 4);
-        end
+        dividend = size(bottom{1},1)*size(bottom{1},2);
 
         channelNumberOfBtm1 = size(bottom{1},3);
         if size(bottom{2},3) == 1 && channelNumberOfBtm1 > 1 % if label = HxWx1xN
             d_ = bottom{1};
             for i = 1:channelNumberOfBtm1
-                d_(:,:,i,:) = bsxfun(@minus, d_(:,:,i,:),  bottom{2}.*(bottom{2}==(i-1+l.euclideanLoss_param.labelIndex_start)) );
+                d_(:,:,i,:) = d_(:,:,i,:) - (bottom{2}==(i-1+l.euclideanLoss_param.labelIndex_start));
             end
             d2 = d_.^2;
             if l.euclideanLoss_param.per_channel_area
@@ -71,13 +66,21 @@ areas = [];
                 else
                     areas = zeros(1,1,channelNumberOfBtm1, size(bottom{1}, 4),'single');
                 end
-                for i=1:channelNumberOfBtm1
+                for i = 1:channelNumberOfBtm1
                     areas(:,:,i,:) = sum(sum(bottom{2}==(i-1+l.euclideanLoss_param.labelIndex_start),1),2);
                 end
                 %areas  = arrayfun( @(x) sum(sum(bottom{2}==x,1),2), 1:size(bottom{1},3), 'UniformOutput', false ); %=cell array
                 %areas  = cat(3, areas{:});
+                
                 areas = max( areas, l.euclideanLoss_param.threshold);
                 E = bsxfun(@rdivide, d2, areas);
+                %{
+                zeroAreas = areas == 0;
+                d3 = d2;
+                d3(zeroAreas) = 0;
+                areas = max( areas, l.euclideanLoss_param.threshold);
+                E = bsxfun(@rdivide, d3, areas);
+                %}
                 top{1} = 0.5 * sum(E(:))/dividend;
             else
                 top{1} = 0.5 * sum(d2(:))/dividend;
@@ -98,11 +101,7 @@ areas = [];
 
 
     function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
-        if l.euclideanLoss_param.per_elementLoss
-            dividend = size(bottom{1},1)*size(bottom{1},2);%size(bottom{1}, 4);
-        else
-            dividend = 1;%size(bottom{1}, 4);
-        end
+        dividend = size(bottom{1},1)*size(bottom{1},2);
 
         if l.euclideanLoss_param.per_channel_area
             bottom_diff{1} = top_diff{1} .* bsxfun(@rdivide, d_, areas) ./ dividend;
