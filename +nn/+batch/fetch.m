@@ -76,7 +76,7 @@ end
 if batchStruct.prefetch && ~isempty(batchStruct.prefetchIndices)
     ind = batchStruct.prefetchIndices;
 else
-    ind = batchStruct.lastBatchIndices(1,:);
+    ind = batchStruct.lastBatchIndices;
 end
 
 batchStruct.totalTimesOfDataSampled(ind) = batchStruct.totalTimesOfDataSampled(ind) + 1;

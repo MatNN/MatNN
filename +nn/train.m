@@ -292,6 +292,7 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
 
 
     accumulateOutBlobs = zeros(size(outputBlobID));
+    iterOutBlobs = accumulateOutBlobs;
     if size(batchStruct.lastErrorRateOfData,1)~= numel(accumulateOutBlobs)
         batchStruct.lastErrorRateOfData = repmat(batchStruct.lastErrorRateOfData, numel(accumulateOutBlobs), 1);
     end
@@ -315,6 +316,7 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
         numSubBatches = numel(data);
 
         % run subbatches
+        iterOutBlobs = zeros(size(outputBlobID));
         for s=1:numSubBatches
             % evaluate CNN
             if training, dzdy = one; else, dzdy = []; end
@@ -325,6 +327,7 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
             % assume all output blobs are loss-like blobs
             for ac = 1:numel(accumulateOutBlobs)
                 blobRes = double(gather( res.blob{outputBlobID(ac)} ));
+                iterOutBlobs(ac) = iterOutBlobs(ac) + sum(blobRes(:));
                 accumulateOutBlobs(ac) = accumulateOutBlobs(ac) + sum(blobRes(:));
             end
         end
@@ -332,6 +335,11 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
 
         cumuTrainedDataNumber = cumuTrainedDataNumber+dataN;
         if training
+            % update batchStruct
+            for ac = 1:numel(accumulateOutBlobs)
+                batchStruct.lastErrorRateOfData(ac, batchStruct.lastBatchIndices) = iterOutBlobs;
+            end
+            
             if numGpus <= 1
                 net = opts.solver.solve(opts, learningRate, dataN, net, res, needToUpdatedWeightsInd);
             else
@@ -339,11 +347,6 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
                 %accumulate weights from other labs
                 res.dzdw = gop(@(a,b) cellfun(@plus, a,b, 'UniformOutput', false), res.dzdw);
                 net = opts.solver.solve(opts, learningRate, dataN, net, res, needToUpdatedWeightsInd);
-            end
-
-            % update batchStruct
-            for ac = 1:numel(accumulateOutBlobs)
-                batchStruct.lastErrorRateOfData(ac, batchStruct.lastBatchIndices) = accumulateOutBlobs(ac)/cumuTrainedDataNumber;
             end
 
             % print learning statistics
