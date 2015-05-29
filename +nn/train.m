@@ -292,6 +292,11 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
 
 
     accumulateOutBlobs = zeros(size(outputBlobID));
+    if size(batchStruct.lastErrorRateOfData,1)~= numel(accumulateOutBlobs)
+        batchStruct.lastErrorRateOfData = repmat(batchStruct.lastErrorRateOfData, numel(accumulateOutBlobs), 1);
+    end
+
+
     res = [];
     count = 1;
     cumuTrainedDataNumber = 0;
@@ -326,6 +331,11 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
         res.dzdwVisited = res.dzdwVisited & false;
 
         cumuTrainedDataNumber = cumuTrainedDataNumber+dataN;
+        % update batchStruct
+        for ac = 1:numel(accumulateOutBlobs)
+            batchStruct.lastErrorRateOfData(ac, batchStruct.lastBatchIndices) = accumulateOutBlobs(ac)/cumuTrainedDataNumber;
+        end
+
         if training
             if numGpus <= 1
                 net = opts.solver.solve(opts, learningRate, dataN, net, res, needToUpdatedWeightsInd);
@@ -385,13 +395,6 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
                 accumulateOutBlobs = zeros(size(outputBlobID));
                 cumuTrainedDataNumber = 0;
             end
-        end
-
-        
-
-        % update batchStruct
-        if numel(accumulateOutBlobs) == 1
-            batchStruct.lastErrorRateOfData(batchStruct.lastBatchIndices) = accumulateOutBlobs(1)/cumuTrainedDataNumber;
         end
 
         count = count+1;
