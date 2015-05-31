@@ -72,14 +72,11 @@ areas = [];
                 %areas  = arrayfun( @(x) sum(sum(bottom{2}==x,1),2), 1:size(bottom{1},3), 'UniformOutput', false ); %=cell array
                 %areas  = cat(3, areas{:});
                 
-                areas = max( areas, l.euclideanLoss_param.threshold);
-                E = bsxfun(@rdivide, d2, areas);
-                %{
-                zeroAreas = areas == 0;
-                d3 = d2;
-                d3(zeroAreas) = 0;
-                areas = max( areas, l.euclideanLoss_param.threshold);
-                E = bsxfun(@rdivide, d3, areas);
+                %areas = max( areas, l.euclideanLoss_param.threshold);
+                %E = bsxfun(@rdivide, d2, areas);
+                %{-
+                areas = bsxfun(@rdivide, areas, sum(areas,3));
+                E = bsxfun(@times, d2, areas);
                 %}
                 top{1} = 0.5 * sum(E(:))/dividend;
             else
@@ -90,7 +87,7 @@ areas = [];
             d2 = d_.^2;
             if l.euclideanLoss_param.per_channel_area
                 areas  = single(max( sum(sum(bottom{2},1),2) , l.euclideanLoss_param.threshold) ); %dim=1x1xCxN
-                E = bsxfun(@rdivide, d2, areas);
+                E = bsxfun(@times, d2, areas);
                 top{1} = 0.5 * sum(E(:))/dividend;
             else
                 top{1} = 0.5 * sum(d2(:))/dividend;
@@ -104,7 +101,7 @@ areas = [];
         dividend = size(bottom{1},1)*size(bottom{1},2);
 
         if l.euclideanLoss_param.per_channel_area
-            bottom_diff{1} = top_diff{1} .* bsxfun(@rdivide, d_, areas) ./ dividend;
+            bottom_diff{1} = top_diff{1} .* bsxfun(@times, d_, areas) ./ dividend;
             bottom_diff{2} = -bottom_diff{1};
         else
             bottom_diff{1} = top_diff{1} .* d_ ./ dividend;
