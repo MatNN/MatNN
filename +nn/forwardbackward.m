@@ -107,7 +107,6 @@ if opts.doder
 
         for b = find(dzdxEmpty)
             if any(net.blobConnectId{l.bottom(b)} == i) && ((~any(net.replaceId{l.bottom(b)} == i) && ~isempty(net.replaceId{l.bottom(b)})) || isempty(net.replaceId{l.bottom(b)})) && res.dzdxVisited(l.bottom(b))
-                %fprintf('blob(%s)\n!!!', net.blobNames{l.bottom(b)});
                 res.dzdx{l.bottom(b)} = res.dzdx{l.bottom(b)} + tmpdzdx{b};
             else
                 res.dzdx(l.bottom(b)) = tmpdzdx(b);
@@ -115,6 +114,12 @@ if opts.doder
             res.dzdxVisited(l.bottom(b)) = true;
         end
         
+
+
+
+        % Legacy code
+        % Layer functions should take care of weight sharing
+        % this will be removed in the next update.
         %{
         % be careful of modifying this.
         dzdwEmpty = ~cellfun('isempty', tmpdzdw);
