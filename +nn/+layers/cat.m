@@ -44,7 +44,7 @@ default_cat_param = {
         topSizes = {topSizes};
 
         %return updated param
-        param = wp;
+        param.cat_param = wp;
     end
 
 
@@ -57,24 +57,39 @@ default_cat_param = {
         bottom_diff = cell(1, numel(bottom));
         switch l.cat_param.dim
             case 1
+                sizeofbtm = cellfun(@(x) size(x,1), bottom);
+                cumuSize = cumsum(sizeofbtm); %[5,3,6] => [5,8,14]
+                cumuSize = [0, cumuSize];
                 for i=1:numel(bottom)
-                    bottom_diff{i} = top_diff{1}(i,:,:,:);
+                    bottom_diff{i} = top_diff{1}((cumuSize(i)+1):cumuSize(i+1),:,:,:);
                 end
             case 2
+                sizeofbtm = cellfun(@(x) size(x,2), bottom);
+                cumuSize = cumsum(sizeofbtm); %[5,3,6] => [5,8,14]
+                cumuSize = [0, cumuSize];
                 for i=1:numel(bottom)
-                    bottom_diff{i} = top_diff{1}(:,i,:,:);
+                    bottom_diff{i} = top_diff{1}(:,(cumuSize(i)+1):cumuSize(i+1),:,:);
                 end
             case 3
+                sizeofbtm = cellfun(@(x) size(x,3), bottom);
+                cumuSize = cumsum(sizeofbtm); %[5,3,6] => [5,8,14]
+                cumuSize = [0, cumuSize];
                 for i=1:numel(bottom)
-                    bottom_diff{i} = top_diff{1}(:,:,i,:);
+                    bottom_diff{i} = top_diff{1}(:,:,(cumuSize(i)+1):cumuSize(i+1),:);
                 end
             case 4
+                sizeofbtm = cellfun(@(x) size(x,4), bottom);
+                cumuSize = cumsum(sizeofbtm); %[5,3,6] => [5,8,14]
+                cumuSize = [0, cumuSize];
                 for i=1:numel(bottom)
-                    bottom_diff{i} = top_diff{1}(:,:,:,i);
+                    bottom_diff{i} = top_diff{1}(:,:,:,(cumuSize(i)+1):cumuSize(i+1));
                 end
             otherwise
+                sizeofbtm = cellfun(@(x) size(x,3), bottom);
+                cumuSize = cumsum(sizeofbtm); %[5,3,6] => [5,8,14]
+                cumuSize = [0, cumuSize];
                 for i=1:numel(bottom)
-                    bottom_diff{i} = top_diff{1}(:,:,i,:);
+                    bottom_diff{i} = top_diff{1}(:,:,(cumuSize(i)+1):cumuSize(i+1),:);
                 end
         end
 
