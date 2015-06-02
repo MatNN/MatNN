@@ -14,8 +14,8 @@ o.backward     = @backward;
         % you can set its learning rate to zero to prevent update
         resource = {};
 
-        assert(numel(l.bottom)==0);
-        assert(numel(l.top)~=0);
+        assert(numel(l.bottom)>=0);
+        assert(numel(l.top)==0);
 
         topSizes = {};
 
