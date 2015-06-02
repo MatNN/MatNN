@@ -9,9 +9,8 @@ o.backward     = @backward;
 
 
     function [resource, topSizes, param] = setup(l, bottomSizes)
-        % resource only have .weight
-        % if you have other outputs you want to save or share
-        % you can set its learning rate to zero to prevent update
+        % resource only have .weight, or .misc
+
         resource = {};
 
         assert(numel(l.bottom)>=0);

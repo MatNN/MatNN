@@ -16,8 +16,7 @@ default_dropout_param = {
 
     function [resource, topSizes, param] = setup(l, bottomSizes)
         % resource only have .weight, or .misc
-        % if you have other outputs you want to save or share
-        % you can set its learning rate to zero to prevent update
+        
         resource = {};
 
         if isfield(l, 'dropout_param')
