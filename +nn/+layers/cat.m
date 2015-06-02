@@ -24,16 +24,16 @@ default_cat_param = {
 
         resource = {};
 
-        assert(numel(l.bottom)>=0);
+        assert(numel(l.bottom)>=1);
         assert(numel(l.top)==1);
         assert(numel(wp.dim) == 1 && wp.dim >= 1 && wp.dim <= 4);
 
         topSizes = [1, 1, 1, 1];
-        topSizes(1:numel(size(l.bottom{1}))) = size(l.bottom{1}); % prevent matlab singleton dimension error
+        topSizes(1:numel(bottomSizes{1})) = bottomSizes{1}; % prevent matlab singleton dimension error
         otherDims = setdiff(1:4, wp.dim);
-        for i=2:numel(l.bottom)
+        for i=2:numel(bottomSizes)
             tmpSize = [1, 1, 1, 1];
-            tmpSize(1:numel(size(l.bottom{i}))) = size(l.bottom{i});
+            tmpSize(1:numel(bottomSizes{i})) = bottomSizes{i};
             if isequal(tmpSize(otherDims),  topSizes(otherDims))
                 topSizes(wp.dim) = topSizes(wp.dim) + tmpSize(wp.dim);
             else
