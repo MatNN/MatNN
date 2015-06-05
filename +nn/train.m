@@ -1,8 +1,8 @@
-function [net, batchStructTrain, batchStructVal] = train(netObj, batchStructTrain, batchStructVal, opts_user)
+function [net, batchStructTrain, batchStructTest] = train(netObj, batchStructTrain, batchStructTest, opts_user)
 %TRAIN  (Based on the example code of Matconvnet)
 %
 %  NOTE
-%    provided 'batchStructVal' will fetch all samples and test them one by one
+%    provided 'batchStructTest' will fetch all samples and test them one by one
 %
 
 opts.numEpochs = [];
@@ -33,7 +33,7 @@ opts.prefetch = false;
 opts.plotDiagnostics = false;
 opts = vl_argparse(opts, opts_user);
 
-if isempty(batchStructTrain) && isempty(batchStructVal), error('Must specify Train/Val batch struct!!'); end
+if isempty(batchStructTrain) && isempty(batchStructTest), error('Must specify Train/Test batch struct!!'); end
 if ~exist(opts.expDir, 'dir'), mkdir(opts.expDir); end
 
 
@@ -74,13 +74,13 @@ net = netObj.getNet();
 disp(['Set to <strong>', opts.computeMode, '</strong> mode']);
 
 % -------------------------------------------------------------------------
-%                                           Find train/valid phase layer ID
+%                                           Find train/test phase layer ID
 % -------------------------------------------------------------------------
 
 visitLayerID_train = [];
-visitLayerID_valid = [];
+visitLayerID_test = [];
 outputBlobID_train = [];
-outputBlobID_valid = [];
+outputBlobID_test = [];
 for i=1:numel(net.layers)
     if isfield(net.layers{i}, 'phase')
         if strcmpi(net.layers{i}.phase, 'train')
@@ -91,12 +91,12 @@ for i=1:numel(net.layers)
                     outputBlobID_train = [outputBlobID_train, net.layers{i}.top(c)]; %#ok
                 end
             end
-        elseif strcmpi(net.layers{i}.phase, 'valid')
-            visitLayerID_valid = [visitLayerID_valid, i]; %#ok
+        elseif strcmpi(net.layers{i}.phase, 'test')
+            visitLayerID_test = [visitLayerID_test, i]; %#ok
             cb = net.blobConnectId(net.layers{i}.top);
             for c = 1:numel(cb)
                 if isempty(cb{c})
-                    outputBlobID_valid = [outputBlobID_valid, net.layers{i}.top(c)]; %#ok
+                    outputBlobID_test = [outputBlobID_test, net.layers{i}.top(c)]; %#ok
                 end
             end
         else
@@ -107,11 +107,11 @@ for i=1:numel(net.layers)
         for c = 1:numel(cb)
             if isempty(cb{c})
                 outputBlobID_train = [outputBlobID_train, net.layers{i}.top(c)]; %#ok
-                outputBlobID_valid = [outputBlobID_valid, net.layers{i}.top(c)]; %#ok
+                outputBlobID_test = [outputBlobID_test, net.layers{i}.top(c)]; %#ok
             end
         end
         visitLayerID_train = [visitLayerID_train, i]; %#ok
-        visitLayerID_valid = [visitLayerID_valid, i]; %#ok
+        visitLayerID_test = [visitLayerID_test, i]; %#ok
     end
 end
 
@@ -120,7 +120,7 @@ trainPa.branchedTopID = find(cellfun(@numel, net.blobConnectId) > 1);
 
 
 % -------------------------------------------------------------------------
-%                                                        Train and validate
+%                                                            Train and test
 % -------------------------------------------------------------------------
 
 % is epoch training or iterations
@@ -191,19 +191,19 @@ for i = startInd:opts.numToTest:(runTimes-1)
     %Generate randomSeed use current rng settings
     %randomSeed = randi(65536,1)-1;
 
-    % train one epoch (or achieved opts.numToTest) and validate
+    % train one epoch (or achieved opts.numToTest) and test
     % process_runs msut accept startIndex and endIndex of iter/epoch
     if numGpus <= 1
         %generate random seed
         %rng(randomSeed);
         [net, batchStructTrain] = process_runs(true, opts, numGpus, net, batchStructTrain, visitLayerID_train, outputBlobID_train, epitRange) ;
-        [net, ~] = process_runs(false, opts, numGpus, net, batchStructVal, visitLayerID_valid, outputBlobID_valid, epitRange) ;
+        [net, ~] = process_runs(false, opts, numGpus, net, batchStructTest, visitLayerID_test, outputBlobID_test, epitRange) ;
     else
         spmd(numGpus)
             %generate random seed
             %rng(randomSeed);
             [net_, batchStructTrain] = process_runs(true, opts, numGpus, net, batchStructTrain, visitLayerID_train, outputBlobID_train, epitRange) ;
-            [net, ~] = process_runs(false, opts, numGpus, net, batchStructVal, visitLayerID_valid, outputBlobID_valid, epitRange) ;
+            [net, ~] = process_runs(false, opts, numGpus, net, batchStructTest, visitLayerID_test, outputBlobID_test, epitRange) ;
         end
     end
 
@@ -264,7 +264,7 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
     if training
         mode = 'training';
     else
-        mode = 'validation';
+        mode = 'testing';
         opts.numToTest = 0;
         
         %opts.batchSize = 1;
@@ -339,7 +339,7 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
             for ac = 1:numel(accumulateOutBlobs)
                 batchStruct.lastErrorRateOfData(ac, batchStruct.lastBatchIndices) = iterOutBlobs;
             end
-            
+
             if numGpus <= 1
                 net = opts.solver.solve(opts, learningRate, dataN, net, res, needToUpdatedWeightsInd);
             else
@@ -351,7 +351,8 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
 
             % print learning statistics
             if mod(count, opts.displayIter) == 0 || count == 1
-                preStr = sprintf('LabNo.%d - %s: %s %d (%d/%d), lr = %g ... ', labindex, mode, opts.epit, t(1), t(2), rangeNumber, learningRate); % eg. training iter 1600 (2/rangeNumber), lr = 0.001 ... %     training epoch 1 (2/batchNumber), lr = 0.001
+                preStr = datestr(now, 'Immdd HH:MM:SS.FFF ');
+                preStr = [preStr, sprintf(['Lab%d—%s] %s%d(%0',num2str(numel(num2str(rangeNumber))),'d/%d), lr = %g, '], labindex, mode, opts.epit, t(1), t(2), rangeNumber, learningRate)]; % eg. training iter 1600 (2/rangeNumber), lr = 0.001 ... %     training epoch 1 (2/batchNumber), lr = 0.001
                 batchTime = toc(batchTime) ;
                 speed = cumuTrainedDataNumber/batchTime;
                 
@@ -360,24 +361,25 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
                         error('A blob output = Inf');
                     elseif ~isempty(accumulateOutBlobs(ac))
                         fprintf(preStr);
-                        fprintf('blob(''%s'') = %.6g ', net.blobNames{outputBlobID(ac)}, accumulateOutBlobs(ac)/cumuTrainedDataNumber);
+                        fprintf('%s = %.6g ', net.blobNames{outputBlobID(ac)}, accumulateOutBlobs(ac)/cumuTrainedDataNumber);
                     end
                     if ac~=numel(accumulateOutBlobs)
                         fprintf('\n');
                     end
                 end
 
-                fprintf('%.2fs (%.1f data/s)\n', batchTime, speed);
+                fprintf('%.2fs(%.1f data/s)\n', batchTime, speed);
                 batchTime = tic;
                 accumulateOutBlobs = zeros(size(outputBlobID));
                 cumuTrainedDataNumber = 0;
             end
         else
             if count == 1
-                disp('Validating...');
+                disp('test...');
             end
             if mod(count, opts.displayIter) == 0
-                preStr = sprintf('LabNo.%d - %s: %s %d (%d/%d), ', labindex, mode, opts.epit, t(1), cumuTrainedDataNumber, batchStruct.m);
+                preStr = datestr(now, 'Immdd HH:MM:SS.FFF ');
+                preStr = [preStr, sprintf('Lab%d—%s] %s%d(%d/%d), ', labindex, mode, opts.epit, t(1), cumuTrainedDataNumber, batchStruct.m)];
                 batchTime = toc(batchTime) ;
                 speed = cumuTrainedDataNumber/batchTime;
                 
@@ -386,14 +388,14 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
                         error('A blob output = Inf');
                     elseif ~isempty(accumulateOutBlobs(ac))
                         fprintf(preStr);
-                        fprintf('blob(''%s'') = %.6g ', net.blobNames{outputBlobID(ac)}, accumulateOutBlobs(ac)/cumuTrainedDataNumber);
+                        fprintf('%s = %.6g ', net.blobNames{outputBlobID(ac)}, accumulateOutBlobs(ac)/cumuTrainedDataNumber);
                     end
                     if ac~=numel(accumulateOutBlobs)
                         fprintf('\n');
                     end
                 end
 
-                fprintf('%.2fs (%.1f data/s)\n', batchTime, speed);
+                fprintf('%.2fs(%.1f data/s)\n', batchTime, speed);
                 batchTime = tic;
                 accumulateOutBlobs = zeros(size(outputBlobID));
                 cumuTrainedDataNumber = 0;
