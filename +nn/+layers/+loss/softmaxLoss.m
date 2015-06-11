@@ -78,7 +78,8 @@ N          = [];
         else
             y = LogSumExp(resultBlob, 3, l.softmaxLoss_param.threshold);
         end
-        top{1} = sum( y(ll)-resultBlob(ind) )/N;
+        y = y(ll);
+        top{1} = sum( y(:)-resultBlob(ind) )/N;
     end
     function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
         %compute derivative
