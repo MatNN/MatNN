@@ -159,7 +159,7 @@ if ~isempty(opts.continue)
     startInd = opts.continue+1;
 end
 
-if opts.numToTest == 0 || numel(opts.numToTest) == 0
+if numel(opts.numToTest) == 0 || opts.numToTest == 0
     opts.numToTest = opts.numToSave;
 end
 
@@ -375,7 +375,7 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
             end
         else
             if count == 1
-                disp('test...');
+                disp('Testing...');
             end
             if mod(count, opts.displayIter) == 0
                 preStr = datestr(now, 'Immdd HH:MM:SS.FFF ');
