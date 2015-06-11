@@ -71,11 +71,10 @@ perClassAcc  = [];
                 end
                 counting = counting+size(bottom{1},4);
                 for i=1:size(bottom{1},3)
-                    to = bottom{2}==(i-1+l.accuracy_param.labelIndex_start);
-                    ac = (argMax==i);
-                    ac = ac(to);
-                    perClassArea(i) = perClassArea(i)+sum(to(:));
-                    perClassAcc(i)  = perClassAcc(i)+sum(ac(:));
+                    correctLabelInd = i-1+l.accuracy_param.labelIndex_start;
+                    mask = bottom{2}==correctLabelInd;
+                    perClassAcc(i) = perClassAcc(i)+sum(argMax(mask)==correctLabelInd);
+                    perClassArea(i)  = perClassArea(i)+sum(mask(:));
                 end
                 if counting == l.accuracy_param.dataNum
                     %top{1} = sum(perClassAcc)/sum(perClassArea)*counting;
