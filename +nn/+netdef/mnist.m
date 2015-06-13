@@ -137,6 +137,7 @@ vBatchStruct = nn.batch.generate('Attach', vDataStruct, vLabelStruct);
 
 opts.numEpochs = [] ;
 opts.numInterations = 12000 ;
+opts.numToTest = 300;
 opts.numToSave = 600; %runs how many Epochs or iterations to save
 opts.displayIter = 60;
 opts.batchSize = batchSize ;

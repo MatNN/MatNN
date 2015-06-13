@@ -263,7 +263,7 @@ no.newLayer({
                                                             't10k-images-idx3-ubyte', ...
                                                             't10k-labels-idx1-ubyte');
 
-    function newInd = pairData(totalTimesOfDataSampled, lastErrorRateOfData, lastBatchIndices, lastBatchErrors, N) 
+    function newInd = pairData(totalTimesOfDataSampled, lastErrorRateOfData, lastBatchIndices, N) 
         m = numel(totalTimesOfDataSampled);
         ro = randperm(m, 2*N);
         r = ro(1:N);
@@ -279,6 +279,7 @@ batchStruct = nn.batch.generate('Attach', dataStruct, datapStruct, labelStruct);
 
 opts.numEpochs = [] ;
 opts.numInterations = 50000 ;
+opts.numToTest = 500;
 opts.numToSave = 5000; %runs how many Epochs or iterations to save
 opts.displayIter = 100;
 opts.batchSize = batchSize ;
