@@ -1,5 +1,5 @@
 function o = eltwise(varargin)
-%Eltwise Compute mean class accuracy for you
+%Eltwise Do element wised operation
 
 o.name         = 'Eltwise';
 o.generateLoss = false;

@@ -1,5 +1,5 @@
 function o = relu(architecture)
-%RELU Compute mean class accuracy for you
+%RELU Rectified linear unit
 
 o.name         = 'ReLU';
 o.generateLoss = false;

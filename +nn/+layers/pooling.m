@@ -1,5 +1,5 @@
 function o = pooling(varargin)
-%POOLING Compute mean class accuracy for you
+%POOLING
 
 o.name         = 'Pooling';
 o.generateLoss = false;

@@ -1,5 +1,5 @@
 function o = save(varargin)
-%SAVE Compute mean class accuracy for you
+%SAVE Save intermediate blobs into disk
 
 o.name         = 'Save';
 o.generateLoss = false;

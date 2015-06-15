@@ -1,5 +1,6 @@
 function o = silence(varargin)
-%RELU Compute mean class accuracy for you
+%SILENCE Accepts input, but does not generate outputs
+%  this is a garbage collection layer
 
 o.name         = 'Silence';
 o.generateLoss = false;

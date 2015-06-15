@@ -1,5 +1,5 @@
 function o = dropout(varargin)
-%DROPOUT ...
+%DROPOUT
 
 o.name         = 'Dropout';
 o.generateLoss = false;

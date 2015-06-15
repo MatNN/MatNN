@@ -1,5 +1,5 @@
 function o = convolution(varargin)
-%CONVOLUTION Compute mean class accuracy for you
+%CONVOLUTION
 
 o.name         = 'Convolution';
 o.generateLoss = false;

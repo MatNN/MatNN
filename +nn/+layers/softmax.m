@@ -1,5 +1,5 @@
 function o = softmax(varargin)
-%LOGISTICLOSS 
+%SOFTMAX
 %
 % NOTICE
 %   label index starts from 0 (compatible with other NN tools)

@@ -1,5 +1,5 @@
 function o = sigmoid(varargin)
-%CONVOLUTION Compute mean class accuracy for you
+%SIGMOID
 
 o.name         = 'Sigmoid';
 o.generateLoss = false;
