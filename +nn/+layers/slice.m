@@ -1,5 +1,20 @@
 function o = slice(varargin)
 %SLICE Slice a blob into many blobs
+%  NOTICE
+%  This layer can also extract desired portion of a blob,
+%  not just slice it
+%
+%  EXAMPLE
+%  no.newLayer({
+%      'type'   'nn.layers.slice' ...
+%      'name'   'sliceIt'         ...
+%      'bottom' 'data'            ...
+%      'top'    {'sliceRes1', 'sliceRes2', 'sliceRes3', 'sliceRes4'} ...
+%      'slice_param' {
+%          'dim' 3 ...
+%          'indices' {1:3, 4:6, 7:9, 10}
+%          }
+%      });
 
 o.name         = 'Slice';
 o.generateLoss = false;
@@ -9,7 +24,7 @@ o.backward     = @backward;
 
 default_slice_param = {
         'dim' 3 ...  % HWCN = 1234
-    'indices' []
+    'indices' {}
 };
 
     function [resource, topSizes, param] = setup(l, bottomSizes)
@@ -28,34 +43,34 @@ default_slice_param = {
         K = numel(wp.indices);
 
         assert(numel(l.bottom)==1);
-        assert(numel(l.top)==K);
+        assert(numel(l.top)==numel(wp.indices));
 
 
         topSizes = cell(1, K);
-        d1 = size(bottom{1},1);
-        d2 = size(bottom{1},2);
-        d3 = size(bottom{1},3);
-        d4 = size(bottom{1},4);
+        d1 = bottomSizes{1}(1);
+        d2 = bottomSizes{1}(2);
+        d3 = bottomSizes{1}(3);
+        d4 = bottomSizes{1}(4);
         switch wp.dim
             case 1
                 for i=1:K
-                    topSizes{K} = [wp.indices{i},d2,d3,d4];
+                    topSizes{K} = [numel(wp.indices{i}),d2,d3,d4];
                 end
             case 2
                 for i=1:K
-                    topSizes{K} = [d1,wp.indices{i},d3,d4];
+                    topSizes{K} = [d1,numel(wp.indices{i}),d3,d4];
                 end
             case 3
                 for i=1:K
-                    topSizes{K} = [d1,d2,wp.indices{i},d4];
+                    topSizes{K} = [d1,d2,numel(wp.indices{i}),d4];
                 end
             case 4
                 for i=1:K
-                    topSizes{K} = [d1,d2,d3, wp.indices{i}];
+                    topSizes{K} = [d1,d2,d3, numel(wp.indices{i})];
                 end
             otherwise
                 for i=1:K
-                    topSizes{K} = [d1,d2,wp.indices{i},d4];
+                    topSizes{K} = [d1,d2,numel(wp.indices{i}),d4];
                 end
         end
 
@@ -65,7 +80,7 @@ default_slice_param = {
 
 
     function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
-        K = size(l.cat_param.indices);
+        K = numel(l.cat_param.indices);
         switch l.cat_param.dim
             case 1
                 for i=1:K
@@ -93,7 +108,7 @@ default_slice_param = {
 
     function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
         bottom_diff = {bottom{1}.*0}; %works for normal array and gpuArray
-        K = size(l.cat_param.indices);
+        K = numel(l.cat_param.indices);
         switch l.cat_param.dim
             case 1
                 for i=1:K
