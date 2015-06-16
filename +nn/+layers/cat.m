@@ -8,7 +8,9 @@ o.forward      = @forward;
 o.backward     = @backward;
 
 default_cat_param = {
-    'dim'   3  % HWCN = 1234
+        'dim'   3 ...  % HWCN = 1234
+    'indices'   {} % empty for normal concatenate operation, each value must be non-identical number
+                   % indices specifies each bottom's dim concate to which indices of the whole top
 };
 
     function [resource, topSizes, param] = setup(l, bottomSizes)
@@ -27,6 +29,12 @@ default_cat_param = {
         assert(numel(l.bottom)>=1);
         assert(numel(l.top)==1);
         assert(numel(wp.dim) == 1 && wp.dim >= 1 && wp.dim <= 4);
+        if ~isempty(wp.indices)
+            assert(numel(wp.indices)==numel(l.bottom));
+            assert(all(unique([wp.indices{:}])>0));
+            sumSize = sum(cell2mat(bottomSizes'),1);
+            assert(numel(unique([wp.indices{:}]))==sumSize(3));
+        end
 
         topSizes = [1, 1, 1, 1];
         topSizes(1:numel(bottomSizes{1})) = bottomSizes{1}; % prevent matlab singleton dimension error
@@ -49,49 +57,93 @@ default_cat_param = {
 
 
     function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
-        top   = {cat(3, bottom{:})};
+        if isempty(l.cat_param.indices)
+            top   = {cat(3, bottom{:})};
+        else
+            D = numel(unique([l.cat_param.indices{:}]));
+            dims = [1,1,1,1];
+            dims0 = size(bottom{1});
+            dims(1:numel(dims0)) = dims0;
+            dims(l.cat_param.dim) = D;
+            if opts.gpuMode
+                top = {gpuArray.zeros(dims, 'single')};
+            else
+                top = {zeros(dims, 'single')};
+            end
+            switch l.cat_param.dim
+                case 1
+                    for i=1:numel(l.cat_param.indices)
+                        top{1}(l.cat_param.indices{i},:,:,:) = bottom{i};
+                    end
+                case 2
+                    for i=1:numel(l.cat_param.indices)
+                        top{1}(:,l.cat_param.indices{i},:,:) = bottom{i};
+                    end
+                case 3
+                    for i=1:numel(l.cat_param.indices)
+                        top{1}(:,:,l.cat_param.indices{i},:) = bottom{i};
+                    end
+                case 4
+                    for i=1:numel(l.cat_param.indices)
+                        top{1}(:,:,:,l.cat_param.indices{i}) = bottom{i};
+                    end
+                otherwise
+                    error('dim must be 1~4');
+            end
+        end
     end
 
 
     function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
         bottom_diff = cell(1, numel(bottom));
-        switch l.cat_param.dim
-            case 1
-                sizeofbtm = cellfun(@(x) size(x,1), bottom);
-                cumuSize = cumsum(sizeofbtm); %[5,3,6] => [5,8,14]
-                cumuSize = [0, cumuSize];
-                for i=1:numel(bottom)
-                    bottom_diff{i} = top_diff{1}((cumuSize(i)+1):cumuSize(i+1),:,:,:);
-                end
-            case 2
-                sizeofbtm = cellfun(@(x) size(x,2), bottom);
-                cumuSize = cumsum(sizeofbtm); %[5,3,6] => [5,8,14]
-                cumuSize = [0, cumuSize];
-                for i=1:numel(bottom)
-                    bottom_diff{i} = top_diff{1}(:,(cumuSize(i)+1):cumuSize(i+1),:,:);
-                end
-            case 3
-                sizeofbtm = cellfun(@(x) size(x,3), bottom);
-                cumuSize = cumsum(sizeofbtm); %[5,3,6] => [5,8,14]
-                cumuSize = [0, cumuSize];
-                for i=1:numel(bottom)
-                    bottom_diff{i} = top_diff{1}(:,:,(cumuSize(i)+1):cumuSize(i+1),:);
-                end
-            case 4
-                sizeofbtm = cellfun(@(x) size(x,4), bottom);
-                cumuSize = cumsum(sizeofbtm); %[5,3,6] => [5,8,14]
-                cumuSize = [0, cumuSize];
-                for i=1:numel(bottom)
-                    bottom_diff{i} = top_diff{1}(:,:,:,(cumuSize(i)+1):cumuSize(i+1));
-                end
-            otherwise
-                sizeofbtm = cellfun(@(x) size(x,3), bottom);
-                cumuSize = cumsum(sizeofbtm); %[5,3,6] => [5,8,14]
-                cumuSize = [0, cumuSize];
-                for i=1:numel(bottom)
-                    bottom_diff{i} = top_diff{1}(:,:,(cumuSize(i)+1):cumuSize(i+1),:);
-                end
+
+        if isempty(l.cat_param.indices)
+            sizeofbtm = cellfun(@(x) size(x, l.cat_param.dim), bottom);
+            cumuSize = cumsum(sizeofbtm); %[5,3,6] => [5,8,14]
+            cumuSize = [0, cumuSize];
+            switch l.cat_param.dim
+                case 1
+                    for i=1:numel(bottom)
+                        bottom_diff{i} = top_diff{1}((cumuSize(i)+1):cumuSize(i+1),:,:,:);
+                    end
+                case 2
+                    for i=1:numel(bottom)
+                        bottom_diff{i} = top_diff{1}(:,(cumuSize(i)+1):cumuSize(i+1),:,:);
+                    end
+                case 3
+                    for i=1:numel(bottom)
+                        bottom_diff{i} = top_diff{1}(:,:,(cumuSize(i)+1):cumuSize(i+1),:);
+                    end
+                case 4
+                    for i=1:numel(bottom)
+                        bottom_diff{i} = top_diff{1}(:,:,:,(cumuSize(i)+1):cumuSize(i+1));
+                    end
+                otherwise
+                    error('dim must be 1~4');
+            end
+        else
+            switch l.cat_param.dim
+                case 1
+                    for i=1:numel(bottom)
+                        bottom_diff{i} = top_diff{1}(l.cat_param.indices{i},:,:,:);
+                    end
+                case 2
+                    for i=1:numel(bottom)
+                        bottom_diff{i} = top_diff{1}(:,l.cat_param.indices{i},:,:);
+                    end
+                case 3
+                    for i=1:numel(bottom)
+                        bottom_diff{i} = top_diff{1}(:,:,l.cat_param.indices{i},:);
+                    end
+                case 4
+                    for i=1:numel(bottom)
+                        bottom_diff{i} = top_diff{1}(:,:,:,l.cat_param.indices{i});
+                    end
+                otherwise
+                    error('dim must be 1~4');
+            end
         end
+        
 
     end
 
