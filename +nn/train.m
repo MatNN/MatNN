@@ -337,7 +337,7 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
         if training
             % update batchStruct
             for ac = 1:numel(accumulateOutBlobs)
-                batchStruct.lastErrorRateOfData(ac, batchStruct.lastBatchIndices) = iterOutBlobs;
+                batchStruct.lastErrorRateOfData(ac, batchStruct.lastBatchIndices) = iterOutBlobs(ac);
             end
 
             if numGpus <= 1
