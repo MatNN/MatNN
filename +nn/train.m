@@ -208,7 +208,7 @@ for i = iRange
             %generate random seed
             %rng(randomSeed);
             [net_, batchStructTrain] = process_runs(true, opts, numGpus, net, batchStructTrain, visitLayerID_train, outputBlobID_train, epitRange) ;
-            [net, ~] = process_runs(false, opts, numGpus, net, batchStructTest, visitLayerID_test, outputBlobID_test, epitRange) ;
+            [net_, ~] = process_runs(false, opts, numGpus, net, batchStructTest, visitLayerID_test, outputBlobID_test, epitRange) ;
         end
     end
 
