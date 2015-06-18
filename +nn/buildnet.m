@@ -119,7 +119,7 @@ net.replaceId         = {}; %Specify if any layer uses the same name of bottoms 
 
 %net.displayLossBlobId = [];
 
-tmp.blobSizes         = {}; % each cell is the blob size
+net.blobSizes         = {}; % each cell is the blob size
 architecture          = 'default';
 backUpNet             = {};
 
@@ -238,13 +238,13 @@ end
         blobProcess();
 
         % set blobsize cell array
-        tmp.blobSizes = cell(size(net.blobNames));
+        net.blobSizes = cell(size(net.blobNames));
 
         % set data blob size
         for i=fieldnames(net.dataLayer)'
             if isfield(net.blobNamesIndex, i{1})
                 ind = net.blobNamesIndex.(i{1});
-                tmp.blobSizes{ind} = net.dataLayer.(i{1});
+                net.blobSizes{ind} = net.dataLayer.(i{1});
             else
                 warning(['Data layer: ''', i{1}, ''' is not used.']);
             end
@@ -263,7 +263,7 @@ end
             end
             net.layerobjs{i} = tmpHandle(architecture); % execute layer function!!!
             if ~isempty(net.layers{i}.bottom)
-                [res, topSizes, param] = net.layerobjs{i}.setup(net.layers{i}, tmp.blobSizes(net.layers{i}.bottom));
+                [res, topSizes, param] = net.layerobjs{i}.setup(net.layers{i}, net.blobSizes(net.layers{i}.bottom));
             else
                 [res, topSizes, param] = net.layerobjs{i}.setup(net.layers{i}, {});
             end
@@ -271,6 +271,7 @@ end
             % Print blob size
             for t = 1:numel(topSizes)
                 tt = topSizes{t};
+
                 fprintf('Layer(''%s'').top(''%s'') -> [%d, %d, %d, %d]\n', net.layers{i}.name, net.blobNames{net.layers{i}.top(t)}, tt(1),tt(2),tt(3),tt(4));
             end
             
@@ -304,7 +305,7 @@ end
             end
 
             %set blobsize
-            tmp.blobSizes(net.layers{i}.top) = topSizes;
+            net.blobSizes(net.layers{i}.top) = topSizes;
 
             % if res has multiple fields, means this layer wants to save
             % a lot of things
