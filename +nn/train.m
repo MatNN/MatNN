@@ -7,7 +7,7 @@ function [net, batchStructTrain, batchStructTest] = train(netObj, batchStructTra
 
 opts.numEpochs = [];
 opts.numInterations = [];
-opts.numToTest = 1; %runs how many Epochs or iterations to test
+opts.numToTest = []; %runs how many Epochs or iterations to test
 opts.numToSave = 10; % note, this value must be dvidable by opts.numToTest
 opts.displayIter = 10; %Show info every opts.displayIter iterations
 opts.batchSize = 256;
@@ -175,7 +175,8 @@ opts.solver = opts.solver(opts.computeMode, net);
 %rngState = rng;
 % start training from the last position
 lastSavePoint = floor((startInd-1)/opts.numToSave);
-for i = startInd:opts.numToTest:(runTimes-1)
+iRange = startInd:opts.numToTest:runTimes;
+for i = iRange
     % move CNN to GPU as needed
     if numGpus == 1
         net = nn.utils.movenet(net, 'gpu') ;
@@ -186,7 +187,11 @@ for i = startInd:opts.numToTest:(runTimes-1)
     end
 
     %iter/epoch range
-    epitRange = i:min(i+opts.numToTest-1, runTimes);
+    if i == iRange(end)
+        epitRange = i:runTimes;
+    else
+        epitRange = i:i+opts.numToTest-1;
+    end
 
     %Generate randomSeed use current rng settings
     %randomSeed = randi(65536,1)-1;
