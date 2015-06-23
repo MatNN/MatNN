@@ -11,6 +11,8 @@ function o = custom(varargin)
 %  5. your custom forward function must accepts the following inputs:
 %     function(bottom, top, top_diff)
 %     and the genrated output must be "bottom_diff"
+%  6. you SHOULD NOT assign forward_func/backward_func a nested function
+%     it causes overflow when saving network
 
 o.name         = 'CUSTOM';
 o.generateLoss = false;
@@ -19,8 +21,8 @@ o.forward      = @forward;
 o.backward     = @backward;
 
 default_custom_param = {
-      'forward'  [] ...
-      'backward' []
+      'forward_func'  [] ...
+      'backward_func' []
 };
 
     function [resource, topSizes, param] = setup(l, bottomSizes)
@@ -34,8 +36,8 @@ default_custom_param = {
 
         assert(numel(l.bottom)==1);
         assert(numel(l.top)==1);
-        assert(~isempty(wp.forward));
-        assert(~isempty(wp.backward));
+        assert(~isempty(wp.forward_func));
+        assert(~isempty(wp.backward_func));
 
         topSizes = bottomSizes;
 
@@ -43,10 +45,10 @@ default_custom_param = {
 
     end
     function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
-        top = {l.custom_param.forward(bottom{1})};
+        top = {l.custom_param.forward_func(bottom{1})};
 
     end
     function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
-        bottom_diff = {l.custom_param.backward(bottom{1}, top{1}, top_diff{1})};
+        bottom_diff = {l.custom_param.backward_func(bottom{1}, top{1}, top_diff{1})};
     end
 end
