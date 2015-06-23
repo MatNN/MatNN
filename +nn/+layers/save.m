@@ -28,7 +28,7 @@ default_save_param = {
         end
 
         assert(numel(l.bottom)==2);
-        assert(numel(l.top) > 0, '''Save layer'' does not produce outputs.');
+        assert(numel(l.top) == 0, '''Save layer'' does not produce outputs.');
         
         assert(size(bottomSizes{1},4)==numel(bottomSizes{2}), 'numel(names) in file list must match input data number.');
         
