@@ -10,7 +10,7 @@ labelBlobName = 'label';
 dataBlobName  = 'data';
 
 no.setDataBlobSize(dataBlobName , [28 28 1 batchSize]);
-no.setDataBlobSize(labelBlobName, [1  1  1 batchSize]); 
+no.setDataBlobSize(labelBlobName, [1  1  1 batchSize]);
 
 no.newLayer({
     'type'   'layers.convolution'...
