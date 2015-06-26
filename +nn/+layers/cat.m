@@ -143,7 +143,7 @@ default_cat_param = {
                     error('dim must be 1~4');
             end
         end
-        
+
 
     end
 
