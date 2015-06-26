@@ -12,7 +12,7 @@ datapBlobName  = 'datap';
 
 no.setDataBlobSize(dataBlobName , [28 28 1 batchSize]);
 no.setDataBlobSize(datapBlobName , [28 28 1 batchSize]);
-no.setDataBlobSize(labelBlobName, [1  1  1 batchSize]); 
+no.setDataBlobSize(labelBlobName, [1  1  1 batchSize]);
 
 
 % ================================================ twins 1
@@ -263,7 +263,7 @@ no.newLayer({
                                                             't10k-images-idx3-ubyte', ...
                                                             't10k-labels-idx1-ubyte');
 
-    function newInd = pairData(totalTimesOfDataSampled, lastErrorRateOfData, lastBatchIndices, N) 
+    function newInd = pairData(totalTimesOfDataSampled, lastErrorRateOfData, lastBatchIndices, N)
         m = numel(totalTimesOfDataSampled);
         ro = randperm(m, 2*N);
         r = ro(1:N);
@@ -324,10 +324,10 @@ function [train4D, trainLabel, test4D, testLabel] = readMNISTDataset(trainImgFil
     for i=1:numel(imgData)
         test4D(:,:,1,i) = imgData(i).img';
     end
-    
+
     train4D = single(train4D)/255;
     test4D = single(test4D)/255;
-    
+
     m = memmapfile(trainLabelFile,'Offset', 8,'Format', 'uint8');
     trainLabel = m.Data;
     m = memmapfile(testLabelFile, 'Offset', 8,'Format', 'uint8');

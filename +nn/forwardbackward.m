@@ -30,7 +30,7 @@ if isempty(res)
     if opts.gpuMode
         res.blob  = num2cell(gpuArray.zeros(1, numel(net.blobNames), 'single'));
         res.dzdx  = num2cell(gpuArray.zeros(1, numel(net.blobNames), 'single')); % each cell contains another cell, and the inner cell's length is respected to the number of bottoms that a layer accepts
-        
+
         filler    = gpuArray(single(0));
     else
         res.blob  = num2cell(zeros(1, numel(net.blobNames), 'single'));
@@ -55,7 +55,7 @@ end
 
 for i = opts.visitLayerID
     l = ll{i};
-  
+
     % if a layer don't generate output, it still should fill topBlob as {[],[],...}
     %if ~isempty(l.weights)
         weightsInd = l.weights(~net.weightsIsMisc(l.weights));
@@ -91,10 +91,10 @@ if opts.doder
     % custom layer that multiplies the scaler onto it
 
     res.dzdx(opts.outputBlobCount==0) = {dzdy};
-    
+
     for i = opts.visitLayerID(end:-1:1)
         l = ll{i};
-        
+
         weightsInd = l.weights(~net.weightsIsMisc(l.weights));
         miscInd = l.weights(net.weightsIsMisc(l.weights));
         [tmpdzdx, res.dzdw(weightsInd), ww(miscInd)] = lo{i}.backward(opts, l, ww(weightsInd), ww(miscInd), res.blob(l.bottom), res.blob(l.top), res.dzdx(l.top), res.dzdw(weightsInd), res.dzdwVisited(weightsInd));
@@ -102,7 +102,7 @@ if opts.doder
         % Don't try to clear res.dzdx or res.dzdw at first, you will get terrble performace!!
         % If you try to clear them at first so you can get rid of if-statement of opts.accumulate
         % , the performance will drain a lot.
-        
+
         dzdxEmpty = ~cellfun('isempty', tmpdzdx);
 
         for b = find(dzdxEmpty)
@@ -113,8 +113,6 @@ if opts.doder
             end
             res.dzdxVisited(l.bottom(b)) = true;
         end
-        
-
 
 
         % Legacy code
@@ -132,7 +130,7 @@ if opts.doder
         res.dzdw(l.weights(dzdwEmpty2)) = tmpdzdw(dzdwEmpty2);
         res.dzdwVisited(l.weights(dzdwEmpty)) = true;
         %}
-    
+
         if opts.conserveMemory %delete used dzdx{top}, no need to consider loss or accuracy, because der(loss)=1, and accuracy has no backward computation
             res.dzdx(l.top) = {filler};
         end

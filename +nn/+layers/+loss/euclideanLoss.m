@@ -38,7 +38,7 @@ areas = [];
 
         assert(numel(l.bottom)==2);
         assert(numel(l.top)==1);
-        
+
         resSize1 = bottomSizes{1};
         ansSize = bottomSizes{2};
 
@@ -71,7 +71,7 @@ areas = [];
                 end
                 %areas  = arrayfun( @(x) sum(sum(bottom{2}==x,1),2), 1:size(bottom{1},3), 'UniformOutput', false ); %=cell array
                 %areas  = cat(3, areas{:});
-                
+
                 %areas = max( areas, l.euclideanLoss_param.threshold);
                 %E = bsxfun(@rdivide, d2, areas);
                 %{-
@@ -93,7 +93,7 @@ areas = [];
                 top{1} = 0.5 * sum(d2(:))/dividend;
             end
         end
-        
+
     end
 
 
@@ -107,6 +107,6 @@ areas = [];
             bottom_diff{1} = top_diff{1} .* d_ ./ dividend;
             bottom_diff{2} = -bottom_diff{1};
         end
-        
+
     end
 end
