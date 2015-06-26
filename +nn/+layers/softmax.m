@@ -16,7 +16,11 @@ o.backward     = @backward;
 
         assert(numel(l.bottom)==1);
         assert(numel(l.top)==1);
+<<<<<<< HEAD
+
+=======
         
+>>>>>>> upstream/master
         topSizes = bottomSizes;
 
         param = {};

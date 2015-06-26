@@ -28,10 +28,17 @@ default_save_param = {
         end
 
         assert(numel(l.bottom)==2);
+<<<<<<< HEAD
+        assert(numel(l.top) > 0, '''Save layer'' does not produce outputs.');
+
+        assert(size(bottomSizes{1},4)==numel(bottomSizes{2}), 'numel(names) in file list must match input data number.');
+
+=======
         assert(numel(l.top) == 0, '''Save layer'' does not produce outputs.');
         
         assert(size(bottomSizes{1},4)==numel(bottomSizes{2}), 'numel(names) in file list must match input data number.');
         
+>>>>>>> upstream/master
         topSizes = {};
 
         if wp.clearOnStart
@@ -58,7 +65,11 @@ default_save_param = {
             end
             save(filename, '-struct', res);
         end
+<<<<<<< HEAD
+
+=======
         
+>>>>>>> upstream/master
     end
 
 
