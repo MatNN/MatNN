@@ -96,7 +96,11 @@ perClassAcc  = [];
                 perClassArea = perClassArea.*0;
             end
         else
-            top{1} = sum(k(:))/sum(sum(sum(bottom{2} >= l.accuracy_param.labelIndex_start)))*size(bottom{1},4); %don't divide N here, because train.m will do it for us
+            if ~isempty(top{1})
+                top{1} = top{1} + sum(k(:))/sum(sum(sum(bottom{2} >= l.accuracy_param.labelIndex_start)))*size(bottom{1},4); %don't divide N here, because train.m will do it for us
+            else
+                top{1} = sum(k(:))/sum(sum(sum(bottom{2} >= l.accuracy_param.labelIndex_start)))*size(bottom{1},4); %don't divide N here, because train.m will do it for us
+            end
         end
     end
     function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
