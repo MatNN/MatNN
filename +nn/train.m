@@ -140,7 +140,11 @@ if ~isempty(opts.continue)
             fprintf('Resuming by loading %s%d\n', lower(opts.epit), opts.continue) ;
         end
         tmp = load(modelPath(opts.continue), 'net') ;
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> upstream/master
         % Consider that loaded net is the same as our net, so just use their
         % weights
         %netObj.setBaseNet(tmp.net);
@@ -271,7 +275,11 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
     else
         mode = 'testing';
         opts.numToTest = 0;
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> upstream/master
         %opts.batchSize = 1;
         %opts.numSubBatches = 1;
         rangeNumber = batchStruct.batchNumber;
@@ -360,7 +368,11 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
                 preStr = [preStr, sprintf(['Lab%d—%s] %s%d(%0',num2str(numel(num2str(rangeNumber))),'d/%d), lr = %g, '], labindex, mode, opts.epit, t(1), t(2), rangeNumber, learningRate)]; % eg. training iter 1600 (2/rangeNumber), lr = 0.001 ... %     training epoch 1 (2/batchNumber), lr = 0.001
                 batchTime = toc(batchTime) ;
                 speed = cumuTrainedDataNumber/batchTime;
+<<<<<<< HEAD
 
+=======
+                
+>>>>>>> upstream/master
                 for ac = 1:numel(accumulateOutBlobs)
                     if isinf(accumulateOutBlobs(ac))
                         error('A blob output = Inf');
@@ -387,7 +399,11 @@ function  [net, batchStruct] = process_runs(training, opts, numGpus, net, batchS
                 preStr = [preStr, sprintf('Lab%d—%s] %s%d(%d/%d), ', labindex, mode, opts.epit, t(1), cumuTrainedDataNumber, batchStruct.m)];
                 batchTime = toc(batchTime) ;
                 speed = cumuTrainedDataNumber/batchTime;
+<<<<<<< HEAD
 
+=======
+                
+>>>>>>> upstream/master
                 for ac = 1:numel(accumulateOutBlobs)
                     if isinf(accumulateOutBlobs(ac))
                         error('A blob output = Inf');

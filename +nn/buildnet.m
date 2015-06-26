@@ -3,10 +3,17 @@ function netObj = buildnet(netName, baseNet)
 %
 %  USAGE
 %  NETOBJ = NN.BUILDNET(NETNAME) creates a netobj with a name
+<<<<<<< HEAD
 %  NETOBJ = NN.BUILDNET(NETNAME, BASENET) creates a netobj with
 %  a name and a net to be merged. If your layers names are the
 %  same as some baseNet.layers{}.name, then those layers will
 %  get the weights which corresponds to the same layer of
+=======
+%  NETOBJ = NN.BUILDNET(NETNAME, BASENET) creates a netobj with 
+%  a name and a net to be merged. If your layers names are the
+%  same as some baseNet.layers{}.name, then those layers will 
+%  get the weights which corresponds to the same layer of 
+>>>>>>> upstream/master
 %  baseNet, this is useful for finetuning.
 %
 %  METHODS
@@ -14,6 +21,7 @@ function netObj = buildnet(netName, baseNet)
 %  NETOBJ.newLayer({'key' val  'key2'  val2 ...})
 %  the second form is the same as first form, just for quick typing
 %  (no need to put ',' to separate keys).
+<<<<<<< HEAD
 %
 %  NETOBJ.getNet() process and return your network for nn.train use.
 %  NETOBJ.getNet(architecture) preprocess your network with sepcified
@@ -24,19 +32,42 @@ function netObj = buildnet(netName, baseNet)
 %  precompiled CUDA kernels, slightly faster then gpuArray;
 %  'cuda cublas' uses mex files compiled with CUDA kernels and uses
 %  cuBlas to accelerate computation; 'cuda cudnn' uses cuda cublas +
+=======
+%  
+%  NETOBJ.getNet() process and return your network for nn.train use.
+%  NETOBJ.getNet(architecture) preprocess your network with sepcified
+%  architecture name, which can be 'default', 'cuda kernel', 
+%  'cuda cublas', 'cuda cudnn'. if you not specify an argument, will 
+%  use 'default', which is a hybrid code of ordinary array + gpuArray
+%  ; 'cuda kernel' means most of the computation will happened on 
+%  precompiled CUDA kernels, slightly faster then gpuArray; 
+%  'cuda cublas' uses mex files compiled with CUDA kernels and uses 
+%  cuBlas to accelerate computation; 'cuda cudnn' uses cuda cublas + 
+>>>>>>> upstream/master
 %  nVIDIA's cuDNN library to accelerate some kind of CNN computation,
 %  this is the fastest option.
 %
 %  NETOBJ.setDataBlobSize(blobName, blobsize)
+<<<<<<< HEAD
 %  Because we don't have data layers, so you need to specify data
 %  size here, also works for mutiple data inputs (with different
+=======
+%  Because we don't have data layers, so you need to specify data 
+%  size here, also works for mutiple data inputs (with different 
+>>>>>>> upstream/master
 %  blobName).
 %  BlobName is equal to the first layer's bottom name
 %
 %  NETOBJ.setLayerRootFolder(folder)
+<<<<<<< HEAD
 %  layer's type set to 'nn.layers.???' will have a prefix comes
 %  from this. By default, layer folder root will be 'nn.', so
 %  all of your layer type will be cap with this value,
+=======
+%  layer's type set to 'nn.layers.???' will have a prefix comes 
+%  from this. By default, layer folder root will be 'nn.', so 
+%  all of your layer type will be cap with this value, 
+>>>>>>> upstream/master
 %  eg 'layers.relu' to 'nn.layers.relu'
 %
 %
@@ -45,10 +76,17 @@ function netObj = buildnet(netName, baseNet)
 %     Currently no ordering mechanism provided.
 %  2. you SHOULD give all of your tops different names.
 %     No routine checking currently.
+<<<<<<< HEAD
 %     Unless, you're sure the two layers use the same top name
 %     are direct relative to each other, and is the only parent/child pair
 %  3.
 %
+=======
+%     Unless, you're sure the two layers use the same top name 
+%     are direct relative to each other, and is the only parent/child pair
+%  3. 
+% 
+>>>>>>> upstream/master
 %  Common layer phrases:
 %  'type'
 %  'name'
@@ -57,8 +95,13 @@ function netObj = buildnet(netName, baseNet)
 %  '***_param'
 %  'phase'
 %  'rememberOutput'
+<<<<<<< HEAD
 %
 %
+=======
+% 
+% 
+>>>>>>> upstream/master
 %  NET Components:
 %  net.name
 %  net.weights
@@ -75,7 +118,11 @@ function netObj = buildnet(netName, baseNet)
 %  net.blobNamesIndex
 %  net.blobConnectId
 %  net.replaceId
+<<<<<<< HEAD
 %
+=======
+%  
+>>>>>>> upstream/master
 
 % --------------------------------------------------------------
 %                                                     Initialize
@@ -267,14 +314,22 @@ end
             else
                 [res, topSizes, param] = net.layerobjs{i}.setup(net.layers{i}, {});
             end
+<<<<<<< HEAD
 
+=======
+            
+>>>>>>> upstream/master
             % Print blob size
             for t = 1:numel(topSizes)
                 tt = topSizes{t};
 
                 fprintf('Layer(''%s'').top(''%s'') -> [%d, %d, %d, %d]\n', net.layers{i}.name, net.blobNames{net.layers{i}.top(t)}, tt(1),tt(2),tt(3),tt(4));
             end
+<<<<<<< HEAD
 
+=======
+            
+>>>>>>> upstream/master
             % If user defines their weights
             if isfield(net.layers{i}, 'weights') + isfield(res, 'weight') == 2
                 if numel(net.layers{i}.weights) == numel(res.weight) || numel(net.layers{i}.weights) == 0
@@ -296,7 +351,11 @@ end
             end
 
             % update param for particular layer
+<<<<<<< HEAD
             % NOTICE: if you don't want any output other than weghts to be updated,
+=======
+            % NOTICE: if you don't want any output other than weghts to be updated, 
+>>>>>>> upstream/master
             %          make sure param.xxxxx_param.learningRate = 0
             if isstruct(param)
                 for fi = fieldnames(param)'
@@ -328,25 +387,43 @@ end
             % sharing and solver update.
             for fi = 1:numel(resfield)
                 paName = [resfield{fi}, '_param'];
+<<<<<<< HEAD
 
+=======
+                
+>>>>>>> upstream/master
                 if numel(res.(resfield{fi})) ~= numel(net.layers{i}.(paName).name)
                     error(['numel(',resfield{fi}, ') must equal to numel(',paName,'.name)']);
                 end
                 replaceWeights = zeros(1, numel(res.(resfield{fi})));
+<<<<<<< HEAD
 
+=======
+                
+>>>>>>> upstream/master
                 for w=1:numel(res.(resfield{fi}))
                     %if net.layers{i}.(paName).enable_terms(w) == false
                     %    continue;
                     %end
+<<<<<<< HEAD
 
                     if ~isempty(net.layers{i}.(paName).name{w})
                         % concatenate user defined name with '_u' to avoid
+=======
+                    
+                    if ~isempty(net.layers{i}.(paName).name{w})
+                        % concatenate user defined name with '_u' to avoid 
+>>>>>>> upstream/master
                         % conflict of autogenerated name .
                         newName = sprintf([net.layers{i}.(paName).name{w}, '_', resfield{fi} ,'_u'], w);
                     else
                         newName = sprintf([net.layers{i}.name, '_', resfield{fi}, '_%d_auto'], w);
                     end
+<<<<<<< HEAD
 
+=======
+                    
+>>>>>>> upstream/master
                     [ind, rep] = checkWeightsNames(net.layers{i}.name, resfield{fi}, newName, res.(resfield{fi}){w}, param.(paName).learningRate(w), param.(paName).weightDecay(w));
                     %if rep
                         if numel(net.weightsShareId) < ind
@@ -354,7 +431,11 @@ end
                         else
                             net.weightsShareId{ind} = [net.weightsShareId{ind}, i];
                         end
+<<<<<<< HEAD
 
+=======
+                        
+>>>>>>> upstream/master
                     %end
                     replaceWeights(w) = ind;
                 end
@@ -498,7 +579,11 @@ end
             end
         end
 
+<<<<<<< HEAD
         for i = 1:NLayers
+=======
+        for i = 1:NLayers 
+>>>>>>> upstream/master
             if isfield(net.layers{i}, 'bottom')
                 tt = net.layers{i}.bottom;
                 if ischar(tt)
