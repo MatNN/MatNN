@@ -1,3 +1,0 @@
-## About Performance
-
-To be added ...
