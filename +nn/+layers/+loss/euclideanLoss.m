@@ -1,18 +1,12 @@
-function o = euclideanLoss(architecture)
+function o = euclideanLoss(networkParameter)
 %EUCLIDEANLOSS
 %
 % NOTICE
 %   label index starts from 0 (compatible with other NN tools)
 %   you can specify begining index from parameter
 
-if nargin == 0
-    architecture = 'default';
-end
-
 o.name         = 'EuclideanLoss';
 o.generateLoss = true;
-
-% process architecture
 o.setup        = @setup;
 o.forward      = @forward;
 o.backward     = @backward;
@@ -51,7 +45,7 @@ areas = [];
 
 
     function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
-        dividend = size(bottom{1},1)*size(bottom{1},2);
+        dividend = size(bottom{1},1)*size(bottom{1},2)*size(bottom{1},4);
 
         channelNumberOfBtm1 = size(bottom{1},3);
         if size(bottom{2},3) == 1 && channelNumberOfBtm1 > 1 % if label = HxWx1xN
@@ -97,8 +91,8 @@ areas = [];
     end
 
 
-    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
-        dividend = size(bottom{1},1)*size(bottom{1},2);
+    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff)
+        dividend = size(bottom{1},1)*size(bottom{1},2)*size(bottom{1},4);
 
         if l.euclideanLoss_param.per_channel_area
             bottom_diff{1} = top_diff{1} .* bsxfun(@times, d_, areas) ./ dividend;

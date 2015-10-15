@@ -1,4 +1,4 @@
-function o = slice(varargin)
+function o = slice(networkParameter)
 %SLICE Slice a blob into many blobs
 %  NOTICE
 %  This layer can also extract desired portion of a blob,
@@ -106,7 +106,7 @@ default_slice_param = {
     end
 
 
-    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
+    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff)
         bottom_diff = {bottom{1}.*0}; %works for normal array and gpuArray
         K = numel(l.cat_param.indices);
         switch l.cat_param.dim

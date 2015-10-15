@@ -1,4 +1,4 @@
-function o = cat(varargin)
+function o = cat(networkParameter)
 %CAT Concatenate N blobs into one blob
 
 o.name         = 'Cat';
@@ -94,7 +94,7 @@ default_cat_param = {
     end
 
 
-    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
+    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff)
         bottom_diff = cell(1, numel(bottom));
 
         if isempty(l.cat_param.indices)

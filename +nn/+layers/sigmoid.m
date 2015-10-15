@@ -1,4 +1,4 @@
-function o = sigmoid(varargin)
+function o = sigmoid(networkParameter)
 %SIGMOID
 
 o.name         = 'Sigmoid';
@@ -30,10 +30,9 @@ o.backward     = @backward;
     end
 
 
-    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
+    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff)
         sigmoid =  1./(1+exp(-bottom{1})) ;
         bottom_diff{1} = top_diff{1}.*(sigmoid.*(1-sigmoid));
-        %weights_diff = {};
     end
 
 end

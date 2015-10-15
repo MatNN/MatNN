@@ -1,5 +1,5 @@
 function [sliced4DTensor] = sliceImage(image4DTensor, sliceSize, pad)
-%SLICEIMAGE slice images and add padding for you
+%SLICEIMAGE Slice images and add padding for you
 % sliceSize = [height width] or one value
 %             sliced image size (without overlapping)
 % pad = [TOP BOTTOM LEFT RIGHT] or one value

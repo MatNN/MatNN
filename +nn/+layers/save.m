@@ -1,4 +1,4 @@
-function o = save(varargin)
+function o = save(networkParameter)
 %SAVE Save intermediate blobs into disk
 
 o.name         = 'Save';
@@ -62,7 +62,7 @@ default_save_param = {
     end
 
 
-    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
+    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff)
         bottom_diff = {[],[]};
     end
 

@@ -1,4 +1,4 @@
-function o = weightedLoss(varargin)
+function o = weightedLoss(networkParameter)
 %weightedLoss bottoms must be losses
 
 o.name         = 'weightedLoss';
@@ -47,7 +47,7 @@ default_weightedLoss_param = {
     end
 
 
-    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
+    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff)
         for i=1:numel(bottom)
             bottom_diff{i} = l.weightedLoss_param.coef(i);
         end

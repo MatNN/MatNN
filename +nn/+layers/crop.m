@@ -1,4 +1,4 @@
-function o = crop(varargin)
+function o = crop(networkParameter)
 %CROP Crop Large data to a smaller size
 %  NOTICE:
 %    bottom{1} is the desired blob need to be croped
@@ -60,7 +60,7 @@ default_crop_param = {
     end
 
 
-    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
+    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff)
         s = [1,1,1,1];
         sizeofBlob2 = size(bottom{2});
         sizeofBlob1 = size(bottom{1});

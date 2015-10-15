@@ -47,3 +47,6 @@ $RECYCLE.BIN/
 *.mexglx
 *.mexw64
 *.mexw32
+
+#documentation
+site/

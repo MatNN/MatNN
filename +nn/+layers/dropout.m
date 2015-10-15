@@ -1,4 +1,4 @@
-function o = dropout(varargin)
+function o = dropout(networkParameter)
 %DROPOUT
 
 o.name         = 'Dropout';
@@ -64,7 +64,7 @@ default_dropout_param = {
     end
 
 
-    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
+    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff)
         %numel(bottom_diff) = numel(bottom), numel(weights_diff) = numel(weights)
         if opts.disableDropout || ~l.dropout_param.enable_terms
             bottom_diff{1} = top_diff{1};

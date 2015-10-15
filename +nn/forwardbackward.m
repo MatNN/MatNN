@@ -1,4 +1,4 @@
-function res = forwardbackward(net, x, dzdy, res, opts)
+function [res, userRes] = forwardbackward(net, dzdy, res, opts, phase, usingGPU, userReq)
 %FORWARDBACKWARD  Evaluates a neural network built by buildnet.m
 %
 %  Details:
@@ -11,49 +11,51 @@ function res = forwardbackward(net, x, dzdy, res, opts)
 %  Default values: (for faster computation, disable value checking, you should
 %                   provide all of the following options)
 %
-%  opts.accumulate = false;
-%  opts.conserveMemory = false;
-%  opts.sync = false;
-%  opts.disableDropout = false;
-%  opts.freezeDropout = false;
-%  opts.visitLayerID = 1:numel(net.layers);
+%  opts.accumulate      = false;
 %  opts.outputBlobCount = cellfun(@numel, net.blobConnectId);
-%  opts.gpuMode = false;
-%  opts.doder = false;
 
-forget = opts.conserveMemory & ~opts.doder;
+forget = opts.conserveMemory & (opts.learningRate==0);
 ll = net.layers;
 lo = net.layerobjs;
 ww = net.weights;
 
 if isempty(res)
-    if opts.gpuMode
-        res.blob  = num2cell(gpuArray.zeros(1, numel(net.blobNames), 'single'));
-        res.dzdx  = num2cell(gpuArray.zeros(1, numel(net.blobNames), 'single')); % each cell contains another cell, and the inner cell's length is respected to the number of bottoms that a layer accepts
-        
-        filler    = gpuArray(single(0));
+    if usingGPU
+        res.blob     = num2cell(gpuArray.zeros(1, numel(net.blobNames), 'single'));
+        res.dzdx     = num2cell(gpuArray.zeros(1, numel(net.blobNames), 'single')); % each cell contains another cell, and the inner cell's length is respected to the number of bottoms that a layer accepts
+        filler       = gpuArray(single(0));
     else
-        res.blob  = num2cell(zeros(1, numel(net.blobNames), 'single'));
-        res.dzdx  = num2cell(zeros(1, numel(net.blobNames), 'single')); % each cell contains another cell, and the inner cell's length is respected to the number of bottoms that a layer accepts
-        %res.dzdw  = num2cell(zeros(1, numel(net.weightsNames), 'single')); % Each dzdw{w} corresponds to a net.weights{w}, no separate dzdw for each layer
-        filler    = single(0);
+        res.blob     = num2cell(zeros(1, numel(net.blobNames), 'single'));
+        res.dzdx     = num2cell(zeros(1, numel(net.blobNames), 'single')); % each cell contains another cell, and the inner cell's length is respected to the number of bottoms that a layer accepts
+        %res.dzdw      = num2cell(zeros(1, numel(net.weightsNames), 'single')); % Each dzdw{w} corresponds to a net.weights{w}, no separate dzdw for each layer
+        filler       = single(0);
     end
-    res.dzdw  = cellfun(@(dd) dd.*single(0), net.weights, 'UniformOutput', false); % Each dzdw{w} corresponds to a net.weights{w}, no separate dzdw for each layer
-    res.dzdwVisited = false(size(res.dzdw));
+    res.dzdxCount    = zeros(1, numel(net.blobNames), 'single'); % count accumulation
+    res.dzdwCount    = zeros(1, numel(net.weightsNames), 'single');
+    res.dzdw         = cellfun(@(dd) dd.*single(0), net.weights, 'UniformOutput', false); % Each dzdw{w} corresponds to a net.weights{w}, no separate dzdw for each layer
+    res.dzdwVisited  = false(size(res.dzdw));
+else
+    if isempty(res.blob)
+        if usingGPU
+            res.blob = num2cell(gpuArray.zeros(1, numel(net.blobNames), 'single'));
+            res.dzdx = num2cell(gpuArray.zeros(1, numel(net.blobNames), 'single'));
+            filler   = gpuArray(single(0));
+        else
+            res.blob = num2cell(zeros(1, numel(net.blobNames), 'single'));
+            res.dzdx = num2cell(zeros(1, numel(net.blobNames), 'single'));
+            filler   = single(0);
+        end
+        res.dzdxCount= zeros(1, numel(net.blobNames), 'single');
+    end
 end
 
-res.dzdxVisited = false(size(res.dzdx));
+res.dzdxCount   = res.dzdxCount.*0;
+res.dzdwCount   = res.dzdwCount.*0;
+res.dzdxVisited = false(size(res.dzdx)); % tops/bottoms ALWAYS DON'T NEED TO BE ACCUMULATED IF opts.accumulate SET TO 1.
+                                         % ONLY SHARED tops NEED TO BE ACCUMULATED
+                                         % SO WE RESET TO DALSe
 
-for i = fieldnames(x)'
-    name2Ind = net.blobNamesIndex.(i{1});
-    if opts.gpuMode
-        res.blob{name2Ind} = gpuArray(x.(i{1})); %Because x is a structure, eg. x = struct('data',[],'label',[])
-    else
-        res.blob{name2Ind} = x.(i{1}); %Because x is a structure, eg. x = struct('data',[],'label',[])
-    end
-end
-
-for i = opts.visitLayerID
+for i = net.phase.(phase)
     l = ll{i};
   
     % if a layer don't generate output, it still should fill topBlob as {[],[],...}
@@ -65,6 +67,14 @@ for i = opts.visitLayerID
     %    [res.blob(l.top), ~] = net.layerobjs{i}.forward(opts, l, {}, res.blob(l.bottom));
     %end
 
+    if ~isempty(userReq)
+        for u=1:numel(userReq)
+            userRes.(userReq{u}) = res.blob(net.blobNamesIndex.(userReq{u}));
+        end
+    else
+        userRes = {};
+    end
+
     % optionally forget intermediate results
     if forget && (~isfield(l, 'rememberOutput') || ~l.rememberOutput)
         for c = l.bottom
@@ -73,7 +83,7 @@ for i = opts.visitLayerID
                 opts.outputBlobCount(c) = opts.outputBlobCount(c)-1;
             elseif co == 1
                 opts.outputBlobCount(c) = 0;
-                res.blob(l.bottom(c)) = filler;
+                res.blob(c) = {filler};
             elseif co == 0
                 opts.outputBlobCount(c) = -1;
             end
@@ -82,7 +92,8 @@ for i = opts.visitLayerID
 end
 
 
-if opts.doder
+% derivative
+if opts.learningRate ~= 0
 
     % Make output blobs have their derivatives
     % consider the derivatives of all output blobs are
@@ -92,49 +103,80 @@ if opts.doder
 
     res.dzdx(opts.outputBlobCount==0) = {dzdy};
     
-    for i = opts.visitLayerID(end:-1:1)
+    for i = net.phase.(phase)(end:-1:1)
         l = ll{i};
         
         weightsInd = l.weights(~net.weightsIsMisc(l.weights));
         miscInd = l.weights(net.weightsIsMisc(l.weights));
-        [tmpdzdx, res.dzdw(weightsInd), ww(miscInd)] = lo{i}.backward(opts, l, ww(weightsInd), ww(miscInd), res.blob(l.bottom), res.blob(l.top), res.dzdx(l.top), res.dzdw(weightsInd), res.dzdwVisited(weightsInd));
-        res.dzdwVisited(weightsInd) = true;
-        % Don't try to clear res.dzdx or res.dzdw at first, you will get terrble performace!!
-        % If you try to clear them at first so you can get rid of if-statement of opts.accumulate
-        % , the performance will drain a lot.
+        if opts.avgGradient
+            tmpCount1 = res.dzdxCount(l.top);
+            tmpCount1(tmpCount1==0) = 1;
+            tmp_input_dzdx = res.dzdx(l.top);
+            for yy = 1:numel(l.top)
+                tmp_input_dzdx{yy} = tmp_input_dzdx{yy}./tmpCount1(yy);
+            end
+            tmpCount2 = res.dzdwCount(weightsInd);
+            tmpCount2(tmpCount2==0) = 1;
+            tmp_input_dzdw = res.dzdw(weightsInd);
+            for yy = 1:numel(weightsInd)
+                tmp_input_dzdw{yy} = tmp_input_dzdw{yy}./tmpCount2(yy);
+            end
+            [tmpdzdx, tmpdzdw, ww(miscInd)] = lo{i}.backward(opts, l, ww(weightsInd), ww(miscInd), res.blob(l.bottom), res.blob(l.top), tmp_input_dzdx, tmp_input_dzdw);
+        else
+            [tmpdzdx, tmpdzdw, ww(miscInd)] = lo{i}.backward(opts, l, ww(weightsInd), ww(miscInd), res.blob(l.bottom), res.blob(l.top), res.dzdx(l.top), res.dzdw(weightsInd));
+        end
+        
+        
+        % Don't try to clear res.dzdx or res.dzdw at first, you will get terrible performance!!
+        % If you try to clear them at first so you can get rid of "if-statement" 
+        % of opts.accumulate, the performance will drain a lot.
         
         dzdxEmpty = ~cellfun('isempty', tmpdzdx);
 
         for b = find(dzdxEmpty)
-            if any(net.blobConnectId{l.bottom(b)} == i) && ((~any(net.replaceId{l.bottom(b)} == i) && ~isempty(net.replaceId{l.bottom(b)})) || isempty(net.replaceId{l.bottom(b)})) && res.dzdxVisited(l.bottom(b))
+            %if any(net.blobConnectId.(phase){l.bottom(b)} == i) && ...
+            %    ((~any(net.replaceId.(phase){l.bottom(b)} == i) && ~isempty(net.replaceId.(phase){l.bottom(b)})) || ...
+            %    isempty(net.replaceId.(phase){l.bottom(b)})) && ...
+            %    res.dzdxVisited(l.bottom(b))
+            if any(net.blobConnectId.(phase){l.bottom(b)} == i) && ~any(net.replaceId.(phase){l.bottom(b)} == i) && res.dzdxVisited(l.bottom(b))
                 res.dzdx{l.bottom(b)} = res.dzdx{l.bottom(b)} + tmpdzdx{b};
+                res.dzdxCount(l.bottom(b)) = res.dzdxCount(l.bottom(b))+1;
             else
                 res.dzdx(l.bottom(b)) = tmpdzdx(b);
+                res.dzdxCount(l.bottom(b)) = 1;
             end
             res.dzdxVisited(l.bottom(b)) = true;
         end
         
 
 
-
-        % Legacy code
-        % Layer functions should take care of weight sharing
-        % this will be removed in the next update.
-        %{
         % be careful of modifying this.
-        dzdwEmpty = ~cellfun('isempty', tmpdzdw);
-        dzdwEmpty2 = dzdwEmpty & ~res.dzdwVisited(l.weights);
-        for w = find(dzdwEmpty & res.dzdwVisited(l.weights))
-            res.dzdw{l.weights(w)} = res.dzdw{l.weights(w)} + tmpdzdw{w};
+        dzdwEmpty  = ~cellfun('isempty', tmpdzdw);
+        for w = find(dzdwEmpty & res.dzdwVisited(weightsInd))
+            res.dzdw{weightsInd(w)} = res.dzdw{weightsInd(w)} + tmpdzdw{w};
+            res.dzdwCount(weightsInd(w)) = res.dzdwCount(weightsInd(w))+1;
         end
+
+        dzdwEmpty2 = dzdwEmpty & ~res.dzdwVisited(weightsInd);
+        res.dzdw(weightsInd(dzdwEmpty2)) = tmpdzdw(dzdwEmpty2);
+        res.dzdwCount(weightsInd(dzdwEmpty2)) = 1;
+
+        res.dzdwVisited(weightsInd) = true;
         % blow is slightly slower than loop (above)
         %res.dzdw(l.weights(dzdwEmpty1)) = cellfun(@plus, res.dzdw(l.weights(dzdwEmpty1)), tmpdzdw(dzdwEmpty1), 'UniformOutput', false);
-        res.dzdw(l.weights(dzdwEmpty2)) = tmpdzdw(dzdwEmpty2);
-        res.dzdwVisited(l.weights(dzdwEmpty)) = true;
-        %}
+        %res.dzdw(l.weights(dzdwEmpty2)) = tmpdzdw(dzdwEmpty2);
+        %res.dzdwVisited(l.weights(dzdwEmpty)) = true;
     
-        if opts.conserveMemory %delete used dzdx{top}, no need to consider loss or accuracy, because der(loss)=1, and accuracy has no backward computation
-            res.dzdx(l.top) = {filler};
+
+
+        %if opts.conserveMemory %delete used dzdx{top}, no need to consider loss or accuracy, because der(loss)=1, and accuracy has no backward computation
+        %    res.dzdx(l.top) = {filler};
+        %end
+        
+
+
+        if strcmp(opts.backpropToLayer, l.name)
+            break;
         end
     end
 end

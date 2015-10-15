@@ -1,4 +1,4 @@
-function o = convolution(varargin)
+function o = convolution(networkParameter)
 %CONVOLUTION
 
 o.name         = 'Convolution';
@@ -6,6 +6,7 @@ o.generateLoss = false;
 o.setup        = @setup;
 o.forward      = @forward;
 o.backward     = @backward;
+o.outputSize   = [];
 
 
 default_weight_param = {
@@ -65,9 +66,11 @@ default_convolution_param = {
 
 
         resource.weight = {[],[]};
-        btmSize = bottomSizes{1};
-        topSizes = {[floor([(btmSize(1)+pad_size(1)+pad_size(2)-kernel_size(1))/stride_size(1)+1, (btmSize(2)+pad_size(3)+pad_size(4)-kernel_size(2))/stride_size(2)+1]), wp2.num_output, btmSize(4)]};
-
+            function topSizes = calcTopSize(inputSize)
+                btmSize  = inputSize{1};
+                topSizes = {[floor([(btmSize(1)+pad_size(1)+pad_size(2)-kernel_size(1))/stride_size(1)+1, (btmSize(2)+pad_size(3)+pad_size(4)-kernel_size(2))/stride_size(2)+1]), wp2.num_output, btmSize(4)]};
+            end
+        topSizes = @calcTopSize;
 
         if wp1.enable_terms(1)
             resource.weight{1} = wp1.generator{1}([kernel_size(1), kernel_size(2), bottomSizes{1}(3), wp2.num_output], wp1.generator_param{1});
@@ -88,25 +91,10 @@ default_convolution_param = {
     end
 
 
-    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
+    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff)
         %numel(bottom_diff) = numel(bottom), numel(weights_diff) = numel(weights)
-        if weights_diff_isCumulate(1) && weights_diff_isCumulate(2)
-            [ bottom_diff{1}, a, b ]= ...
-                             vl_nnconv(bottom{1}, weights{1}, weights{2}, top_diff{1}, 'pad', l.convolution_param.pad, 'stride', l.convolution_param.stride);
-            weights_diff{1} = weights_diff{1} + a;
-            weights_diff{2} = weights_diff{2} + b;
-        elseif weights_diff_isCumulate(1)
-            [ bottom_diff{1}, outputdzdw, weights_diff{2} ]= ...
-                             vl_nnconv(bottom{1}, weights{1}, weights{2}, top_diff{1}, 'pad', l.convolution_param.pad, 'stride', l.convolution_param.stride);
-            weights_diff{1} = weights_diff{1} + outputdzdw;
-        elseif weights_diff_isCumulate(2)
-            [ bottom_diff{1}, weights_diff{1}, outputdzdw ]= ...
-                             vl_nnconv(bottom{1}, weights{1}, weights{2}, top_diff{1}, 'pad', l.convolution_param.pad, 'stride', l.convolution_param.stride);
-            weights_diff{2} = weights_diff{2} + outputdzdw;
-        else
-            [ bottom_diff{1}, weights_diff{1}, weights_diff{2} ]= ...
-                             vl_nnconv(bottom{1}, weights{1}, weights{2}, top_diff{1}, 'pad', l.convolution_param.pad, 'stride', l.convolution_param.stride);
-        end
+        [ bottom_diff{1}, weights_diff{1}, weights_diff{2} ]= ...
+                         vl_nnconv(bottom{1}, weights{1}, weights{2}, top_diff{1}, 'pad', l.convolution_param.pad, 'stride', l.convolution_param.stride);
     end
 
 end

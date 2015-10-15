@@ -1,4 +1,4 @@
-function o = eltwise(varargin)
+function o = eltwise(networkParameter)
 %Eltwise Do element wised operation
 
 o.name         = 'Eltwise';
@@ -61,7 +61,7 @@ backwardFunc = @back_plus;
     end
 
 
-    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
+    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff)
         [bottom_diff{1}, bottom_diff{2}] = backwardFunc(top_diff{1}, bottom{1}, bottom{2});
     end
 

@@ -1,4 +1,4 @@
-function o = deconvolution(varargin)
+function o = deconvolution(networkParameter)
 %DECONVOLUTION
 
 o.name         = 'Deconvolution';
@@ -21,10 +21,8 @@ default_deconvolution_param = {
      'kernel_size' [3 3] ...
             'crop' [0 0] ...
       'upsampling' [1 1] ...
+       'num_group' 1     ... 
 };
-
-%
-topSizes = [];
 
     function [resource, topSizes, param] = setup(l, bottomSizes)
         % resource only have .weights
@@ -49,6 +47,7 @@ topSizes = [];
 
         assert(numel(l.bottom)==1);
         assert(numel(l.top)==1);
+        assert(mod(bottomSizes{1}(3),wp2.num_group)==0 && bottomSizes{1}(3)>=wp2.num_group);
 
 
         kernel_size = wp2.kernel_size;
@@ -71,7 +70,7 @@ topSizes = [];
         btmSize = bottomSizes{1};
         topSizes = {[floor([(btmSize(1)-1)*stride_size(1)-pad_size(1)-pad_size(2)+kernel_size(1), ...
                            (btmSize(2)-1)*stride_size(2)-pad_size(3)-pad_size(4)+kernel_size(2)]), ...
-                            wp2.num_output, btmSize(4)]};
+                            wp2.num_output*wp2.num_group, btmSize(4)]};
 
 
         if wp1.enable_terms(1)
@@ -79,7 +78,7 @@ topSizes = [];
         end
 
         if wp1.enable_terms(2)
-            resource.weight{2} = wp1.generator{2}([1, wp2.num_output], wp1.generator_param{2});
+            resource.weight{2} = wp1.generator{2}([1, wp2.num_output*wp2.num_group], wp1.generator_param{2});
         end
 
         %return updated param
@@ -89,30 +88,13 @@ topSizes = [];
 
 
     function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
-        top{1} = vl_nnconvt(bottom{1}, weights{1}, weights{2}, 'crop', l.deconvolution_param.crop, 'upsample', l.deconvolution_param.upsampling);
+        top{1} = vl_nnconvt(bottom{1}, weights{1}, weights{2}, 'crop', l.deconvolution_param.crop, 'upsample', l.deconvolution_param.upsampling, 'numgroups', l.deconvolution_param.num_group);
     end
 
 
-    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
-
-        if weights_diff_isCumulate(1) && weights_diff_isCumulate(2)
-            [ bottom_diff{1}, a, b ]= ...
-                             vl_nnconvt(bottom{1}, weights{1}, weights{2}, top_diff{1}, 'crop', l.deconvolution_param.crop, 'upsample', l.deconvolution_param.upsampling);
-            weights_diff{1} = weights_diff{1} + a;
-            weights_diff{2} = weights_diff{2} + b;
-        elseif weights_diff_isCumulate(1)
-            [ bottom_diff{1}, outputdzdw, weights_diff{2} ]= ...
-                             vl_nnconvt(bottom{1}, weights{1}, weights{2}, top_diff{1}, 'Crop', l.deconvolution_param.crop, 'Upsample', l.deconvolution_param.upsampling);
-            weights_diff{1} = weights_diff{1} + outputdzdw;
-        elseif weights_diff_isCumulate(2)
-            [ bottom_diff{1}, weights_diff{1}, outputdzdw ]= ...
-                             vl_nnconvt(bottom{1}, weights{1}, weights{2}, top_diff{1}, 'Crop', l.deconvolution_param.crop, 'Upsample', l.deconvolution_param.upsampling);
-            weights_diff{2} = weights_diff{2} + outputdzdw;
-        else
-            [ bottom_diff{1}, weights_diff{1}, weights_diff{2} ]= ...
-                             vl_nnconvt(bottom{1}, weights{1}, weights{2}, top_diff{1}, 'Crop', l.deconvolution_param.crop, 'Upsample', l.deconvolution_param.upsampling);
-        end
-
+    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff)
+        [ bottom_diff{1}, weights_diff{1}, weights_diff{2} ]= ...
+                         vl_nnconvt(bottom{1}, weights{1}, weights{2}, top_diff{1}, 'Crop', l.deconvolution_param.crop, 'Upsample', l.deconvolution_param.upsampling, 'numgroups', l.deconvolution_param.num_group);
     end
 
 end

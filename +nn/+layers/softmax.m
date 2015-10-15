@@ -1,9 +1,6 @@
-function o = softmax(varargin)
+function o = softmax(networkParameter)
 %SOFTMAX
 %
-% NOTICE
-%   label index starts from 0 (compatible with other NN tools)
-%   you can specify begining index from parameter
 
 o.name         = 'Softmax';
 o.generateLoss = false;
@@ -28,7 +25,7 @@ o.backward     = @backward;
         top{1} = y;
 
     end
-    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
+    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff)
         y = exp( bsxfun(@minus, bottom{1}, max(bottom{1}, [], 3)) );
         y = bsxfun(@rdivide, y, sum(y,3));
         y = y .* bsxfun(@minus, top_diff{1}, sum(top_diff{1} .* y, 3));

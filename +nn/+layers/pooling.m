@@ -1,4 +1,4 @@
-function o = pooling(varargin)
+function o = pooling(networkParameter)
 %POOLING
 
 o.name         = 'Pooling';
@@ -57,7 +57,7 @@ default_pooling_param = {
     end
 
 
-    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
+    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff)
         bottom_diff{1} = vl_nnpool(bottom{1}, l.pooling_param.kernel_size, top_diff{1}, 'pad', l.pooling_param.pad, 'stride', l.pooling_param.stride, 'method', l.pooling_param.method);
         %mydzdw = {};
     end

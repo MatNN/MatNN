@@ -21,14 +21,12 @@ function [ varargout ] = vararginHelper( defaultValues, thePa, varargin )
 %                   multiple outputs.
 %   
 %   EXAMPLE
-%   import vllab.utils.vararginHelper;
 %   defaultValues = {'K', 100, 'Sigma', 0.8, 'MinSize', 200};
 %   userSpecify = {'MinSize', 50, 'Sigma', 1.0};
 %   [k, sigma, ms] = vararginHelper(defaultValues, userSpecify, false);
 %   then k = 100, sigma = 1.0, ms = 50
 %
 %   EXAMPLE
-%   import vllab.utils.vararginHelper;
 %   defaultValues.bins    = 256;
 %   defaultValues.spacing = 10;
 %   defaultValues.max     = 786;

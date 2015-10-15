@@ -1,4 +1,4 @@
-function o = logisticLoss(varargin)
+function o = logisticLoss(networkParameter)
 %LOGISTICLOSS 
 %
 % NOTICE
@@ -21,6 +21,7 @@ default_logisticLoss_param = {
 resultBlob = [];
 ind        = [];
 N          = [];
+ll         = [];
 
     function [resource, topSizes, param] = setup(l, bottomSizes)
         resource = {};
@@ -51,10 +52,9 @@ N          = [];
         %resultBlob = max(bottom{1}, l.logisticLoss_param.threshold);
         resultBlob = bottom{1}+l.logisticLoss_param.threshold;
 
-        resSize = size(resultBlob);
-        resSize(4) = size(resultBlob,4);
-        labelSize = size(bottom{2});
-        labelSize(4) = size(bottom{2},4);
+        resSize = nn.utils.size4D(resultBlob);
+        labelSize = nn.utils.size4D(bottom{2});
+
         if resSize(4) == numel(bottom{2})
             label = reshape(bottom{2}, [1, 1, 1 resSize(4)]) ;
             label = repmat(label, [resSize(1), resSize(2)]) ;
@@ -66,18 +66,27 @@ N          = [];
             end
         end
         ll = label >= l.logisticLoss_param.labelIndex_start;
-        label = label(ll) - l.logisticLoss_param.labelIndex_start;
-        N = resSize(1)*resSize(2);
-        ind = find(ll)-1;
-        ind = 1 + mod(ind, N)  ...
-                + N * label(:) ...
-                + N*resSize(3) * floor(ind/N);
+        %label = label(ll) - l.logisticLoss_param.labelIndex_start;
+        N = resSize(1)*resSize(2)*resSize(4);
+        %ind = find(ll)-1;
+        %ind = 1 + mod(ind, N)  ...
+        %        + N * label(:) ...
+        %        + N*resSize(3) * floor(ind/N);
+
+        if opts.gpuMode
+            ind = gpuArray.false(resSize);
+        else
+            ind = false(resSize);
+        end
+        for i=1:resSize(3)
+            ind(:,:,i,:) = label == i + (l.logisticLoss_param.labelIndex_start - 1);
+        end
 
         top{1} = -sum(log(resultBlob(ind)))/N;
 
     end
-    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff, weights_diff_isCumulate)
-        dzdx = -(1./resultBlob) * (top_diff{1}/N);
+    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff)
+        dzdx = -bsxfun(@rdivide, bsxfun(@times, ll, top_diff{1}/N), resultBlob);
 
         % only ground truth label are correct, set others to zero
         outdzdx = dzdx*0; % faster than zeros(size(dzdx)); ?
