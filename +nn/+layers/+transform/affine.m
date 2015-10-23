@@ -63,8 +63,9 @@ c = 0;
         end
 
         if numel(networkParameter.gpus)>0
-            ptxp = which('affine.ptx');
-            cup  = which('affine.cu');
+            mf = fileparts(mfilename('fullpath'));
+            ptxp = fullfile(mf, 'private', 'affine.ptx');
+            cup = fullfile(mf, 'private', 'affine.cu');
             af = nn.utils.gpu.createHandle(prod(bottomSizes{1}), ptxp, cup, 'AffineForward');
             ab = nn.utils.gpu.createHandle(prod(bottomSizes{1}), ptxp, cup, 'AffineBackward');
         else
@@ -141,6 +142,7 @@ c = 0;
                 bottom_diff{2} = bottom{2}.*0;
                 [bottom_diff{1}, bottom_diff{2}] = feval(ab, bottom{1}, s, bottom{2}, len, top{1}, top_diff{1}, bottom_diff{1}, bottom_diff{2});
             end
+            % shoudld bottom_diff divivded by pixelnumber?
         else
             %...
         end

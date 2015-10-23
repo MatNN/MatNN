@@ -1,5 +1,5 @@
 function o = reshape(networkParameter)
-%RELU Rectified linear unit
+%RESHAPE
 
 o.name         = 'Reshape';
 o.generateLoss = false;
@@ -45,7 +45,7 @@ origShape = [];
 
         topSizes = {nn.utils.size4D(tmpData)};
         %return updated param
-        param = {};
+        param.reshape_param = wp;
     end
 
     function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)

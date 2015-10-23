@@ -1,10 +1,10 @@
 I.  Make a network runs like a function
     1.  Class
-        a. Wasily inherit from other layers
-        b. Wlegant design
+        a. Easily inherit from other layers
+        b. Elegant design
         c. Automatic GPU/CPU "function" transition
            eg. CPU: vector/blas function; GPU: cuda/arrayfun
-        d. Drawback: extremely slow on realtime projects, like "detection".
+        d. Drawback: extremely slow on realtime projects, like "object detection".
     2.  Nested function
         a. Faster than class
         b. Drawback: ugly & hard to create layers
