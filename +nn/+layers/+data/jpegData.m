@@ -24,6 +24,7 @@ default_jpegData_param = {
         'shuffle' false ...
            'flip' false ...
        'prefetch' true  ...
+'prefetch_thread' 2     ...
 };
 
 imagePaths   = {};
@@ -90,7 +91,7 @@ imgIndNext   = [];
         else
             crop = wp.crop;
         end
-        topSizes = @(x) {[crop(1), crop(2), wp.is_color, wp.batch_size], [1,1,1, wp.batch_size]};
+        topSizes = @(x) {[crop(1), crop(2), wp.is_color*2+1, wp.batch_size], [1,1,1, wp.batch_size]};
         resource = {};
 
         %return updated param
@@ -106,9 +107,9 @@ imgIndNext   = [];
         s = numel(imgList); 
             
         if l.jpegData_param.prefetch
-            cache = vl_imreadjpeg(imgList, 'NumThreads', 2);
+            cache = vl_imreadjpeg(imgList, 'NumThreads', l.jpegData_param.prefetch_thread);
             [imgListNext, imgIndNext] = generateNextImgList(opts, l);
-            vl_imreadjpeg(imgListNext, 'NumThreads', 2, 'Prefetch');
+            vl_imreadjpeg(imgListNext, 'NumThreads', l.jpegData_param.prefetch_thread, 'Prefetch');
         else
             cache = cell(1,s);
             for i = 1:s
@@ -123,14 +124,10 @@ imgIndNext   = [];
             if l.jpegData_param.is_color
                 if size(img, 3) == 1
                     img = cat(3, img,img,img);
-                elseif size(img,3) == 4
-                    img = applycform(img, makecform('cmyk2srgb', 'RenderingIntent', 'Perceptual'));
                 end
             else
                 if size(img, 3) == 3
                     img = rgb2gray(img);
-                elseif size(img, 3) == 4
-                    img = reg2gray(applycform(img, makecform('cmyk2srgb', 'RenderingIntent', 'Perceptual')));
                 end
             end
 
@@ -145,8 +142,11 @@ imgIndNext   = [];
             %crop
             if numel(l.jpegData_param.crop) == 1
                 if ~l.jpegData_param.crop_center
-                    Hs = randi(imgSize(1)-l.jpegData_param.crop+1);
-                    Ws = randi(imgSize(2)-l.jpegData_param.crop+1);
+                    minB = min(imgSize(1), imgSize(2));
+                    Hs = randi(minB-l.jpegData_param.crop+1)-1;
+                    Ws = randi(minB-l.jpegData_param.crop+1)-1;
+                    Hs = Hs+floor((imgSize(1)-minB)/2)+1;
+                    Ws = Ws+floor((imgSize(2)-minB)/2)+1;
                 else
                     Hs = floor((imgSize(1)-l.jpegData_param.crop)/2)+1;
                     Ws = floor((imgSize(2)-l.jpegData_param.crop)/2)+1;
@@ -179,12 +179,12 @@ imgIndNext   = [];
 
         if opts.gpuMode
             imgs = gpuArray(single(cat(4,cache{:})));
-            top{2} = gpuArray(single(imageLabel(imgInd)));
+            top{2} = gpuArray(single(reshape(imageLabel(imgInd),1,1,1,[])));
         else
             imgs = single(cat(4,cache{:}));
-            top{2} = single(imageLabel(imgInd));
+            top{2} = single(reshape(imageLabel(imgInd),1,1,1,[]));
         end
-        if numel(l.jpegData_param.mean)==size(img,3)
+        if numel(l.jpegData_param.mean)==size(imgs,3)
             imgs = bsxfun(@minus, imgs, reshape(single(l.jpegData_param.mean),1,1,3,1));
         else
             imgs = imgs-single(l.jpegData_param.mean);

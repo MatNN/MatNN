@@ -49,7 +49,7 @@ default_dropout_param = {
 
         if opts.disableDropout || ~l.dropout_param.enable_terms
             top{1} = bottom{1};
-        elseif opts.freezeDropout
+        elseif opts.freezeDropout && numel(bottom{1}) == numel(misc{1})
             top{1} = bottom{1}.*misc{1};
         else
             if isa(bottom{1},'gpuArray')
