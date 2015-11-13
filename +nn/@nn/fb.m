@@ -1,28 +1,24 @@
 function [data, net] = fb(obj, data, net, face, opts, dzdy)
-    ll = net.layers;
-    ww = net.weights;
     data.diffCount = data.diffCount.*int32(0);
 
     % FORWARD
     for i = net.phase.(face)
-        l = ll{i};
+        l = net.layers{i};
 
         tmp = net.weightsIsMisc(l.weights);
         weightsInd = l.weights(~tmp);
         miscInd = l.weights(tmp);
 
-        [data.val(l.top), ww(weightsInd), ww(miscInd)] = ...
-            l.obj.forward(opts, data.val(l.top), data.val(l.bottom), ww(weightsInd), ww(miscInd));
+        [data.val(l.top), net.weights(weightsInd), net.weights(miscInd)] = ...
+            l.obj.forward(opts, data.val(l.top), data.val(l.bottom), net.weights(weightsInd), net.weights(miscInd));
     end
 
     % BACKWARD
     if opts.learningRate ~= 0
-        wd = net.weightsDiff;
-        wdc = net.weightsDiffCount;
         data.diff(data.outId.(face)) = {dzdy};
 
         for i = net.phase.(face)(end:-1:1)
-            l = ll{i};
+            l = net.layers{i};
             
             tmp = net.weightsIsMisc(l.weights);
             weightsInd = l.weights(~tmp);
@@ -41,9 +37,9 @@ function [data, net] = fb(obj, data, net, face, opts, dzdy)
                 for yy = 1:numel(weightsInd)
                     tmp_input_dzdw{yy} = tmp_input_dzdw{yy}./tmpCount2(yy);
                 end
-                [tmpdzdx, tmpdzdw, ww(miscInd)] = l.obj.backward(opts, data.val(l.top), data.val(l.bottom), ww(weightsInd), ww(miscInd), tmp_input_dzdx,  tmp_input_dzdw);
+                [tmpdzdx, tmpdzdw, net.weights(miscInd)] = l.obj.backward(opts, data.val(l.top), data.val(l.bottom), net.weights(weightsInd), net.weights(miscInd), tmp_input_dzdx,  tmp_input_dzdw);
             else
-                [tmpdzdx, tmpdzdw, ww(miscInd)] = l.obj.backward(opts, data.val(l.top), data.val(l.bottom), ww(weightsInd), ww(miscInd), data.diff(l.top), wd(weightsInd));
+                [tmpdzdx, tmpdzdw, net.weights(miscInd)] = l.obj.backward(opts, data.val(l.top), data.val(l.bottom), net.weights(weightsInd), net.weights(miscInd), data.diff(l.top), net.weightsDiff(weightsInd));
             end
 
             
@@ -62,23 +58,18 @@ function [data, net] = fb(obj, data, net, face, opts, dzdy)
             
             % be careful of modifying this.
             dzdwEmpty  = ~cellfun('isempty', tmpdzdw); % find d_weights are not empty
-            for w = find(dzdwEmpty & wdc(weightsInd))
-                wd{weightsInd(w)} = wd{weightsInd(w)} + tmpdzdw{w};
-                wdc(weightsInd(w)) = wdc(weightsInd(w))+1;
+            for w = find(dzdwEmpty & net.weightsDiffCount(weightsInd))
+                net.weightsDiff{weightsInd(w)} = net.weightsDiff{weightsInd(w)} + tmpdzdw{w};
+                net.weightsDiffCount(weightsInd(w)) = net.weightsDiffCount(weightsInd(w))+1;
             end
 
-            dzdwEmpty2 = dzdwEmpty & ~wdc(weightsInd);
-            wd(weightsInd(dzdwEmpty2)) = tmpdzdw(dzdwEmpty2);
-            wdc(weightsInd(dzdwEmpty2)) = 1;
+            dzdwEmpty2 = dzdwEmpty & ~net.weightsDiffCount(weightsInd);
+            net.weightsDiff(weightsInd(dzdwEmpty2)) = tmpdzdw(dzdwEmpty2);
+            net.weightsDiffCount(weightsInd(dzdwEmpty2)) = 1;
 
             if strcmp(opts.backpropToLayer, l.name)
                 break;
             end
         end
-        net.weightsDiff = wd;
-        net.weightsDiffCount = wdc;
     end
-
-    
-    net.weights = ww;
 end
