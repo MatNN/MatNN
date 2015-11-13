@@ -6,5 +6,5 @@ function res = gaussian(dimensionVector, param)
     default_param.mean = 0;
     default_param.std = 1;
     p = nn.utils.vararginHelper(default_param, param);
-    res = randn(dimensionVector, 'single')*p.std+p.mean;
+    res = randn(dimensionVector, 'single')*single(p.std)+single(p.mean);
 end

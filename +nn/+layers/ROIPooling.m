@@ -40,12 +40,13 @@ argmax_data = [];
         %assert();
 
         if numel(networkParameter.gpus)>0
-            ptxp = which('ROIPooling.ptx');
-            cup  = which('ROIPooling.cu');
+            mf = fileparts(mfilename('fullpath'));
+            ptxp = fullfile(mf, 'private', 'ROIPooling.ptx');
+            cup = fullfile(mf, 'private', 'ROIPooling.cu');
             af = nn.utils.gpu.createHandle(prod(bottomSizes{1}), ptxp, cup, 'ROIPoolForward');
             ab = nn.utils.gpu.createHandle(prod(bottomSizes{1}), ptxp, cup, 'ROIPoolBackward');
         else
-            error('Affine Layer runs on GPU (currently).');
+            error('Roi Pooling Layer runs on GPU (currently).');
         end
 
         topSizes = @(x){[wp.output_size(1) wp.output_size(2) x{1}(3) x{1}(4)]};
@@ -71,7 +72,7 @@ argmax_data = [];
             s = nn.utils.size4D(bottom{1});
             len = prod(s);
             bottom_diff{1} = bottom{1}.*0;
-            bottom_diff{1} = feval(af, len, top_diff{1}, argmax_data, size(bottom{2},1), l.ROIPooling_param.spatial_scale, s(3), s(1), s(2), l.ROIPooling_param.output_size(1), l.ROIPooling_param.output_size(2), bottom_diff{1}, bottom{2});
+            bottom_diff{1} = feval(ab, len, top_diff{1}, argmax_data, size(bottom{2},1), l.ROIPooling_param.spatial_scale, s(3), s(1), s(2), l.ROIPooling_param.output_size(1), l.ROIPooling_param.output_size(2), bottom_diff{1}, bottom{2});
         end
     end
 

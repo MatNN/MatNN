@@ -1,57 +1,75 @@
-function o = relu(networkParameter)
-%RELU Rectified linear unit
+classdef ReLU < nn.layers.template.BaseLayer
 
-o.name         = 'ReLU';
-o.generateLoss = false;
-o.setup        = @setup;
-if numel(networkParameter.gpus) > 0
-    o.forward  = @forwardGPU;
-    o.backward = @backwardGPU;
-    zero = gpuArray.zeros(1, 'single');
-else
-    o.forward  = @forward;
-    o.backward = @backward;
-end
-
-
-    function [resource, topSizes, param] = setup(l, bottomSizes)
-        % resource only have .weight
-        % if you have other outputs you want to save or share
-        % you can set its learning rate to zero to prevent update
-        resource = {};
-        assert(numel(l.bottom)==1);
-        assert(numel(l.top)==1);
-        topSizes = bottomSizes(1);
-        %return updated param
-        param = {};
+    properties (Access = protected, Transient)
+        zero = single(0);
     end
 
-    function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
-        top = {max(bottom{1}, 0)};
+    methods
+        % CPU Forward
+        function out = f(~, in)
+            out = max(in, 0);
+        end
+        % CPU Backward
+        function in_diff = b(~, in, out, out_diff) %#ok
+            in_diff = (in > 0) .* out_diff;
+        end
+
+        % GPU Forward
+        function out = gf(obj, in)
+            out = max(in, obj.zero); %fatest
+            %  ptx kernel            %sceond
+            %out = in.*(in > 0);     %third
+            %in(in < 0) = 0          % ?
+            %out = (in + abs(in))/2  % ?
+            %
+        end
+        % GPU Backward
+        function in_diff = gb(obj, in, out, out_diff) %#ok
+            in_diff = nn.utils.gpu.relu_b(in, out_diff, obj.zero);
+            %in_diff = (in > obj.zero) .* out_diff;
+        end
+
+        % Forward function for training/testing routines
+        function [top, weights, misc] = forward(obj, opts, top, bottom, weights, misc)
+            if opts.gpuMode
+                top{1} = obj.gf(bottom{1});
+            else
+                top{1} = obj.f(bottom{1});
+            end
+        end
+        % Backward function for training/testing routines
+        function [bottom_diff, weights_diff, misc] = backward(obj, opts, top, bottom, weights, misc, top_diff, weights_diff)
+            if opts.gpuMode
+                bottom_diff{1} = obj.gb(bottom{1}, top{1}, top_diff{1});
+            else
+                bottom_diff{1} = obj.b(bottom{1}, top{1}, top_diff{1});
+            end
+        end
+
+        % Setup function for training/testing routines
+        function [outSizes, resources] = setup(obj, opts, baseProperties, inSizes)
+            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, baseProperties, inSizes);
+            assert(numel(baseProperties.bottom)==1);
+            assert(numel(baseProperties.top)==1);
+            if opts.gpuMode
+                obj.zero = gpuArray.zeros(1, 'single');
+            end
+        end
+        function varargout = moveTo(obj, dest)
+            if numel(nargout) == 0
+                obj.params = obj.moveTo_private(dest, obj.params);
+                obj.zero = obj.moveTo_private(dest, obj.zero);
+            elseif numel(nargout) == 1
+                o = struct();
+                o.params = obj.moveTo_private(dest, obj.params);
+                o.zero = obj.moveTo_private(dest, obj.zero);
+                o.didSetup = obj.didSetup;
+                varargout{1} = o;
+            else
+                error('Too many outputs.');
+            end
+        end
+
     end
 
-    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff)
-        bottom_diff = {(bottom{1} > 0) .* top_diff{1}};
-    end
-
-    function [top, weights, misc] = forwardGPU(opts, l, weights, misc, bottom, top)
-        top{1} = arrayfun(@fG, bottom{1}, zero);
-    end
-
-    function [bottom_diff, weights_diff, misc] = backwardGPU(opts, l, weights, misc, bottom, top, top_diff, weights_diff)
-        bottom_diff{1} = arrayfun(@bG, bottom{1}, top_diff{1}, zero);
-    end
-
-end
-
-% GPU kernels
-function a = fG(a, z)
-    a = max(a, z);
-end
-function b = bG(b, tf, z)
-    if b > z
-        b = tf;
-    else
-        b = z;
-    end
 end

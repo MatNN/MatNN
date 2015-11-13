@@ -1,86 +1,67 @@
-function o = eltwise(networkParameter)
-%Eltwise Do element wised operation
+classdef Eltwise < nn.layers.template.BaseLayer
+% this layer did not implement .f(), .gf(), .b(), .gb()
 
-o.name         = 'Eltwise';
-o.generateLoss = false;
-o.setup        = @setup;
-o.forward      = @forward;
-o.backward     = @backward;
+    properties (SetAccess = protected, Transient)
+        default_eltwise_param = {
+            'operation' 'sum' ... % sum, prod, minus, max
+        };
+    end
 
-
-default_eltwise_param = {
-    'operation' 'sum' ...
-};
-
-operator = @plus;
-backwardFunc = @back_plus;
-
-    function [resource, topSizes, param] = setup(l, bottomSizes)
-        % resource only have .weight
-        % if you have other outputs you want to save or share
-        % you can set its learning rate to zero to prevent update
-        resource = {};
-
-        if isfield(l, 'eltwise_param')
-            wp = nn.utils.vararginHelper(default_eltwise_param, l.eltwise_param);
-        else
-            wp = nn.utils.vararginHelper(default_eltwise_param, default_eltwise_param);
+    methods
+        function varargout = plus(~, in1, in2, out_diff)
+            if isempty(out_diff)
+                varargout{1} = in1+in2;
+            else
+                varargout{1} = out_diff;
+                varargout{2} = out_diff;
+            end
         end
 
-
-        assert(numel(l.bottom)==2);
-        assert(numel(l.top)==1);
-        assert(numel(bottomSizes{1})==numel(bottomSizes{2}));
-
-        switch lower(wp.operation)
-            case 'sum'
-                operator = @plus;
-                backwardFunc = @back_plus;
-            case 'prod'
-                operator = @times;
-                backwardFunc = @back_times;
-            case 'max'
-                operator = @max;
-                backwardFunc = @back_max;
-            case 'minus'
-                operator = @minus;
-                backwardFunc = @back_minus;
-            otherwise
-                error(['Not support operation:', wp.operation]);
+        function varargout = prod(~, in1, in2, out_diff)
+            if isempty(out_diff)
+                varargout{1} = in1.*in2;
+            else
+                varargout{1} = in2.*out_diff;
+                varargout{2} = in1.*out_diff;
+            end
         end
 
-        topSizes = bottomSizes(1);
+        function varargout = max(~, in1, in2, out_diff)
+            if isempty(out_diff)
+                varargout{1} = max(in1, in2);
+            else
+                r = max(in1,in2);
+                varargout{1} = out_diff.*(r==in1);
+                varargout{2} = out_diff.*(r==in2);
+            end
+        end
 
-        %return updated param
-        param.eltwise_param = wp;
-    end
+        function varargout = minus(~, in1, in2, out_diff)
+            if isempty(out_diff)
+                varargout{1} = in1-in2;
+            else
+                varargout{1} = out_diff;
+                varargout{2} = -out_diff;
+            end
+        end
 
+        function [top, weights, misc] = forward(obj, opts, top, bottom, weights, misc)
+            top{1} = obj.(obj.params.eltwise.operation)(bottom{1}, bottom{2}, []);
+        end
+        function [bottom_diff, weights_diff, misc] = backward(obj, opts, top, bottom, weights, misc, top_diff, weights_diff)
+            [bottom_diff{1}, bottom_diff{2}] = obj.(obj.params.eltwise.operation)(bottom{1}, bottom{2}, top_diff{1});
+        end
 
-    function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
-        top{1} = operator(bottom{1}, bottom{2});
-    end
+        function outSizes = outputSizes(obj, opts, inSizes)
+            assert(isequal(inSizes{1},inSizes{2}));
+            outSizes = inSizes(1);
+        end
+        function [outSizes, resources] = setup(obj, opts, baseProperties, inSizes)
+            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, baseProperties, inSizes);
+            assert(numel(baseProperties.bottom)==2);
+            assert(numel(baseProperties.top)==1);
+        end
 
-
-    function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff)
-        [bottom_diff{1}, bottom_diff{2}] = backwardFunc(top_diff{1}, bottom{1}, bottom{2});
-    end
-
-    function [r1, r2] = back_plus(dzdy, ~, ~)
-        r1 = dzdy;
-        r2 = dzdy;
-    end
-    function [r1, r2] = back_times(dzdy, b1, b2)
-        r1 = b2.*dzdy;
-        r2 = b1.*dzdy;
-    end
-    function [r1, r2] = back_max(dzdy, b1, b2)
-        r = max(b1,b2) == b1;
-        r1 = dzdy.*r;
-        r2 = dzdy.*(~r);
-    end
-    function [r1, r2] = back_minus(dzdy, ~, ~)
-        r1 = dzdy;
-        r2 = -dzdy;
     end
 
 end
