@@ -23,6 +23,16 @@ classdef DataLayer < nn.layers.template.BaseLayer
     end
 
     methods
+        %check if a property can be on CPU(0) or GPU(1) or both(2) or ignore(-1)
+        function v = propertyDevice(obj)
+            v = obj.propertyDevice@nn.layers.template.BaseLayer();
+            v.dataPaths    = 0;
+            v.dataLabel    = 0;
+            v.batchIndices = 0;
+            v.pointer      = 0;
+            v.list         = 0;
+            v.ind          = 0;
+        end
         % CPU Forward
         function [data, label] = f(obj)
             p = obj.params.data;

@@ -21,6 +21,14 @@ classdef Accuracy < nn.layers.template.BaseLayer
     
 
     methods
+        function v = propertyDevice(obj)
+            v = obj.propertyDevice@nn.layers.template.BaseLayer();
+            v.counting = 0;
+            v.perClassArea = 2;
+            v.perClassAcc  = 2;
+            v.accumulateAcc = 2;
+            v.accumulate = 0;
+        end
         % CPU Forward
         function varargout = f(obj, in, label, labelIndex_start, doMeanClass, varargin) %varargin{1} = currentIter
             resSize = nn.utils.size4D(in);

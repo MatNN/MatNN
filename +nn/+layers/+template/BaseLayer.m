@@ -97,10 +97,10 @@ classdef BaseLayer < handle
             p = metaclass(obj);
             if nargout == 0
                 for va = p.PropertyList'
-                    if va.Abstract || va.Transient || va.Dependent || strcmp(va.Name, 'params') || strcmp(va.Name, 'didSetup')
+                    if va.Abstract || va.Transient || va.Dependent
                         continue;
                     else
-                        obj.(va.Name) = obj.moveTo_private(dest, obj.(va.Name));
+                        obj.(va.Name) = obj.moveTo_private(dest, va.Name, obj.(va.Name));
                     end
                 end
             elseif nargout == 1
@@ -109,7 +109,7 @@ classdef BaseLayer < handle
                     if va.Abstract || va.Transient || va.Dependent
                         continue;
                     else
-                        o.(va.Name) = obj.moveTo_private(dest, obj.(va.Name));
+                        o.(va.Name) = obj.moveTo_private(dest, va.Name, obj.(va.Name));
                     end
                 end
                 varargout{1} = o;
@@ -118,22 +118,31 @@ classdef BaseLayer < handle
             end
             
         end
-        function va = moveTo_private(obj, dest, va)
+        function va = moveTo_private(obj, dest, vaName, va)
+            if ~ischar(vaName)
+                togo = vaName;
+            else
+                togo = obj.checkProperty(vaName);
+            end
+            
+            if togo==-1
+                return;
+            end
             if isnumeric(va)
                 % prevent gpuArray(gpuArray(va))
-                if isa(va, 'gpuArray') && strcmpi(dest, 'cpu')
+                if isa(va, 'gpuArray') && (togo==0 || togo==2) && strcmpi(dest, 'cpu')
                     va = gather(va);
-                elseif ~isa(va, 'gpuArray') && strcmpi(dest, 'gpu')
+                elseif ~isa(va, 'gpuArray') && (togo==1 || togo==2) && strcmpi(dest, 'gpu')
                     va = gpuArray(va);
                 end
             elseif iscell(va)
                 for i=1:numel(va)
-                    va{i} = obj.moveTo_private(dest, va{i});
+                    va{i} = obj.moveTo_private(dest, togo, va{i});
                 end
             elseif isstruct(va)
                 for ff=fieldnames(va)'
                     f = ff{1};
-                    va.(f) = obj.moveTo_private(dest, va.(f));
+                    va.(f) = obj.moveTo_private(dest, togo, va.(f));
                 end
             end
         end
@@ -145,7 +154,7 @@ classdef BaseLayer < handle
                 if va.Abstract || va.Transient || va.Dependent
                     continue;
                 else
-                    o.(va.Name) = obj.moveTo_private('cpu', obj.(va.Name));
+                    o.(va.Name) = obj.moveTo_private('cpu', va.Name, obj.(va.Name));
                 end
             end
         end
@@ -157,11 +166,25 @@ classdef BaseLayer < handle
                 obj.(f) = o.(f);
             end
         end
+
+        %check if a property can be on CPU(0) or GPU(1) or both(2) or ignore(-1)
+        function v = propertyDevice(~)
+            v.params   = -1;
+            v.didSetup = -1;
+        end
     end
 
     methods (Access = protected)
         function modifyDefaultParams(obj)
             % modify superclass' parameters
+        end
+        function val = checkProperty(obj, t)
+            v = obj.propertyDevice();
+            if isfield(v, t)
+                val = v.(t);
+            else
+                val = 2;
+            end
         end
     end
     

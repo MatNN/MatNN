@@ -1,16 +1,14 @@
-classdef SoftMaxLoss < nn.layers.template.LossLayer
-
+classdef LogLoss < nn.layers.template.LossLayer
 
     properties (Access = {?nn.layers.template.BaseLayer, ?nn.layers.template.LossLayer})
-        threshold = realmin('single');
-        batchSize = 1;
+        threshold   = realmin('single');
+        batchSize   = 1;
         ind         = [];
         N           = [];
         ll          = [];
         accumulateN = single(0);
         accumulateL = single(0);
     end
-    
 
     methods
         function v = propertyDevice(obj)
@@ -38,30 +36,25 @@ classdef SoftMaxLoss < nn.layers.template.LossLayer
 
             obj.calc_internalPara(resSize, label);
 
-            % Do softmax
-            y = exp( bsxfun(@minus, in, max(in, [], 3)) );
-            y = bsxfun(@rdivide, y, sum(y,3));
-            y = y(obj.ind);
-
             if numel(varargin)==1
                 label_weight = varargin{1}(obj.ll);
                 obj.N = sum(label_weight(:));
-                loss = -sum( label_weight .* log(max(y,obj.threshold)))/obj.N;
+                loss = -sum(log(max(in(obj.ind), obj.threshold)))/obj.N;
             else
                 obj.N = resSize(1)*resSize(2)*resSize(4);
-                loss = -sum(log(max(y,obj.threshold)))/obj.N;
+                loss = -sum(log(max(in(obj.ind), obj.threshold)))/obj.N;
             end
             obj.batchSize = resSize(4);
-
         end
 
         % must call .f() first
-        function in_diff = b(obj, in, out_diff, varargin)
-            y = exp( bsxfun(@minus, in, max(in, [], 3)) );
-            y = bsxfun(@rdivide, y, max(sum(y,3), obj.threshold));
-            y(obj.ind)  = y(obj.ind)-1;
+        function in_diff = b(obj, in, label, out_diff, varargin)
+            dzdx = -bsxfun(@rdivide, bsxfun(@times, label >= obj.params.loss.labelIndex_start, out_diff/obj.N), in);
+            % only ground truth label are correct, set others to zero
+            in_diff = dzdx*0; % faster than zeros(size(dzdx)); ?
+            in_diff(obj.ind) = in_diff(obj.ind);
             if numel(varargin)==1
-                in_diff = bsxfun(@times, varargin{1}, (y.*out_diff)/obj.N );
+                in_diff = bsxfun(@times, varargin{1}, in_diff);
             else
                 in_diff = (y.*out_diff)/obj.N;
             end
@@ -107,9 +100,9 @@ classdef SoftMaxLoss < nn.layers.template.LossLayer
         function [bottom_diff, weights_diff, misc] = backward(obj, opts, top, bottom, weights, misc, top_diff, weights_diff)
             p = obj.params.loss;
             if numel(bottom) == 3
-                bd = p.loss_weight * obj.b(bottom{1}, top_diff{1}, bottom{3});
+                bd = p.loss_weight * obj.b(bottom{1}, bottom{2}, top_diff{1}, bottom{3});
             else
-                bd = p.loss_weight * obj.b(bottom{1}, top_diff{1});
+                bd = p.loss_weight * obj.b(bottom{1}, bottom{2}, top_diff{1});
             end
             if ~isa(bd,'gpuArray') && opts.gpuMode
                 bd = gpuArray(bd);
@@ -152,3 +145,110 @@ classdef SoftMaxLoss < nn.layers.template.LossLayer
     
 
 end
+
+
+
+
+
+
+
+
+
+
+% function o = logisticLoss(networkParameter)
+% %LOGISTICLOSS 
+% %
+% % NOTICE
+% %   label index starts from 0 (compatible with other NN tools)
+% %   you can specify begining index from parameter
+
+% o.name         = 'LogisticLoss';
+% o.generateLoss = true;
+% o.setup        = @setup;
+% o.forward      = @forward;
+% o.backward     = @backward;
+
+
+% default_logisticLoss_param = {
+%     'labelIndex_start' single(0)    ...
+%            'threshold' single(1e-4)
+% };
+
+% % Save Forward result for faster computation
+% resultBlob = [];
+% ind        = [];
+% N          = [];
+% ll         = [];
+
+%     function [resource, topSizes, param] = setup(l, bottomSizes)
+%         resource = {};
+
+%         if isfield(l, 'logisticLoss_param')
+%             wp = nn.utils.vararginHelper(default_logisticLoss_param, l.logisticLoss_param);
+%         else
+%             wp = nn.utils.vararginHelper(default_logisticLoss_param, default_logisticLoss_param);
+%         end
+%         param.logisticLoss_param = wp;
+
+
+%         assert(numel(l.bottom)==2);
+%         assert(numel(l.top)==1);
+        
+
+%         resSize = bottomSizes{1};
+%         ansSize = bottomSizes{2};
+%         if ~isequal(resSize(4),prod(ansSize))
+%             if ~(isequal(resSize([1,2,4]), ansSize([1,2,4])) && ansSize(3) == 1) && ~(isequal(resSize(4), ansSize(4)) && isequal(ansSize(1:3),[1 1 1]))
+%                 error('Label size must be Nx1, 1xN or HxWx1xN.');
+%             end
+%         end
+%         topSizes = {[1, 1, 1, 1]};
+
+%     end
+%     function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
+%         %resultBlob = max(bottom{1}, l.logisticLoss_param.threshold);
+%         resultBlob = bottom{1}+l.logisticLoss_param.threshold;
+
+%         resSize = nn.utils.size4D(resultBlob);
+%         labelSize = nn.utils.size4D(bottom{2});
+
+%         if resSize(4) == numel(bottom{2})
+%             label = reshape(bottom{2}, [1, 1, 1 resSize(4)]) ;
+%             label = repmat(label, [resSize(1), resSize(2)]) ;
+%         else
+%             if ~isequal(resSize([1,2,4]), labelSize([1,2,4]))
+%                 error('Label size must be Nx1, 1xN or HxWx1xN.');
+%             else
+%                 label = bottom{2};
+%             end
+%         end
+%         ll = label >= l.logisticLoss_param.labelIndex_start;
+%         %label = label(ll) - l.logisticLoss_param.labelIndex_start;
+%         N = resSize(1)*resSize(2)*resSize(4);
+%         %ind = find(ll)-1;
+%         %ind = 1 + mod(ind, N)  ...
+%         %        + N * label(:) ...
+%         %        + N*resSize(3) * floor(ind/N);
+
+%         if opts.gpuMode
+%             ind = gpuArray.false(resSize);
+%         else
+%             ind = false(resSize);
+%         end
+%         for i=1:resSize(3)
+%             ind(:,:,i,:) = label == i + (l.logisticLoss_param.labelIndex_start - 1);
+%         end
+
+%         top{1} = -sum(log(resultBlob(ind)))/N;
+
+%     end
+%     function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff)
+%         dzdx = -bsxfun(@rdivide, bsxfun(@times, ll, top_diff{1}/N), resultBlob);
+
+%         % only ground truth label are correct, set others to zero
+%         outdzdx = dzdx*0; % faster than zeros(size(dzdx)); ?
+%         outdzdx(ind) = dzdx(ind);
+%         bottom_diff = {outdzdx,[]};
+
+%     end
+% end

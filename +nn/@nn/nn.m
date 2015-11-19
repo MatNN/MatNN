@@ -243,7 +243,7 @@ classdef nn < handle
             fprintf('Load network from %s....', dest);
             load(dest, 'network', 'data');
             %merge
-            if (isempty(obj.net.weights) || ~onlyWeights) && (exist('network', 'var') && exist('data', 'var'))
+            if (isempty(obj.net.weights) && ~onlyWeights) && (exist('network', 'var') && exist('data', 'var'))
                 obj.net = network;
                 obj.data = data;
                 clearvars network data;
@@ -266,13 +266,19 @@ classdef nn < handle
                 obj.needReBuild = false;
             else
                 obj.build();
-                load(dest, 'network');
+                if exist('data', 'var')
+                    clearvars data;
+                end
                 fprintf('===================================\n');
                 for i=1:numel(network.weights)
                     name = network.weightsNames{i};
-                    obj.net.weights{obj.net.weightsNamesIndex.(name)} = network.weights{i};
-                    obj.net.momentum{obj.net.weightsNamesIndex.(name)} = network.momentum{i};
-                    fprintf('Replace with loaded weight: %s\n', name);
+                    if isequal(size(obj.net.weights{obj.net.weightsNamesIndex.(name)}), network.weights{i})
+                        obj.net.weights{obj.net.weightsNamesIndex.(name)} = network.weights{i};
+                        obj.net.momentum{obj.net.weightsNamesIndex.(name)} = network.momentum{i};
+                        fprintf('Replace with loaded weight: %s\n', name);
+                    else
+                        fprintf('Did ont replace with weight: %s, size mismatch.\n', name);
+                    end
                 end
                 clearvars network;
             end

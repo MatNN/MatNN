@@ -12,7 +12,11 @@ classdef MNIST < nn.layers.template.DataLayer
     end
 
     methods
-
+        function v = propertyDevice(obj)
+            v = obj.propertyDevice@nn.layers.template.DataLayer();
+            v.data = 0;
+            v.label = 0;
+        end
 
         function [data, label] = process(obj, rawdata, index, usegpu)
             if usegpu

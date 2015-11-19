@@ -12,8 +12,6 @@ classdef Jpeg < nn.layers.template.DataLayer
     end
 
     methods
-
-
         function [data, label] = process(obj, rawdata, index, usegpu)
             p = obj.params.jpeg;
             for i = 1:numel(rawdata)
@@ -159,6 +157,6 @@ classdef Jpeg < nn.layers.template.DataLayer
                 varargout{1} = vl_imreadjpeg(imgList, 'NumThreads', nThreads);
             end
         end
-        
     end
+    
 end
