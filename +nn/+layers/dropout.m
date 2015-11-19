@@ -88,6 +88,4 @@ classdef Dropout < nn.layers.template.BaseLayer
         end
 
     end
-
-
 end
