@@ -1,4 +1,4 @@
-classdef RandDistort < handle
+classdef RandDistort < nn.layers.template.BaseLayer
 % RandDistort
 % top1 = distorted data
 % top2 = affine matrix
@@ -61,7 +61,7 @@ classdef RandDistort < handle
             w(1,1,5,:) = rix;
             w(1,1,6,:) = riy;
 
-            obj.forwardHandle.GridSize = ceil(s/obj.MaxThreadsPerBlock);
+            obj.forwardHandle.GridSize = ceil(len/obj.MaxThreadsPerBlock);
             if all(extend==0)
                 out = feval(obj.forwardHandle, in, s, w, len, out);
             else
@@ -94,9 +94,9 @@ classdef RandDistort < handle
         function [top, weights, misc] = forward(obj, opts, top, bottom, weights, misc)
             p = obj.params.randDistort;
             if opts.gpuMode
-                if numel(top==1)
+                if numel(top)==1
                     top{1} = obj.gf(bottom{1}, p.angle, p.scaleX, p.scaleY, p.scaleEQ, p.shiftX, p.shiftY, p.extend);
-                elseif numel(top==2)
+                elseif numel(top)==2
                     [top{1}, top{2}] = obj.gf(bottom{1}, p.angle, p.scaleX, p.scaleY, p.scaleEQ, p.shiftX, p.shiftY, p.extend);
                 else
                     error('top number mismatch.');
@@ -109,18 +109,32 @@ classdef RandDistort < handle
         function [bottom_diff, weights_diff, misc] = backward(obj, opts, top, bottom, weights, misc, top_diff, weights_diff)
             bottom_diff = {};
         end
+        function outSizes = outputSizes(obj, opts, inSizes)
+            p = obj.params.randDistort;
+            if numel(inSizes)==1
+                outSizes = {[p.extend(1)+inSizes{1}(1), p.extend(2)+inSizes{1}(2),inSizes{1}(3), inSizes{1}(4)]};
+            else
+                outSizes = {[p.extend(1)+inSizes{1}(1), p.extend(2)+inSizes{1}(2),inSizes{1}(3), inSizes{1}(4)], [1,1,6,inSizes{1}(4)]};
+            end
+        end
+        function setParams(obj, baseProperties)
+            obj.setParams@nn.layers.template.BaseLayer(baseProperties);
+            p = obj.params.randDistort;
+            assert(all(p.extend>=0));
+        end
         function [outSizes, resources] = setup(obj, opts, baseProperties, inSizes)
             [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, baseProperties, inSizes);
             assert(numel(baseProperties.bottom)==1);
             assert(numel(baseProperties.top)>=1 && numel(baseProperties.top)<=2);
-            obj.createGPUFun();
+            obj.createGPUFun(inSizes{1});
         end
         function createGPUFun(obj, sampleSize)
             mf = fileparts(mfilename('fullpath'));
             ptxp = fullfile(mf, 'private', 'affine.ptx');
             cup = fullfile(mf, 'private', 'affine.cu');
             obj.forwardHandle = nn.utils.gpu.createHandle(prod(sampleSize), ptxp, cup, 'AffineForward');
-        end   
+        end
+    end
 
 end
 

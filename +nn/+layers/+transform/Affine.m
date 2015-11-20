@@ -1,4 +1,4 @@
-classdef Affine < handle
+classdef Affine < nn.layers.template.BaseLayer
 
     % Default parameters
     properties (SetAccess = protected, Transient)
@@ -12,7 +12,7 @@ classdef Affine < handle
     properties (Access = protected)
         forwardHandle;
         backwardHandle;
-        count;
+        count = 0;
         MaxThreadsPerBlock = 256;
     end
 
@@ -55,6 +55,7 @@ classdef Affine < handle
                 top{1} = obj.f(bottom{1}, bottom{2});
                 if obj.params.affine.showDebugWindow
                     if mod(obj.count, 20) == 0
+                        s = nn.utils.size4D(bottom{1});
                         t = gather(bottom{2}(:,:,:,1));
                         o1 = trans(t, [1,1]      , s(1:2));
                         o2 = trans(t, [s(1),1]   , s(1:2));
@@ -88,16 +89,25 @@ classdef Affine < handle
         % Backward function for training/testing routines
         function [bottom_diff, weights_diff, misc] = backward(obj, opts, top, bottom, weights, misc, top_diff, weights_diff)
             if opts.gpuMode
-                bottom_diff{1} = obj.gb(bottom{1}, bottom{2}, top{1}, top_diff{1});
+                [bottom_diff{1}, bottom_diff{2}] = obj.b(bottom{1}, bottom{2}, top{1}, top_diff{1});
             else
                 error('Affine Layer : only support gpu mode currently.');
             end
+        end
+        function outSizes = outputSizes(obj, opts, inSizes)
+            assert(inSizes{2}(1) == 1 && inSizes{2}(2) == 1 && inSizes{2}(3) == 6 && inSizes{2}(4) == inSizes{1}(4));
+            outSizes = inSizes(1);
+        end
+        function setParams(obj, baseProperties)
+            obj.setParams@nn.layers.template.BaseLayer(baseProperties);
+            p = obj.params.affine;
+            assert(strcmpi(p.sampler, 'bilinear'));
         end
         function [outSizes, resources] = setup(obj, opts, baseProperties, inSizes)
             [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, baseProperties, inSizes);
             assert(numel(baseProperties.bottom)==2);
             assert(numel(baseProperties.top)==1);
-            obj.createGPUFun();
+            obj.createGPUFun(inSizes{1});
         end
         function createGPUFun(obj, sampleSize)
             mf = fileparts(mfilename('fullpath'));

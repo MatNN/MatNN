@@ -1,4 +1,4 @@
-classdef Reshape < handle
+classdef Reshape < nn.layers.template.BaseLayer
 
     properties (SetAccess = protected, Transient)
         default_reshape_param = {
