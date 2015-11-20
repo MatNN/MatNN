@@ -18,9 +18,7 @@ classdef EuclideanLoss < nn.layers.template.LossLayer
             v = obj.propertyDevice@nn.layers.template.LossLayer();
             v.threshold = 2;
             v.batchSize = 0;
-            v.ind         = 2;
             v.N           = 2;
-            v.ll          = 2;
             v.accumulateN = 2;
             v.accumulateL = 2;
         end
@@ -28,7 +26,7 @@ classdef EuclideanLoss < nn.layers.template.LossLayer
             %reshape
             resSize    = nn.utils.size4D(in);
             labelSize  = nn.utils.size4D(label);
-            if resSize(3) >1 && labelSize(3)==1
+            if resSize(3)>1 && labelSize(3)==1
                 d = in;
                 for i = 1:resSize(3)
                     d(:,:,i,:) = d(:,:,i,:) - (label==i);

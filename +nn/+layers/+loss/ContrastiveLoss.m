@@ -1,15 +1,25 @@
-classdef SmoothL1Loss < nn.layers.template.LossLayer
+classdef ContrastiveLoss < nn.layers.template.LossLayer
 
+    properties (SetAccess = protected, Transient)
+        default_contrastiveLoss_param = { 'margin' single(1) };
+    end
 
     properties (Access = {?nn.layers.template.BaseLayer, ?nn.layers.template.LossLayer})
         threshold = realmin('single');
         batchSize = 1;
-        N           = [];
-        df          = [];
+        N         = [];
         accumulateN = single(0);
         accumulateL = single(0);
     end
-    
+
+    methods (Access = protected)
+        function modifyDefaultParams(obj)
+            obj.default_loss_param = {
+                        'threshold' single(1e-4) ...
+                       'accumulate' true  ... % report per-batch loss (false) or avg loss (true), this does not affect backpropagation
+            };
+        end
+    end
 
     methods
         function v = propertyDevice(obj)
@@ -17,45 +27,33 @@ classdef SmoothL1Loss < nn.layers.template.LossLayer
             v.threshold = 2;
             v.batchSize = 0;
             v.N           = 2;
-            v.df          = 2;
             v.accumulateN = 2;
             v.accumulateL = 2;
         end
-        function loss = f(obj, in1, in2, varargin) % varargin{1} = label_weight
-            bSize = nn.utils.size4D(in1);
-            obj.N = bSize(1)*bSize(2)*bSize(4);
+        function loss = f(obj, in1, in2, y, margin)
+            resSize    = nn.utils.size4D(in1);
+            
+            d_ = in1-in2;
+            d = sum((d_).^2, 3);
+            obj.N = resSize(1)*resSize(2)*resSize(4);
+            %E = 0.5 * sum(  y.*d + (1-y).*max(l.contrastiveLoss_param.margin - d, single(0))  )/size(bottom{1},4);
+            loss = 0.5 * sum(  y.*d + (1-y).*max(margin-abs(d_), single(0)).^2  )/obj.N;
 
-            if numel(varargin)==1
-                obj.df = (in1-in2).*varargin{1};
-            else
-                obj.df = in1-in2;
-            end
-            loss = obj.df;
-            ind  = abs(obj.df) < 1;
-            loss(ind)  = (loss(ind).^2)/2;
-            loss(~ind) = abs(loss(~ind))-0.5;
-            loss = sum(abs(loss(:)))/obj.N;
-
-            obj.batchSize = bSize(4);
-
+            obj.batchSize = resSize(4);
         end
 
         % must call .f() first
-        function [in1_diff, in2_diff] = b(obj, out_diff)
-            der = obj.df;
-            ind = abs(obj.df)>=1;
-            der(ind) = sign(der(ind));
-            der = der .* (out_diff/obj.N);
-            in1_diff = der;
-            in2_diff = -der;
+        function [in1_diff, in2_diff] = b(obj, in1, in2, y, margin, out_diff)
+            d_ = in1-in2;
+            rightTerm = abs(d_);
+            m_d = margin - rightTerm;
+            rightTerm = m_d ./ (rightTerm + 1e-4);
+            rightTerm(:,:,:,m_d(:)<=0) = single(0);
+            in1_diff = out_diff * (bsxfun(@times, d_+rightTerm, y) - rightTerm) / obj.N;
+            in2_diff = -in1_diff;
         end
         function [top, weights, misc] = forward(obj, opts, top, bottom, weights, misc)
-            if numel(bottom) == 3
-                loss = obj.params.loss.loss_weight * obj.f(bottom{1}, bottom{2}, bottom{3});
-            else
-                loss = obj.params.loss.loss_weight * obj.f(bottom{1}, bottom{2});
-            end
-            
+            loss = obj.params.loss.loss_weight * obj.f(bottom{1}, bottom{2}, bottom{3}, obj.params.contrastiveLoss.margin);
             if obj.params.loss.accumulate
                 if opts.currentIter == 1
                     obj.accumulateL = obj.accumulateL*0;
@@ -68,30 +66,22 @@ classdef SmoothL1Loss < nn.layers.template.LossLayer
             top{1} = loss;
         end
         function [bottom_diff, weights_diff, misc] = backward(obj, opts, top, bottom, weights, misc, top_diff, weights_diff)
-            p = obj.params.loss;
-            if numel(bottom) == 3
-                [bd1, bd2] = obj.b(top_diff{1}, bottom{3});
-            else
-                [bd1, bd2] = obj.b(top_diff{1});
-            end
-            bd1 = bd1*p.loss_weight;
-            bd2 = bd2*p.loss_weight;
+            p = obj.params.contrastiveLoss;
+            [bd1,bd2] = obj.b(bottom{1}, bottom{2}, bottom{3}, p.margin, top_diff{1});
 
+            bd1 = bd1 * p.loss_weight;
+            bd2 = bd2 * p.loss_weight;
+            
             if ~isa(bd,'gpuArray') && opts.gpuMode
                 bd1 = gpuArray(bd1);
                 bd2 = gpuArray(bd2);
             end
-            if numel(bottom) == 3
-                bottom_diff = {bd1,bd2,[]};
-            else
-                bottom_diff = {bd1,bd2};
-            end
+            bottom_diff = {bd1,bd2,[]};
         end
         function outSizes = outputSizes(obj, opts, inSizes)
-            assert(isequal(inSizes{1},inSizes{2}), 'bottom1 and bottom2 must have the same sizes.');
-            if numel(inSizes)==3
-                assert(isequal(inSizes{1},inSizes{3}), 'bottom1 and bottom3 must have the same sizes.');
-            end
+            assert( isequal(inSizes{1}, inSizes{2}) );
+            assert( size(inSizes{1},4) == numel(inSizes{3}) );
+            % similarity input size must be 1x1x1xN, or 1xN or Nx1
             outSizes = {[1,1,1,1]};
         end
         function setParams(obj, baseProperties)
@@ -100,7 +90,7 @@ classdef SmoothL1Loss < nn.layers.template.LossLayer
         end
         function [outSizes, resources] = setup(obj, opts, baseProperties, inSizes)
             [outSizes, resources] = obj.setup@nn.layers.template.LossLayer(opts, baseProperties, inSizes);
-            assert(numel(baseProperties.bottom)>=2 && numel(baseProperties.bottom)<=3);
+            assert(numel(baseProperties.bottom)==3);
             assert(numel(baseProperties.top)==1);
             if opts.gpuMode
                 obj.accumulateN = gpuArray.zeros(1,1,'single');

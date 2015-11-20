@@ -20,6 +20,9 @@ classdef RandDistort < handle
     properties (Access = protected)
         forwardHandle;
     end
+    properties (Constant)
+        MaxThreadsPerBlock = 256;
+    end
 
 
     methods
@@ -58,6 +61,7 @@ classdef RandDistort < handle
             w(1,1,5,:) = rix;
             w(1,1,6,:) = riy;
 
+            obj.forwardHandle.GridSize = ceil(s/obj.MaxThreadsPerBlock);
             if all(extend==0)
                 out = feval(obj.forwardHandle, in, s, w, len, out);
             else
