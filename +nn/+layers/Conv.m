@@ -25,8 +25,6 @@ classdef Conv < nn.layers.template.BaseLayer & nn.layers.template.hasWeight
             p = obj.params.conv;
             [bottom_diff{1}, weights_diff{1}, weights_diff{2}] = obj.b(bottom{1}, top_diff{1}, weights{1}, weights{2}, p.pad, p.stride);
         end
-
-        % Create resources (weight, misc)
         function resources = createResources(obj, opts, inSizes)
             p = obj.params.conv;
             btmSize = inSizes{1};
@@ -39,7 +37,6 @@ classdef Conv < nn.layers.template.BaseLayer & nn.layers.template.hasWeight
                 resources.weight{2} = obj.params.weight.generator{2}([1, p.num_output], obj.params.weight.generator_param{2});
             end
         end
-
         function outSizes = outputSizes(obj, opts, inSizes)
             p = obj.params.conv;
             btmSize     = inSizes{1};

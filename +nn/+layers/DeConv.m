@@ -26,8 +26,6 @@ classdef DeConv < nn.layers.template.BaseLayer & nn.layers.template.hasWeight
             p = obj.params.deconv;
             [bottom_diff{1}, weights_diff{1}, weights_diff{2}] = obj.b(bottom{1}, top_diff{1}, weights{1}, weights{2}, p.crop, p.upsampling, p.num_group);
         end
-
-        % Create resources (weight, misc)
         function resources = createResources(obj, opts, inSizes)
             p = obj.params.deconv;
             btmSize = inSizes{1};
@@ -40,7 +38,6 @@ classdef DeConv < nn.layers.template.BaseLayer & nn.layers.template.hasWeight
                 resources.weight{2} = wp1.generator{2}([1, p.num_output*p.num_group], obj.params.weight.generator_param{2});
             end
         end
-
         function outSizes = outputSizes(obj, opts, inSizes)
             p = obj.params.deconv;
             btmSize = inSizes{1};
