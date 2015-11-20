@@ -1,4 +1,4 @@
-function mnist()
+function mnist_siamese()
 
 conf = nn.examples.config();
 trainer = nn.nn('MNIST_Siamese');

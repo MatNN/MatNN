@@ -29,7 +29,6 @@ classdef Accuracy < nn.layers.template.BaseLayer
             v.accumulateAcc = 2;
             v.accumulate = 0;
         end
-        % CPU Forward
         function varargout = f(obj, in, label, labelIndex_start, doMeanClass, varargin) %varargin{1} = currentIter
             resSize = nn.utils.size4D(in);
             if resSize(4) == numel(label) && size(label,4) ~= resSize(4)
@@ -57,8 +56,6 @@ classdef Accuracy < nn.layers.template.BaseLayer
                             obj.perClassAcc(i)  = obj.perClassAcc(i)+sum(argMax(mask)==correctLabelInd);
                             obj.perClassArea(i) = obj.perClassArea(i)+sum(mask(:));
                         end
-
-                        %top{1} = sum(perClassAcc)/sum(perClassArea)*counting;
                         nonZeroArea = obj.perClassArea~=0;
                         varargout{2} = mean(obj.perClassAcc(nonZeroArea)./obj.perClassArea(nonZeroArea));
                     else
@@ -94,7 +91,6 @@ classdef Accuracy < nn.layers.template.BaseLayer
                 
             end
         end
-        % CPU Backward
         function in_diff = b(obj, in, out, out_diff)
             in_diff = [];
         end
@@ -109,7 +105,13 @@ classdef Accuracy < nn.layers.template.BaseLayer
 
         % Forward function for training/testing routines
         function [top, weights, misc] = forward(obj, opts, top, bottom, weights, misc)
-            top{1} = single(obj.f(bottom{1}, bottom{2}, obj.params.accuracy.labelIndex_start, obj.params.accuracy.meanClassAcc, opts.currentIter));
+            p = obj.params.accuracy;
+            if p.meanClassAcc
+                [a, b] = obj.f(bottom{1}, bottom{2}, p.labelIndex_start, p.meanClassAcc, opts.currentIter);
+                top = {single(a), single(b)};
+            else
+                top{1} = single(obj.f(bottom{1}, bottom{2}, p.labelIndex_start, p.meanClassAcc, opts.currentIter));
+            end
         end
         % Backward function for training/testing routines
         function [bottom_diff, weights_diff, misc] = backward(obj, opts, top, bottom, weights, misc, top_diff, weights_diff)
