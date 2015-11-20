@@ -155,5 +155,4 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
     obj.data = data;
     obj.globalIter = globalIterNum;
     toc(pstart);
-    pause(1);
 end

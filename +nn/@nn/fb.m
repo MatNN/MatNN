@@ -61,6 +61,7 @@ function [data, net] = fb(obj, data, net, face, opts, dzdy)
             for w = find(dzdwEmpty & net.weightsDiffCount(weightsInd))
                 net.weightsDiff{weightsInd(w)} = net.weightsDiff{weightsInd(w)} + tmpdzdw{w};
                 net.weightsDiffCount(weightsInd(w)) = net.weightsDiffCount(weightsInd(w))+1;
+                %fprintf('Weight %s accumulated %d times!\n', net.weightsNames{weightsInd(w)}, net.weightsDiffCount(weightsInd(w)));
             end
 
             dzdwEmpty2 = dzdwEmpty & ~net.weightsDiffCount(weightsInd);

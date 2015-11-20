@@ -161,7 +161,9 @@ function build(obj, varargin)
                 end
                 wi = find(strcmp(wname, obj.net.weightsNames));
                 if ~isempty(wi)
-                    if isequal(size(rs.(tf){j}), size(obj.net.(tf){wi}))
+                    if strcmp(tf, 'weight') && isequal(size(rs.(tf){j}), size(obj.net.weights{wi}))
+                        fprintf('Use same %s: %s\n', tf, wname);
+                    elseif strcmp(tf, 'misc') && isequal(size(rs.(tf){j}), size(obj.net.weights{wi}))
                         fprintf('Use same %s: %s\n', tf, wname);
                     else
                         obj.net.weights{wi} = rs.weight{j};

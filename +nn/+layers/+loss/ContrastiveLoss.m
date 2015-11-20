@@ -15,8 +15,9 @@ classdef ContrastiveLoss < nn.layers.template.LossLayer
     methods (Access = protected)
         function modifyDefaultParams(obj)
             obj.default_loss_param = {
-                        'threshold' single(1e-4) ...
-                       'accumulate' true  ... % report per-batch loss (false) or avg loss (true), this does not affect backpropagation
+                  'threshold' single(1e-4) ...
+                 'accumulate' true  ... % report per-batch loss (false) or avg loss (true), this does not affect backpropagation
+                'loss_weight' single(1) ... % a multiplier to the loss
             };
         end
     end
@@ -32,12 +33,13 @@ classdef ContrastiveLoss < nn.layers.template.LossLayer
         end
         function loss = f(obj, in1, in2, y, margin)
             resSize    = nn.utils.size4D(in1);
+            y = reshape(y, 1,1,1,resSize(4));
             
             d_ = in1-in2;
             d = sum((d_).^2, 3);
             obj.N = resSize(1)*resSize(2)*resSize(4);
             %E = 0.5 * sum(  y.*d + (1-y).*max(l.contrastiveLoss_param.margin - d, single(0))  )/size(bottom{1},4);
-            loss = 0.5 * sum(  y.*d + (1-y).*max(margin-abs(d_), single(0)).^2  )/obj.N;
+            loss = 0.5 * sum(  y.*d + (1-y).*max(margin-sqrt(d), single(0)).^2  )/obj.N;
 
             obj.batchSize = resSize(4);
         end
@@ -45,10 +47,13 @@ classdef ContrastiveLoss < nn.layers.template.LossLayer
         % must call .f() first
         function [in1_diff, in2_diff] = b(obj, in1, in2, y, margin, out_diff)
             d_ = in1-in2;
-            rightTerm = abs(d_);
+            d = sum((d_).^2, 3);
+            y = reshape(y, 1,1,1,numel(y));
+
+            rightTerm = sqrt(d);
             m_d = margin - rightTerm;
-            rightTerm = m_d ./ (rightTerm + 1e-4);
-            rightTerm(:,:,:,m_d(:)<=0) = single(0);
+            rightTerm = m_d ./ (rightTerm + obj.threshold);
+            rightTerm = bsxfun(@times, d_, rightTerm .* (m_d>0));
             in1_diff = out_diff * (bsxfun(@times, d_+rightTerm, y) - rightTerm) / obj.N;
             in2_diff = -in1_diff;
         end
@@ -66,13 +71,13 @@ classdef ContrastiveLoss < nn.layers.template.LossLayer
             top{1} = loss;
         end
         function [bottom_diff, weights_diff, misc] = backward(obj, opts, top, bottom, weights, misc, top_diff, weights_diff)
-            p = obj.params.contrastiveLoss;
-            [bd1,bd2] = obj.b(bottom{1}, bottom{2}, bottom{3}, p.margin, top_diff{1});
+            p = obj.params.loss;
+            [bd1,bd2] = obj.b(bottom{1}, bottom{2}, bottom{3}, obj.params.contrastiveLoss.margin, top_diff{1});
 
             bd1 = bd1 * p.loss_weight;
             bd2 = bd2 * p.loss_weight;
             
-            if ~isa(bd,'gpuArray') && opts.gpuMode
+            if ~isa(bd1,'gpuArray') && opts.gpuMode
                 bd1 = gpuArray(bd1);
                 bd2 = gpuArray(bd2);
             end
@@ -80,7 +85,7 @@ classdef ContrastiveLoss < nn.layers.template.LossLayer
         end
         function outSizes = outputSizes(obj, opts, inSizes)
             assert( isequal(inSizes{1}, inSizes{2}) );
-            assert( size(inSizes{1},4) == numel(inSizes{3}) );
+            assert( inSizes{1}(4) == prod(inSizes{3}) );
             % similarity input size must be 1x1x1xN, or 1xN or Nx1
             outSizes = {[1,1,1,1]};
         end

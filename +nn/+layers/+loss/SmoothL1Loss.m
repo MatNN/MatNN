@@ -77,7 +77,7 @@ classdef SmoothL1Loss < nn.layers.template.LossLayer
             bd1 = bd1*p.loss_weight;
             bd2 = bd2*p.loss_weight;
 
-            if ~isa(bd,'gpuArray') && opts.gpuMode
+            if ~isa(bd1,'gpuArray') && opts.gpuMode
                 bd1 = gpuArray(bd1);
                 bd2 = gpuArray(bd2);
             end
