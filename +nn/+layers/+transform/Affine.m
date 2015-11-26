@@ -93,7 +93,7 @@ classdef Affine < nn.layers.template.BaseLayer
             else
                 error('Affine Layer : only support gpu mode currently.');
             end
-            data = nn.utils.accumulateData(opts, data, l, bottom_diff);
+            data = nn.utils.accumulateData(opts, data, l, bottom_diff{:});
         end
         function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
             assert(inSizes{2}(1) == 1 && inSizes{2}(2) == 1 && inSizes{2}(3) == 6 && inSizes{2}(4) == inSizes{1}(4));
