@@ -33,11 +33,11 @@ classdef DeConv < nn.layers.template.BaseLayer & nn.layers.template.hasWeight
             btmSize = inSizes{1};
 
             resources.weight = {[],[]};
-            if wp1.enable_terms(1)
-                resources.weight{1} = wp1.generator{1}([p.kernel_size(1), p.kernel_size(2), p.num_output, btmSize(3)], obj.params.weight.generator_param{1});
+            if obj.params.weight.enable_terms(1)
+                resources.weight{1} = obj.params.weight.generator{1}([p.kernel_size(1), p.kernel_size(2), p.num_output, btmSize(3)], obj.params.weight.generator_param{1});
             end
-            if wp1.enable_terms(2)
-                resources.weight{2} = wp1.generator{2}([1, p.num_output*p.num_group], obj.params.weight.generator_param{2});
+            if obj.params.weight.enable_terms(2)
+                resources.weight{2} = obj.params.weight.generator{2}([1, p.num_output*p.num_group], obj.params.weight.generator_param{2});
             end
         end
         function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
@@ -65,7 +65,7 @@ classdef DeConv < nn.layers.template.BaseLayer & nn.layers.template.hasWeight
             elseif numel(p.crop) == 2
                 p.crop = [p.crop(1), p.crop(1), p.crop(2), p.crop(2)];
             end
-            obj.params.conv = p;
+            obj.params.deconv = p;
         end
         function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
             [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});

@@ -18,7 +18,7 @@ classdef nn < handle
     properties(SetAccess = {?nn.nn, ?nn.layers.template.BaseLayer}, GetAccess = public)
         net;
         solverGPUFun;
-        MaxThreadsPerBlock = 256;
+        MaxThreadsPerBlock = 1024;
         subPhaseName = '__sub__';
     end
 
@@ -141,10 +141,10 @@ classdef nn < handle
 
         function net = updateWeightGPU(obj, net, lr, weightDecay, momentum, iter_size, updateWeightsInd)
             gf = obj.solverGPUFun;
-            mb = obj.MaxThreadsPerBlock;
+            %mb = obj.MaxThreadsPerBlock;
             for w = updateWeightsInd
                 len = numel(net.weights{w});
-                gf.GridSize = ceil( len/mb );
+                %gf.GridSize = ceil( len/mb );
                 [net.momentum{w}, net.weights{w}] = feval(gf, momentum, net.momentum{w}, lr, net.learningRate(w), weightDecay, net.weightDecay(w), net.weights{w}, net.weightsDiff{w}, iter_size, len);
             end
         end

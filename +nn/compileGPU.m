@@ -21,12 +21,19 @@ function cudaArch = getGPUArch(varargin)
     if isempty(gpuids)
         gpuids = 1:gpuDeviceCount;
     end
-    cudaArch = cell(1:numel(gpuids));
+    cudaArch = cell(1,numel(gpuids));
     for i=1:numel(gpuids)
         device = gpuDevice(gpuids(i));
         cc = strrep(device.ComputeCapability, '.', '');
         cudaArch{i} = sprintf('-gencode=arch=compute_%s,code=\\\"sm_%s,compute_%s\\\" ', cc, cc, cc);
     end
+    cudaArch = unique(cudaArch);
+    disp('Please choose an architecture to compile: ');
+    for i=1:numel(cudaArch)
+        fprintf('[%d] %s\n',i,cudaArch{i});
+    end
+    ind = input('>> ');
+    cudaArch = cudaArch(ind);
 end
 
 function compile_cu2ptx(nvcc_path, arch)
@@ -34,11 +41,11 @@ function compile_cu2ptx(nvcc_path, arch)
     list = getAllCudaFiles(f);
     for i=1:numel(list)
         [fileP, name] = fileparts(list{i});
-        outputname = fullfile(fileP, name, '.ptx');
-        cmd = [nvcc_path, ' -ptx ', list{i}, ' -o ', outputname, ' ', arch];
+        outputname = fullfile(fileP, [name, '.ptx']);
+        cmd = [nvcc_path, ' -ptx ', list{i}, ' -o ', outputname, ' ', arch{:}];
         stat = system(cmd);
         if stat
-            error('Command %s failed.', cmd);
+            fprintf('Command %s failed.\n', cmd);
         end
     end
 end

@@ -13,7 +13,7 @@ classdef Affine < nn.layers.template.BaseLayer
         forwardHandle;
         backwardHandle;
         count = 0;
-        MaxThreadsPerBlock = 256;
+        MaxThreadsPerBlock = 1024;
     end
 
 
@@ -26,19 +26,19 @@ classdef Affine < nn.layers.template.BaseLayer
         end
 
         function out = f(obj, in, affineMatrix)
-            out = in.*0;
+            out = in.*single(0);
             s = nn.utils.size4D(in);
             len = prod(s);
             obj.forwardHandle.GridSize = ceil( len/obj.MaxThreadsPerBlock );
-            out = feval(obj.forwardHandle, in, s, affineMatrix, len, out);
+            out = feval(obj.forwardHandle, in, gpuArray(int32(s)), affineMatrix, gpuArray(int32(len)), out);
         end
         function [in_diff, affine_diff] = b(obj, in, affineMatrix, out, out_diff)
-            in_diff = out_diff.*0;
+            in_diff = out_diff.*single(0);
             s = nn.utils.size4D(out_diff);
             len = prod(s);
-            affine_diff = affineMatrix.*0;
+            affine_diff = affineMatrix.*single(0);
             obj.backwardHandle.GridSize = ceil( len/obj.MaxThreadsPerBlock );
-            [in_diff, affine_diff] = feval(obj.backwardHandle, in, s, affineMatrix, len, out, out_diff, in_diff, affine_diff);
+            [in_diff, affine_diff] = feval(obj.backwardHandle, in, gpuArray(int32(s)), affineMatrix, gpuArray(int32(len)), out, out_diff, in_diff, affine_diff);
             %[bottom_diff{1}, bottom_diff{2}] = feval(ab, bottom{1}, s, bottom{2}, len, top{1}, top_diff{1}, bottom_diff{1}, bottom_diff{2});
             % should in_diff divivded by pixelnumber?
         end
@@ -49,10 +49,9 @@ classdef Affine < nn.layers.template.BaseLayer
             in_diff = obj.b(varargin{:});
         end
 
-        % Forward function for training/testing routines
         function [data, net] = forward(obj, nnObj, l, opts, data, net)
             if opts.gpuMode
-                data.val{l.top} = obj.f(data.val{l.bottom});
+                data.val{l.top} = obj.f(data.val{l.bottom(1)}, data.val{l.bottom(2)});
                 if obj.params.affine.showDebugWindow
                     if mod(obj.count, 20) == 0
                         s = nn.utils.size4D(data.val{l.bottom(1)});
@@ -86,7 +85,6 @@ classdef Affine < nn.layers.template.BaseLayer
                 o = (o./2+0.5).*s;
             end
         end
-        % Backward function for training/testing routines
         function [data, net] = backward(obj, nnObj, l, opts, data, net)
             if opts.gpuMode
                 [bottom_diff{1}, bottom_diff{2}] = obj.b(data.val{l.bottom(1)}, data.val{l.bottom(2)}, data.val{l.top}, data.diff{l.top});
@@ -95,6 +93,7 @@ classdef Affine < nn.layers.template.BaseLayer
             end
             data = nn.utils.accumulateData(opts, data, l, bottom_diff{:});
         end
+        
         function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
             assert(inSizes{2}(1) == 1 && inSizes{2}(2) == 1 && inSizes{2}(3) == 6 && inSizes{2}(4) == inSizes{1}(4));
             outSizes = inSizes(1);

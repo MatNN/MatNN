@@ -21,6 +21,7 @@ classdef SoftMaxLoss < nn.layers.template.LossLayer
             v.accumulateN = 2;
             v.accumulateL = 2;
         end
+        
         function loss = f(obj, in, label, varargin) % varargin{1} = label_weight
             %reshape
             resSize    = nn.utils.size4D(in);
@@ -52,7 +53,6 @@ classdef SoftMaxLoss < nn.layers.template.LossLayer
             obj.batchSize = resSize(4);
 
         end
-
         % must call .f() first
         function in_diff = b(obj, in, out_diff, varargin)
             y = exp( bsxfun(@minus, in, max(in, [], 3)) );
@@ -82,10 +82,8 @@ classdef SoftMaxLoss < nn.layers.template.LossLayer
             obj.ll  = labelQ;
         end
 
-        % Forward function for training/testing routines
         function [data, net] = forward(obj, nnObj, l, opts, data, net)
             loss = obj.params.loss.loss_weight * obj.f(data.val{l.bottom});
-            
             if obj.params.loss.accumulate
                 if opts.currentIter == 1
                     obj.accumulateL = obj.accumulateL*0;
@@ -97,7 +95,6 @@ classdef SoftMaxLoss < nn.layers.template.LossLayer
             end
             data.val{l.top} = loss;
         end
-        % Backward function for training/testing routines
         function [data, net] = backward(obj, nnObj, l, opts, data, net)
             p = obj.params.loss;
             if numel(l.bottom) == 3
@@ -113,10 +110,8 @@ classdef SoftMaxLoss < nn.layers.template.LossLayer
             else
                 data = nn.utils.accumulateData(opts, data, l, bd, []);
             end
-            
         end
 
-        % Calc Output sizes
         function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
             resSize = inSizes{1};
             ansSize = inSizes{2};
@@ -127,12 +122,10 @@ classdef SoftMaxLoss < nn.layers.template.LossLayer
             end
             outSizes = {[1,1,1,1]};
         end
-
         function setParams(obj, l)
             obj.setParams@nn.layers.template.BaseLayer(l);
             obj.threshold = obj.params.loss.threshold;
         end
-
         function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
             [outSizes, resources] = obj.setup@nn.layers.template.LossLayer(opts, l, inSizes, varargin{:});
             assert(numel(l.bottom)>=2 && numel(l.bottom)<=3);
