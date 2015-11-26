@@ -48,6 +48,7 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
     obj.net = {};
     obj.data = {};
     net.weightsDiffCount = net.weightsDiffCount*int32(0);
+    layerIDs = net.noSubPhase.(currentFace);
     for t = currentIter:optface.numToNext
         % set learning rate
         learningRate = optface.learningRatePolicy(globalIterNum, currentPhaseTotalIter, optface.learningRate, optface.learningRateGamma, optface.learningRatePower, optface.learningRateSteps);
@@ -59,7 +60,7 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
             % evaluate CNN
             optface.accumulate = s > 1;
             optface.freezeDropout = s > 1;
-            [data,net] = obj.fb(data, net, currentFace, optface, dzdy);
+            [data,net] = obj.fb(data, net, currentFace, layerIDs, optface, dzdy);
             %obj.fb(net, dzdy, res, optface, currentFace, numGpus >= 1, userRequest);
 
             % accumulate backprop errors
@@ -152,7 +153,9 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
 
     end
     obj.net = net;
-    obj.data = data;
+    obj.data = data; % not assigning back to conserveMemory
+    obj.data.val = cell(size(data.val));
+    obj.data.diff = cell(size(data.diff));
     obj.globalIter = globalIterNum;
     toc(pstart);
 end

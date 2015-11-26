@@ -27,43 +27,28 @@ classdef ReLU < nn.layers.template.BaseLayer
             in_diff = nn.utils.gpu.relu_b(in, out_diff, obj.zero);
             %in_diff = (in > obj.zero) .* out_diff;
         end
-        function [top, weights, misc] = forward(obj, opts, top, bottom, weights, misc)
+        function [data, net] = forward(obj, nnObj, l, opts, data, net)
             if opts.gpuMode
-                top{1} = obj.gf(bottom{1});
+                data.val{l.top} = obj.gf(data.val{l.bottom});
             else
-                top{1} = obj.f(bottom{1});
+                data.val{l.top} = obj.f(data.val{l.bottom});
             end
         end
-        function [bottom_diff, weights_diff, misc] = backward(obj, opts, top, bottom, weights, misc, top_diff, weights_diff)
+        function [data, net] = backward(obj, nnObj, l, opts, data, net)
             if opts.gpuMode
-                bottom_diff{1} = obj.gb(bottom{1}, top{1}, top_diff{1});
+                data = nn.utils.accumulateData(opts, data, l, obj.gb(data.val{l.bottom}, data.val{l.top}, data.diff{l.top}));
             else
-                bottom_diff{1} = obj.b(bottom{1}, top{1}, top_diff{1});
+                data = nn.utils.accumulateData(opts, data, l, obj.b(data.val{l.bottom}, data.val{l.top}, data.diff{l.top}));
             end
         end
-        function [outSizes, resources] = setup(obj, opts, baseProperties, inSizes)
-            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, baseProperties, inSizes);
-            assert(numel(baseProperties.bottom)==1);
-            assert(numel(baseProperties.top)==1);
+        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
+            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});
+            assert(numel(l.bottom)==1);
+            assert(numel(l.top)==1);
             if opts.gpuMode
                 obj.zero = gpuArray.zeros(1, 'single');
             end
         end
-        % function varargout = moveTo(obj, dest)
-        %     if numel(nargout) == 0
-        %         obj.params = obj.moveTo_private(dest, obj.params);
-        %         obj.zero = obj.moveTo_private(dest, obj.zero);
-        %     elseif numel(nargout) == 1
-        %         o = struct();
-        %         o.params = obj.moveTo_private(dest, obj.params);
-        %         o.zero = obj.moveTo_private(dest, obj.zero);
-        %         o.didSetup = obj.didSetup;
-        %         varargout{1} = o;
-        %     else
-        %         error('Too many outputs.');
-        %     end
-        % end
-
     end
 
 end

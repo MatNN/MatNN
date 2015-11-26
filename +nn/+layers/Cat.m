@@ -99,11 +99,11 @@ classdef Cat < nn.layers.template.BaseLayer
             p = obj.params.slice;
             top{1} = obj.f(p.dim, p.indices, bottom{:});
         end
-        function [bottom_diff, weights_diff, misc] = backward(obj, opts, top, bottom, weights, misc, top_diff, weights_diff)
+        function [bottom_diff, weights_diff, misc] = backward(obj, opts, top, bottom, weights, misc, top_diff, bottom_diff, weights_diff)
             p = obj.params.slice;
             bottom_diff{1:numel(bottom)} = obj.b(p.dim, p.indices, top_diff{1}, bottom{:});
         end
-        function outSizes = outputSizes(obj, opts, inSizes)
+        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
             p = obj.params.cat;
             topSizes = [1, 1, 1, 1];
             topSizes(1:numel(inSizes{1})) = inSizes{1}; % prevent matlab singleton dimension error
@@ -124,8 +124,8 @@ classdef Cat < nn.layers.template.BaseLayer
             p = obj.params.cat;
             assert(numel(p.dim) == 1 && p.dim >= 1 && p.dim <= 4);
         end
-        function [outSizes, resources] = setup(obj, opts, baseProperties, inSizes)
-            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, baseProperties, inSizes);
+        function [outSizes, resources] = setup(obj, opts, baseProperties, inSizes, varargin)
+            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, baseProperties, inSizes, varargin{:});
             assert(numel(baseProperties.bottom)>=1);
             assert(numel(baseProperties.top)==1);
             p = obj.params.cat;

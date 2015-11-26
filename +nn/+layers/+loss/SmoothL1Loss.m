@@ -49,12 +49,8 @@ classdef SmoothL1Loss < nn.layers.template.LossLayer
             in1_diff = der;
             in2_diff = -der;
         end
-        function [top, weights, misc] = forward(obj, opts, top, bottom, weights, misc)
-            if numel(bottom) == 3
-                loss = obj.params.loss.loss_weight * obj.f(bottom{1}, bottom{2}, bottom{3});
-            else
-                loss = obj.params.loss.loss_weight * obj.f(bottom{1}, bottom{2});
-            end
+        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+            loss = obj.params.loss.loss_weight * obj.f(data.val{l.bottom});
             
             if obj.params.loss.accumulate
                 if opts.currentIter == 1
@@ -65,14 +61,14 @@ classdef SmoothL1Loss < nn.layers.template.LossLayer
                 obj.accumulateN = obj.accumulateN + obj.batchSize;
                 loss = obj.accumulateL/obj.accumulateN;
             end
-            top{1} = loss;
+            data.val{l.top} = loss;
         end
-        function [bottom_diff, weights_diff, misc] = backward(obj, opts, top, bottom, weights, misc, top_diff, weights_diff)
+        function [data, net] = backward(obj, nnObj, l, opts, data, net)
             p = obj.params.loss;
-            if numel(bottom) == 3
-                [bd1, bd2] = obj.b(top_diff{1}, bottom{3});
+            if numel(l.bottom) == 3
+                [bd1, bd2] = obj.b(data.diff{l.top}, data.val{l.bottom(3)});
             else
-                [bd1, bd2] = obj.b(top_diff{1});
+                [bd1, bd2] = obj.b(data.diff{l.top});
             end
             bd1 = bd1*p.loss_weight;
             bd2 = bd2*p.loss_weight;
@@ -81,27 +77,27 @@ classdef SmoothL1Loss < nn.layers.template.LossLayer
                 bd1 = gpuArray(bd1);
                 bd2 = gpuArray(bd2);
             end
-            if numel(bottom) == 3
-                bottom_diff = {bd1,bd2,[]};
+            if numel(l.bottom) == 3
+                data = nn.utils.accumulateData(opts, data, l, bd1, bd2, []);
             else
-                bottom_diff = {bd1,bd2};
+                data = nn.utils.accumulateData(opts, data, l, bd1, bd2);
             end
         end
-        function outSizes = outputSizes(obj, opts, inSizes)
+        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
             assert(isequal(inSizes{1},inSizes{2}), 'bottom1 and bottom2 must have the same sizes.');
             if numel(inSizes)==3
                 assert(isequal(inSizes{1},inSizes{3}), 'bottom1 and bottom3 must have the same sizes.');
             end
             outSizes = {[1,1,1,1]};
         end
-        function setParams(obj, baseProperties)
-            obj.setParams@nn.layers.template.BaseLayer(baseProperties);
+        function setParams(obj, l)
+            obj.setParams@nn.layers.template.BaseLayer(l);
             obj.threshold = obj.params.loss.threshold;
         end
-        function [outSizes, resources] = setup(obj, opts, baseProperties, inSizes)
-            [outSizes, resources] = obj.setup@nn.layers.template.LossLayer(opts, baseProperties, inSizes);
-            assert(numel(baseProperties.bottom)>=2 && numel(baseProperties.bottom)<=3);
-            assert(numel(baseProperties.top)==1);
+        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
+            [outSizes, resources] = obj.setup@nn.layers.template.LossLayer(opts, l, inSizes, varargin{:});
+            assert(numel(l.bottom)>=2 && numel(l.bottom)<=3);
+            assert(numel(l.top)==1);
             if opts.gpuMode
                 obj.accumulateN = gpuArray.zeros(1,1,'single');
                 obj.accumulateL = gpuArray.zeros(1,1,'single');

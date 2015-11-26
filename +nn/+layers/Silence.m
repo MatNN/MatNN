@@ -7,28 +7,29 @@ classdef Silence < nn.layers.template.BaseLayer
         function varargout = b(~, varargin)
             error('Not supported.');
         end
-        function [top, weights, misc] = forward(obj, opts, top, bottom, weights, misc)
-            top = {};
+        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+            %top = {};
         end
-        function [bottom_diff, weights_diff, misc] = backward(obj, opts, top, bottom, weights, misc, top_diff, weights_diff)
+        function [data, net] = backward(obj, nnObj, l, opts, data, net)
             if opts.gpuMode
                 zero = gpuArray(single(0));
-                for i=1:numel(bottom)
-                    bottom_diff{1} = bottom{1}*zero;
+                for i=1:numel(l.bottom)
+                    bottom_diff = data.val{l.bottom}*zero;
                 end
             else
-                for i=1:numel(bottom)
-                    bottom_diff{1} = bottom{1}*single(0);
+                for i=1:numel(l.bottom)
+                    bottom_diff = data.val{l.bottom}*single(0);
                 end
             end
+            data = nn.utils.accumulateData(opts, data, l, bottom_diff);
         end
-        function outSizes = outputSizes(obj, opts, inSizes)
+        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
             outSizes = {};
         end
-        function [outSizes, resources] = setup(obj, opts, baseProperties, inSizes)
-            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, baseProperties, inSizes);
-            assert(numel(baseProperties.bottom)>=0);
-            assert(numel(baseProperties.top)==0);
+        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
+            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});
+            assert(numel(l.bottom)>=0);
+            assert(numel(l.top)==0);
         end
     end
 

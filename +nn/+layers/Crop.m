@@ -36,13 +36,14 @@ classdef Crop < nn.layers.template.BaseLayer
             in1_diff(offset(1)+1:offset(1)+s(1), offset(2)+1:offset(2)+s(2), :, :) = out_diff;
             in2_diff = [];
         end
-        function [top, weights, misc] = forward(obj, opts, top, bottom, weights, misc)
-            top{1} = obj.f(bottom{1}, bottom{2}, obj.params.crop.offset);
+        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+            data.val{l.top} = obj.f(data.val{l.bottom(1)}, data.val{l.bottom(2)}, obj.params.crop.offset);
         end
-        function [bottom_diff, weights_diff, misc] = backward(obj, opts, top, bottom, weights, misc, top_diff, weights_diff)
-            [bottom_diff{1}, bottom_diff{2}] = obj.b(bottom{1}, bottom{2}, top_diff{1}, obj.params.crop.offset);
+        function [data, net] = backward(obj, nnObj, l, opts, data, net)
+            [bottom_diff{1}, bottom_diff{2}] = obj.b(data.val{l.bottom(1)}, data.val{l.bottom(2)}, data.diff{l.top}, obj.params.crop.offset);
+            data = nn.utils.accumulateData(opts, data, l, bottom_diff{:});
         end
-        function outSizes = outputSizes(obj, opts, inSizes)
+        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
             HW1 = inSizes{1}(1:2);
             HW2 = inSizes{2}(1:2);
             % use the smallest bottom size as top size
@@ -52,10 +53,10 @@ classdef Crop < nn.layers.template.BaseLayer
                 error('Crop Layer bottom size is wrong.');
             end
         end
-        function [outSizes, resources] = setup(obj, opts, baseProperties, inSizes)
-            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, baseProperties, inSizes);
-            assert(numel(baseProperties.bottom)==2);
-            assert(numel(baseProperties.top)==1);
+        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
+            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});
+            assert(numel(l.bottom)==2);
+            assert(numel(l.top)==1);
         end
     end
 end

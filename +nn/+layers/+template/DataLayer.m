@@ -86,19 +86,20 @@ classdef DataLayer < nn.layers.template.BaseLayer
             error('must implement.');
         end
 
-        function [top, weights, misc] = forward(obj, opts, top, bottom, weights, misc)
+        function [data, net] = forward(obj, nnObj, l, opts, data, net)
             if opts.gpuMode
-                [top{1}, top{2}] = obj.gf();
+                [data.val{l.top(1)}, data.val{l.top(2)}] = obj.gf();
             else
-                [top{1}, top{2}] = obj.f();
+                [data.val{l.top(1)}, data.val{l.top(2)}] = obj.f();
             end
+
         end
 
-        function [bottom_diff, weights_diff, misc] = backward(obj, opts, top, bottom, weights, misc, top_diff, weights_diff)
-            bottom_diff = {};
+        function [data, net] = backward(obj, nnObj, l, opts, data, net)
+            data = nn.utils.accumulateData(opts, data, l);
         end
 
-        function outSizes = outputSizes(obj, opts, inSizes)
+        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
             error('must implement this method.');
         end
 

@@ -19,6 +19,7 @@ classdef nn < handle
         net;
         solverGPUFun;
         MaxThreadsPerBlock = 256;
+        subPhaseName = '__sub__';
     end
 
 
@@ -31,7 +32,8 @@ classdef nn < handle
             n.weightsDiff       = {};
             n.weightsDiffCount  = [];
             n.phase             = {}; %A structure, each field is a phase name, eg. net.phase.train. And each field contains the IDs of layers.
-
+            n.noSubPhase        = {};
+            
             n.momentum          = {}; % number and size exactly the same as weights
             n.learningRate      = []; % learningRate of each weight
             n.weightDecay       = []; % weight Decay of each weight
@@ -58,10 +60,14 @@ classdef nn < handle
             obj.data.srcId = {};
         end
 
+
         build(obj, varargin)
+        [dataSizes, otherPhaseDataSizes] = buildPhase(obj, face, varargin)
         [data, net] = forward(obj, data, net, face, opts)
         [data, net] = backward(obj, data, net, face, opts, dzdy)
-        [data, net] = fb(obj, data, net, face, opts, dzdy)
+        [data, net] = fb(obj, data, net, face, layerIDs, opts, dzdy)
+        [data, net] = f(obj, data, net, face, opts, inVals)
+        [data, net] = b(obj, data, net, face, opts, outDiffs)
         run(obj)
         runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIter)
 
@@ -114,7 +120,6 @@ classdef nn < handle
             opt.momentum           = 0.9;
 
             opt.conserveMemory     = false; % true: Delete forward results at each iteration, but runs slightly slower
-            opt.avgGradient        = false; % if true, accumulated gradient will be divided by .iter_size and shared counts.
             opt.backpropToLayer    = []; % set this to a layer name, if you want to back propagate up to the specified layer.
 
 
@@ -167,56 +172,98 @@ classdef nn < handle
         function add(obj, varargin)
             % Accpet two kinds of input
             % 1.
-            % newLayer('type','conv','name','conv1',...)
+            % add('type','conv','name','conv1',...)
             % 2.
-            % newLayer({'type' 'conv' 'name' 'conv1' ...})
-            hasName = false;
-            hasInput_or_output = false;
-            if isa(varargin{1}, 'cell') && numel(varargin) == 1
-                in = varargin{1};
-            elseif isstruct(varargin{1}) && numel(varargin) == 1
-                tmpLayer = varargin{1};
-                if ~isfield(tmpLayer, 'name')
-                    error('Layer name not set.');
+            % add({'type' 'conv' 'name' 'conv1' ...})
+            tmpLayer = obj.cellLayer2StructLayer(varargin{:});
+            tmpLayer.subPhase = [];
+            obj.addLayer(tmpLayer);
+        end
+        function attach(obj, toLayerNames, varargin)
+            % Accpet two kinds of input
+            % 1.
+            % attach({ParentLayerNames}, 'type','conv','name','conv1',...)
+            % 2.
+            % attach({ParentLayerNames}, {'type' 'conv' 'name' 'conv1' ...})
+            %
+            % toLayerNames can be a string or a cell array of strings
+            layerNames = {};
+            for l=1:numel(obj.net.layers)
+                layerNames = [layerNames, obj.net.layers{l}.name];
+            end
+            tmpLayer = obj.cellLayer2StructLayer(varargin{:});
+            tmpLayer.subPhase = [];
+            if ~isfield(tmpLayer, 'phase')
+                tmpLayer.phase = {};
+            end
+            if iscell(toLayerNames)
+                for i=1:numel(toLayerNames)
+                    if all(cellfun('isempty',strfind(layerNames,toLayerNames{i}))==false)
+                        error(['Attach to non-existed layer:', toLayerNames{i}]);
+                    end
+                    %depthNo = getAttachNo(toLayerNames{i})+1;
+                    %subName = [toLayerNames{i}, obj.subPhaseName, num2str(depthNo)];
+                    subName = [toLayerNames{i}, obj.subPhaseName];
+                    tmpLayer.phase = [tmpLayer.phase, subName];
+                    setSubPhaseToLayer(toLayerNames{i});
                 end
-                if ~isfield(tmpLayer, 'top') && ~isfield(tmpLayer, 'bottom')
-                    error('No layer top/bottom.');
-                end
-                obj.addLayer(tmpLayer);
-                return;
-            elseif ischar(varargin{1}) && numel(varargin) > 1 && mod(numel(varargin)) == 0
-                in = varargin;
             else
-                error('Input must be a struct, a struct definition or a cell.');
-            end
-
-            tmpLayer = {};
-            for i=1:2:numel(in)
-                if strcmp(in{i}, 'name')
-                    hasName = true;
+                if all(cellfun('isempty',strfind(layerNames,toLayerNames))==false)
+                    error(['Attach to non-existed layer:', toLayerNames]);
                 end
-                if strcmp(in{i}, 'top') || strcmp(in{i}, 'bottom')
-                    hasInput_or_output = true;
-                end
-                tmpLayer.(in{i}) = in{i+1};
-            end
-            if ~hasName || ~hasInput_or_output
-                error('No layer name or no top/bottom.');
+                %depthNo = getAttachNo(toLayerNames)+1;
+                %subName = [toLayerNames, obj.subPhaseName, num2str(depthNo)];
+                subName = [toLayerNames, obj.subPhaseName];
+                tmpLayer.phase = [tmpLayer.phase, subName];
+                setSubPhaseToLayer(toLayerNames);
             end
             obj.addLayer(tmpLayer);
+
+            % function depthNo = getAttachNo(layerName)
+            %     layerPhase = {};
+            %     for j=1:numel(obj.net.layers)
+            %         if strcmp(obj.net.layers{j}.name, layerName)
+            %             layerPhase = obj.net.layers{j}.phase;
+            %             break;
+            %         end
+            %     end
+            %     parentIsSub = ~cell('isempty', strfind(layerPhase, obj.subPhaseName));
+            %     if all(parentIsSub==false)
+            %         depthNo = 0;
+            %         return;
+            %     else
+            %         if sum(parentIsSub) > 1
+            %             error('Something wrong, there should be only 1 sub phase per layer.');
+            %         else
+            %             thePhase = layerPhase(parentIsSub);
+            %             thePhase = thePhase{1};
+            %             depthNo = str2double(  thePhase(strfind(thePhase, obj.subPhaseName)+numel(obj.subPhaseName):end)  );
+            %         end
+            %     end
+            % end
+            function setSubPhaseToLayer(layerName)
+                for j=1:numel(obj.net.layers)
+                    if strcmp(obj.net.layers{j}.name, layerName)
+                        obj.net.layers{j}.subPhase = [layerName, obj.subPhaseName];
+                        fprintf('Set Layer: %s.phase = %s', layerName, obj.net.layers{j}.subPhase);
+                        break;
+                    end
+                end
+            end
+
         end
         function removeLayer(obj, name)
             obj.net.layers{obj.net.layerNamesIndex.(name)} = {};
             obj.needReBuild = true;
         end
-        function setLayer(obj, name, BaseLayerObj)
-            if isa(BaseLayerObj, 'nn.layers.template.BaseLayer')
-                obj.net.layers{obj.net.layerNamesIndex.(name)}.obj = BaseLayerObj;
-            else
-                error('Input must be an nn.layers.template.BaseLayer object.');
-            end
-            obj.needReBuild = true;
-        end
+        % function setLayer(obj, name, BaseLayerObj)
+        %     if isa(BaseLayerObj, 'nn.layers.template.BaseLayer')
+        %         obj.net.layers{obj.net.layerNamesIndex.(name)}.obj = BaseLayerObj;
+        %     else
+        %         error('Input must be an nn.layers.template.BaseLayer object.');
+        %     end
+        %     obj.needReBuild = true;
+        % end
         function layerObj = getLayer(obj, name)
             layerObj = obj.net.layers{obj.net.layerNamesIndex.(name)}.obj;
         end
@@ -344,10 +391,47 @@ classdef nn < handle
     end
 
     methods (Access=protected)
+        [connectId, replaceId, outId, srcId] = setConnectAndReplaceData(obj, phase, blobSizes)
+
         function v = invertIndex(~, fields)
             v = struct();
             for i=1:numel(fields)
                 v.(fields{i}) = i;
+            end
+        end
+        function tmpLayer = cellLayer2StructLayer(obj, varargin)
+            hasName = false;
+            hasInput_or_output = false;
+            if isa(varargin{1}, 'cell') && numel(varargin) == 1
+                in = varargin{1};
+            elseif isstruct(varargin{1}) && numel(varargin) == 1
+                tmpLayer = varargin{1};
+                if ~isfield(tmpLayer, 'name')
+                    error('Layer name not set.');
+                end
+                if ~isfield(tmpLayer, 'top') && ~isfield(tmpLayer, 'bottom')
+                    error('No layer top/bottom.');
+                end
+                obj.addLayer(tmpLayer);
+                return;
+            elseif ischar(varargin{1}) && numel(varargin) > 1 && mod(numel(varargin)) == 0
+                in = varargin;
+            else
+                error('Input must be a struct, a struct definition or a cell.');
+            end
+
+            tmpLayer = {};
+            for i=1:2:numel(in)
+                if strcmp(in{i}, 'name')
+                    hasName = true;
+                end
+                if strcmp(in{i}, 'top') || strcmp(in{i}, 'bottom')
+                    hasInput_or_output = true;
+                end
+                tmpLayer.(in{i}) = in{i+1};
+            end
+            if ~hasName || ~hasInput_or_output
+                error('No layer name or no top/bottom.');
             end
         end
         function addLayer(obj, tmpLayer)
@@ -366,43 +450,6 @@ classdef nn < handle
                 tmpLayer.phase = {};
             end
             obj.needReBuild = true;
-        end
-        function [connectId, replaceId, outId, srcId] = setConnectAndReplaceData(obj, phase, blobSizes)
-            connectId = {};
-            replaceId     = {};
-            outId  = {};
-            srcId  = {};
-            for f=fieldnames(phase)'
-                face = f{1};
-                connectId.(face) = cell(1, numel(obj.data.names));
-                replaceId.(face)     = cell(1, numel(obj.data.names)); % if any layer's btm and top use the same name
-                outId.(face)  = [];
-            end
-            for f=fieldnames(phase)'
-                face = f{1};
-                currentLayerID = phase.(face);
-                allBottoms = [];
-                allTops    = [];
-                for i = currentLayerID
-                    if ~isempty(obj.net.layers{i}.bottom)
-                        allBottoms = [allBottoms, obj.net.layers{i}.bottom]; %#ok
-                        for b = 1:numel(obj.net.layers{i}.bottom)
-                            if any(obj.net.layers{i}.top == obj.net.layers{i}.bottom(b))
-                                replaceId.(face){obj.net.layers{i}.bottom(b)} = [replaceId.(face){obj.net.layers{i}.bottom(b)}, i];
-                            end
-                            connectId.(face){obj.net.layers{i}.bottom(b)} = [connectId.(face){obj.net.layers{i}.bottom(b)}, i];
-                        end
-                    end
-                    if ~isempty(obj.net.layers{i}.top)
-                        allTops = [allTops, obj.net.layers{i}.top];    %#ok
-                    end
-                end
-
-                totalBlobIDsInCurrentPhase = find(~cellfun('isempty', blobSizes.(face)));
-                allBottoms = unique(allBottoms);
-                outId.(face) = totalBlobIDsInCurrentPhase( ~ismember(totalBlobIDsInCurrentPhase, allBottoms) );
-                srcId.(face) = totalBlobIDsInCurrentPhase( ~ismember(totalBlobIDsInCurrentPhase, allTops) );
-            end
         end
         function va = moveTo_private(obj, dest, va)
             if strcmpi(dest, 'gpu')

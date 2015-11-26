@@ -57,12 +57,12 @@ classdef EuclideanLoss < nn.layers.template.LossLayer
         end
 
         % Forward function for training/testing routines
-        function [top, weights, misc] = forward(obj, opts, top, bottom, weights, misc)
+        function [data, net] = forward(obj, nnObj, l, opts, data, net)
             lst = obj.params.loss.labelIndex_start;
             if numel(bottom) == 3
-                loss = obj.params.loss.loss_weight * obj.f(bottom{1}, bottom{2}-lst+1, bottom{3});
+                loss = obj.params.loss.loss_weight * obj.f(data.val{l.bottom(1)}, data.val{l.bottom(2)}-lst+1, data.val{l.bottom(3)});
             else
-                loss = obj.params.loss.loss_weight * obj.f(bottom{1}, bottom{2}-lst+1);
+                loss = obj.params.loss.loss_weight * obj.f(data.val{l.bottom(1)}, data.val{l.bottom(2)}-lst+1);
             end
             
             if obj.params.loss.accumulate
@@ -74,15 +74,15 @@ classdef EuclideanLoss < nn.layers.template.LossLayer
                 obj.accumulateN = obj.accumulateN + obj.batchSize;
                 loss = obj.accumulateL/obj.accumulateN;
             end
-            top{1} = loss;
+            data.val{l.top} = loss;
         end
         % Backward function for training/testing routines
-        function [bottom_diff, weights_diff, misc] = backward(obj, opts, top, bottom, weights, misc, top_diff, weights_diff)
+        function [data, net] = backward(obj, nnObj, l, opts, data, net)
             p = obj.params.loss;
             if numel(bottom) == 3
-                [bd1,bd2] = obj.b(top_diff{1}, bottom{3});
+                [bd1,bd2] = obj.b(data.diff{l.top}, data.val{l.bottom(3)});
             else
-                [bd1,bd2] = obj.b(top_diff{1});
+                [bd1,bd2] = obj.b(data.diff{l.top});
             end
 
             bd1 = bd1 * p.loss_weight;
@@ -93,14 +93,14 @@ classdef EuclideanLoss < nn.layers.template.LossLayer
                 bd2 = gpuArray(bd2);
             end
             if numel(bottom) == 3
-                bottom_diff = {bd1,bd2,[]};
+                data = nn.utils.accumulateData(opts, data, l, bd1, bd2, []);
             else
-                bottom_diff = {bd1,bd2};
+                data = nn.utils.accumulateData(opts, data, l, bd1, bd2);
             end
         end
 
         % Calc Output sizes
-        function outSizes = outputSizes(obj, opts, inSizes)
+        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
             resSize = inSizes{1};
             ansSize = inSizes{2};
             assert( isequal(ansSize, resSize) | (isequal(ansSize([1,2,4]), resSize([1,2,4])) && ansSize(3)==1) );
@@ -108,15 +108,15 @@ classdef EuclideanLoss < nn.layers.template.LossLayer
             outSizes = {[1,1,1,1]};
         end
 
-        function setParams(obj, baseProperties)
-            obj.setParams@nn.layers.template.BaseLayer(baseProperties);
+        function setParams(obj, l)
+            obj.setParams@nn.layers.template.BaseLayer(l);
             obj.threshold = obj.params.loss.threshold;
         end
 
-        function [outSizes, resources] = setup(obj, opts, baseProperties, inSizes)
-            [outSizes, resources] = obj.setup@nn.layers.template.LossLayer(opts, baseProperties, inSizes);
-            assert(numel(baseProperties.bottom)>=2 && numel(baseProperties.bottom)<=3);
-            assert(numel(baseProperties.top)==1);
+        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
+            [outSizes, resources] = obj.setup@nn.layers.template.LossLayer(opts, l, inSizes, varargin{:});
+            assert(numel(l.bottom)>=2 && numel(l.bottom)<=3);
+            assert(numel(l.top)==1);
             if opts.gpuMode
                 obj.accumulateN = gpuArray.zeros(1,1,'single');
                 obj.accumulateL = gpuArray.zeros(1,1,'single');

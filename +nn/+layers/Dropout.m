@@ -10,53 +10,46 @@ classdef Dropout < nn.layers.template.BaseLayer
     end
 
     methods
-        % CPU Forward
         function out = f(obj, in, mask)
             out = in.*mask;
         end
-        % CPU Backward
         function in_diff = b(obj, out_diff, mask)
             in_diff = out_diff.*mask;
         end
+        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+            tmp = net.weightsIsMisc(l.weights);
+            miscInd = l.weights(tmp);
+            btm = data.val{l.bottom(1)};
 
-        % GPU Forward
-        function out = gf(obj, varargin)
-            out = obj.f(varargin{:});
-        end
-        % GPU Backward
-        function in_diff = gb(obj, varargin)
-            in_diff = obj.b(varargin{:});
-        end
-
-        % Forward function for training/testing routines
-        function [top, weights, misc] = forward(obj, opts, top, bottom, weights, misc)
             p = obj.params.dropout;
             if opts.disableDropout || ~p.enable_terms
-                top{1} = bottom{1};
-            elseif opts.freezeDropout && numel(bottom{1}) == numel(misc{1})
-                top{1} = bottom{1}.*misc{1};
+                top = btm;
+            elseif opts.freezeDropout && numel(btm) == numel(net.weights{miscInd})
+                top = btm.*net.weights{miscInd};
             else
                 if opts.gpuMode
-                    mask = single(1 / (1 - p.rate)) .* (gpuArray.rand(size(bottom{1}),'single') >= p.rate);
-                    top{1} = bottom{1} .* mask;
+                    mask = single(1 / (1 - p.rate)) .* (gpuArray.rand(size(btm),'single') >= p.rate);
+                    top = btm .* mask;
                 else
-                    mask = single(1 / (1 - p.rate)) .* (rand(size(bottom{1}),'single') >= p.rate);
-                    top{1} = bottom{1} .* mask;
+                    mask = single(1 / (1 - p.rate)) .* (rand(size(btm),'single') >= p.rate);
+                    top = btm .* mask;
                 end
-                misc{1} = mask;
+                net.weights{miscInd} = mask;
             end
+            data.val{l.top} = top;
         end
-        % Backward function for training/testing routines
-        function [bottom_diff, weights_diff, misc] = backward(obj, opts, top, bottom, weights, misc, top_diff, weights_diff)
-            if opts.disableDropout || ~obj.params.dropout.enable_terms
-                bottom_diff{1} = top_diff{1};
-            else
-                bottom_diff{1} = top_diff{1} .* misc{1};
-            end
-        end
+        function [data, net] = backward(obj, nnObj, l, opts, data, net)
+            tmp = net.weightsIsMisc(l.weights);
+            miscInd = l.weights(tmp);
 
-        % Create resources (weight, misc)
-        function resources = createResources(obj, opts, inSizes)
+            if opts.disableDropout || ~obj.params.dropout.enable_terms
+                bottom_diff = data.diff{l.top};
+            else
+                bottom_diff = data.diff{l.top} .* net.weights{miscInd};
+            end
+            data = nn.utils.accumulateData(opts, data, l, bottom_diff);
+        end
+        function resources = createResources(obj, opts, l, inSizes, varargin)
             p = obj.params.dropout;
             if p.enable_terms
                 scale = single(1 / (1 - p.rate)) ;
@@ -65,13 +58,8 @@ classdef Dropout < nn.layers.template.BaseLayer
                 resources = {};
             end
         end
-        % Calc Output sizes
-        function outSizes = outputSizes(obj, opts, inSizes)
-            outSizes = inSizes;
-        end
-        % Set parameters
-        function setParams(obj, baseProperties)
-            obj.setParams@nn.layers.template.BaseLayer(baseProperties);
+        function setParams(obj, l)
+            obj.setParams@nn.layers.template.BaseLayer(l);
             miscParam = obj.params.dropout;
             miscParam.name = {''};
             miscParam.enable_terms = true;
@@ -79,11 +67,10 @@ classdef Dropout < nn.layers.template.BaseLayer
             miscParam.weightDecay  = 0;
             obj.params.misc = miscParam;
         end
-        % Setup function for training/testing routines
-        function [outSizes, resources] = setup(obj, opts, baseProperties, inSizes)
-            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, baseProperties, inSizes);
-            assert(numel(baseProperties.bottom)==1);
-            assert(numel(baseProperties.top)==1);
+        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
+            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});
+            assert(numel(l.bottom)==1);
+            assert(numel(l.top)==1);
 
         end
 

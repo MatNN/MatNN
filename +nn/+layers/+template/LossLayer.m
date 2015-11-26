@@ -20,7 +20,7 @@ classdef LossLayer < nn.layers.template.BaseLayer
         end
 
         % Calc Output sizes
-        function outSizes = outputSizes(obj, opts, inSizes)
+        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
             outSizes = {[1,1,1,1]};
         end
 

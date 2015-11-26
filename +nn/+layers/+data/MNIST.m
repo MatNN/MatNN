@@ -29,15 +29,15 @@ classdef MNIST < nn.layers.template.DataLayer
         end
 
         % Calc Output sizes
-        function outSizes = outputSizes(obj, opts, inSizes)
+        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
 
             outSizes{1} = [28, 28, 1, obj.params.data.batch_size];
             outSizes{2} = [obj.params.data.batch_size, 1, 1, 1];
         end
 
-        function [outSizes, resources] = setup(obj, opts, baseProperties, inSizes)
-            [outSizes, resources] = obj.setup@nn.layers.template.DataLayer(opts, baseProperties, inSizes);
-            assert(numel(baseProperties.bottom)==0, 'MNIST layer does not accept inputs.');
+        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
+            [outSizes, resources] = obj.setup@nn.layers.template.DataLayer(opts, l, inSizes, varargin{:});
+            assert(numel(l.bottom)==0, 'MNIST layer does not accept inputs.');
         end
 
 

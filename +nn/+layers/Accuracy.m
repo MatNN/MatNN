@@ -104,22 +104,22 @@ classdef Accuracy < nn.layers.template.BaseLayer
         end
 
         % Forward function for training/testing routines
-        function [top, weights, misc] = forward(obj, opts, top, bottom, weights, misc)
+        function [data, net] = forward(obj, nnObj, l, opts, data, net)
             p = obj.params.accuracy;
             if p.meanClassAcc
-                [a, b] = obj.f(bottom{1}, bottom{2}, p.labelIndex_start, p.meanClassAcc, opts.currentIter);
-                top = {single(a), single(b)};
+                [a, b] = obj.f(data.val{l.bottom(1)}, data.val{l.bottom(2)}, p.labelIndex_start, p.meanClassAcc, opts.currentIter);
+                data.val(l.top) = {single(a), single(b)};
             else
-                top{1} = single(obj.f(bottom{1}, bottom{2}, p.labelIndex_start, p.meanClassAcc, opts.currentIter));
+                data.val{l.top} = single(obj.f(data.val{l.bottom(1)}, data.val{l.bottom(2)}, p.labelIndex_start, p.meanClassAcc, opts.currentIter));
             end
         end
         % Backward function for training/testing routines
-        function [bottom_diff, weights_diff, misc] = backward(obj, opts, top, bottom, weights, misc, top_diff, weights_diff)
-            bottom_diff = {[],[]};
+        function [data, net] = backward(obj, nnObj, l, opts, data, net)
+            data = nn.utils.accumulateData(opts, data, l);
         end
 
         % Calc Output sizes
-        function outSizes = outputSizes(obj, opts, inSizes)
+        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
             resSize = inSizes{1};
             ansSize = inSizes{2};
             if ~isequal(resSize(4),prod(ansSize))
@@ -132,19 +132,19 @@ classdef Accuracy < nn.layers.template.BaseLayer
             outSizes = {[1,1,1,1]};
         end
 
-        function setParams(obj, baseProperties)
-            obj.setParams@nn.layers.template.BaseLayer(baseProperties);
+        function setParams(obj, l)
+            obj.setParams@nn.layers.template.BaseLayer(l);
             obj.accumulate = obj.params.accuracy.accumulate;
         end
 
         % Setup function for training/testing routines
-        function [outSizes, resources] = setup(obj, opts, baseProperties, inSizes)
-            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, baseProperties, inSizes);
-            assert(numel(baseProperties.bottom)==2);
+        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
+            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});
+            assert(numel(l.bottom)==2);
             if obj.params.accuracy.meanClassAcc
-                assert(numel(baseProperties.top)==2, 'Accuracy layer will generate two outputs if you set ''meanClassAcc'' to true.');
+                assert(numel(l.top)==2, 'Accuracy layer will generate two outputs if you set ''meanClassAcc'' to true.');
             else
-                assert(numel(baseProperties.top)==1);
+                assert(numel(l.top)==1);
             end
 
             if opts.gpuMode

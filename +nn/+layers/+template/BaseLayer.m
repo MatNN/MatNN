@@ -39,38 +39,43 @@ classdef BaseLayer < handle
         end
 
         % Forward function for training/testing routines
-        function [top, weights, misc] = forward(obj, opts, top, bottom, weights, misc)
+        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+            tmp = net.weightsIsMisc(l.weights);
+            weightsInd = l.weights(~tmp);
+            miscInd = l.weights(tmp);
             if opts.gpuMode
-                top{1} = obj.gf(bottom{1});
+                data.val{l.top(1)} = obj.gf(data.val{l.bottom(1)});
             else
-                top{1} = obj.f(bottom{1});
+                data.val{l.top(1)} = obj.f(data.val{l.bottom(1)});
             end
         end
         % Backward function for training/testing routines
-        function [bottom_diff, weights_diff, misc] = backward(obj, opts, top, bottom, weights, misc, top_diff, weights_diff)
+        function [data, net] = backward(obj, nnObj, l, opts, data, net)
             if opts.gpuMode
-                bottom_diff{1} = obj.gb(bottom{1}, top{1}, top_diff{1});
+                bottom_diff1 = obj.gb(data.val{l.bottom(1)}, data.val{l.top(1)}, data.diff{l.top(1)});
             else
-                bottom_diff{1} = obj.b(bottom{1}, top{1}, top_diff{1});
+                bottom_diff1 = obj.b(data.val{l.bottom(1)}, data.val{l.top(1)}, data.diff{l.top(1)});
             end
+
+            data = nn.utils.accumulateData(opts, data, bottom_diff1);
         end
 
         % Create resources (weight, misc)
-        function resources = createResources(obj, opts, inSizes)
+        function resources = createResources(obj, opts, l, inSizes, varargin)
             resources = {};
         end
         % Calc Output sizes
-        function outSizes = outputSizes(obj, opts, inSizes)
+        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
             outSizes = inSizes;
         end
         % Set parameters
-        function setParams(obj, baseProperties)
+        function setParams(obj, l)
             p = metaclass(obj);
             for va = p.PropertyList'
                 if numel(va.Name) > numel('default__param')
                     if strcmp(va.Name(1:8), 'default_') && strcmp(va.Name((end-5):end), '_param')
-                        if isfield(baseProperties, va.Name(9:end))
-                            wp = nn.utils.vararginHelper(obj.(va.Name), baseProperties.(va.Name(9:end)));
+                        if isfield(l, va.Name(9:end))
+                            wp = nn.utils.vararginHelper(obj.(va.Name), l.(va.Name(9:end)));
                         else
                             wp = nn.utils.vararginHelper(obj.(va.Name), obj.(va.Name));
                         end
@@ -80,10 +85,10 @@ classdef BaseLayer < handle
             end
         end
         % Setup function for training/testing routines
-        function [outSizes, resources] = setup(obj, opts, baseProperties, inSizes)
-            obj.setParams(baseProperties);
-            outSizes  = obj.outputSizes(opts, inSizes);
-            resources = obj.createResources(opts, inSizes);
+        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin) % varargin{1} = nnObj, {2} = sizes, {3} = nested depth
+            obj.setParams(l);
+            outSizes  = obj.outputSizes(opts, l, inSizes, varargin{:});
+            resources = obj.createResources(opts, l, inSizes, varargin{:});
             obj.didSetup = true;
         end
 
@@ -117,34 +122,6 @@ classdef BaseLayer < handle
                 error('Too many outputs.');
             end
             
-        end
-        function va = moveTo_private(obj, dest, vaName, va)
-            if ~ischar(vaName)
-                togo = vaName;
-            else
-                togo = obj.checkProperty(vaName);
-            end
-            
-            if togo==-1
-                return;
-            end
-            if isnumeric(va)
-                % prevent gpuArray(gpuArray(va))
-                if isa(va, 'gpuArray') && (togo==0 || togo==2) && strcmpi(dest, 'cpu')
-                    va = gather(va);
-                elseif ~isa(va, 'gpuArray') && (togo==1 || togo==2) && strcmpi(dest, 'gpu')
-                    va = gpuArray(va);
-                end
-            elseif iscell(va)
-                for i=1:numel(va)
-                    va{i} = obj.moveTo_private(dest, togo, va{i});
-                end
-            elseif isstruct(va)
-                for ff=fieldnames(va)'
-                    f = ff{1};
-                    va.(f) = obj.moveTo_private(dest, togo, va.(f));
-                end
-            end
         end
         % Save variables
         function o = save(obj)
@@ -184,6 +161,34 @@ classdef BaseLayer < handle
                 val = v.(t);
             else
                 val = 2;
+            end
+        end
+        function va = moveTo_private(obj, dest, vaName, va)
+            if ~ischar(vaName)
+                togo = vaName;
+            else
+                togo = obj.checkProperty(vaName);
+            end
+            
+            if togo==-1
+                return;
+            end
+            if isnumeric(va)
+                % prevent gpuArray(gpuArray(va))
+                if isa(va, 'gpuArray') && (togo==0 || togo==2) && strcmpi(dest, 'cpu')
+                    va = gather(va);
+                elseif ~isa(va, 'gpuArray') && (togo==1 || togo==2) && strcmpi(dest, 'gpu')
+                    va = gpuArray(va);
+                end
+            elseif iscell(va)
+                for i=1:numel(va)
+                    va{i} = obj.moveTo_private(dest, togo, va{i});
+                end
+            elseif isstruct(va)
+                for ff=fieldnames(va)'
+                    f = ff{1};
+                    va.(f) = obj.moveTo_private(dest, togo, va.(f));
+                end
             end
         end
     end

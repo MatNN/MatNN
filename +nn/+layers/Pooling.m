@@ -20,17 +20,17 @@ classdef Pooling < nn.layers.template.BaseLayer
         end
 
         % Forward function for training/testing routines
-        function [top, weights, misc] = forward(obj, opts, top, bottom, weights, misc)
+        function [data, net] = forward(obj, nnObj, l, opts, data, net)
             p = obj.params.pooling;
-            top{1} = obj.f(bottom{1}, p.kernel_size, p.pad, p.stride, p.method);
+            data.val{l.top} = obj.f(data.val{l.bottom}, p.kernel_size, p.pad, p.stride, p.method);
         end
         % Backward function for training/testing routines
-        function [bottom_diff, weights_diff, misc] = backward(obj, opts, top, bottom, weights, misc, top_diff, weights_diff)
+        function [data, net] = backward(obj, nnObj, l, opts, data, net)
             p = obj.params.pooling;
-            bottom_diff{1} = obj.b(bottom{1}, top_diff{1}, p.kernel_size, p.pad, p.stride, p.method);
+            data = nn.utils.accumulateData(opts, data, l, obj.b(data.val{l.bottom}, data.diff{l.top}, p.kernel_size, p.pad, p.stride, p.method));
         end
 
-        function outSizes = outputSizes(obj, opts, inSizes)
+        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
             p = obj.params.pooling;
             btmSize = inSizes{1};
 
@@ -38,8 +38,8 @@ classdef Pooling < nn.layers.template.BaseLayer
                                 (btmSize(2)+p.pad(3)+p.pad(4)-p.kernel_size(2))/p.stride(2)+1]), ...
                          btmSize(3), btmSize(4)]};
         end
-        function setParams(obj, baseProperties)
-            obj.setParams@nn.layers.template.BaseLayer(baseProperties);
+        function setParams(obj, l)
+            obj.setParams@nn.layers.template.BaseLayer(l);
             p = obj.params.pooling;
             assert(all(p.stride~=0));
             if numel(p.kernel_size) == 1
@@ -57,10 +57,10 @@ classdef Pooling < nn.layers.template.BaseLayer
         end
 
         % Setup function for training/testing routines
-        function [outSizes, resources] = setup(obj, opts, baseProperties, inSizes)
-            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, baseProperties, inSizes);
-            assert(numel(baseProperties.bottom)==1);
-            assert(numel(baseProperties.top)==1);
+        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
+            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});
+            assert(numel(l.bottom)==1);
+            assert(numel(l.top)==1);
         end
 
     end

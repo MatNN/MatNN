@@ -20,21 +20,13 @@ classdef Reshape < nn.layers.template.BaseLayer
         function in_diff = b(~, in, out_diff)
             in_diff = reshape(out_diff, nn.utils.size4D(in));
         end
-        function [top, weights, misc] = forward(obj, opts, top, bottom, weights, misc)
-            if opts.gpuMode
-                top{1} = obj.gf(bottom{1}, obj.params.reshape.output_size);
-            else
-                top{1} = obj.f(bottom{1}, obj.params.reshape.output_size);
-            end
+        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+            data.val{l.top} = obj.f(data.val{l.bottom}, obj.params.reshape.output_size);
         end
-        function [bottom_diff, weights_diff, misc] = backward(obj, opts, top, bottom, weights, misc, top_diff, weights_diff)
-            if opts.gpuMode
-                bottom_diff{1} = obj.gb(bottom{1}, top_diff{1});
-            else
-                bottom_diff{1} = obj.b(bottom{1}, top_diff{1});
-            end
+        function [data, net] = backward(obj, nnObj, l, opts, data, net)
+            data = nn.utils.accumulateData(opts, data, l, obj.b(data.val{l.bottom}, data.diff{l.top}));
         end
-        function outSizes = outputSizes(obj, opts, inSizes)
+        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
             % replace 0
             os = obj.params.reshape.output_size;
             for i=1:4
@@ -47,16 +39,16 @@ classdef Reshape < nn.layers.template.BaseLayer
             tmpData = reshape(tmpData, os{:});
             outSizes = {nn.utils.size4D(tmpData)};
         end
-        function setParams(obj, baseProperties)
-            obj.setParams@nn.layers.template.BaseLayer(baseProperties);
+        function setParams(obj, l)
+            obj.setParams@nn.layers.template.BaseLayer(l);
             if sum(cellfun('isempty', obj.params.reshape.output_size)) >=2
                 error('there should be 1 unknown output size');
             end
         end
-        function [outSizes, resources] = setup(obj, opts, baseProperties, inSizes)
-            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, baseProperties, inSizes);
-            assert(numel(baseProperties.bottom)==1);
-            assert(numel(baseProperties.top)==1);
+        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
+            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});
+            assert(numel(l.bottom)==1);
+            assert(numel(l.top)==1);
         end
     end
 end

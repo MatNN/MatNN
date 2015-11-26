@@ -12,22 +12,17 @@ classdef hasWeight < handle
         };
     end
 
-    % if weights_diff_isCumulate(1) && weights_diff_isCumulate(2)
-    %         [ bottom_diff{1}, a, b ]= ...
-    %                          vl_nnconv(bottom{1}, weights{1}, weights{2}, top_diff{1}, 'pad', l.convolution_param.pad, 'stride', l.convolution_param.stride);
-    %         weights_diff{1} = weights_diff{1} + a;
-    %         weights_diff{2} = weights_diff{2} + b;
-    %     elseif weights_diff_isCumulate(1)
-    %         [ bottom_diff{1}, outputdzdw, weights_diff{2} ]= ...
-    %                          vl_nnconv(bottom{1}, weights{1}, weights{2}, top_diff{1}, 'pad', l.convolution_param.pad, 'stride', l.convolution_param.stride);
-    %         weights_diff{1} = weights_diff{1} + outputdzdw;
-    %     elseif weights_diff_isCumulate(2)
-    %         [ bottom_diff{1}, weights_diff{1}, outputdzdw ]= ...
-    %                          vl_nnconv(bottom{1}, weights{1}, weights{2}, top_diff{1}, 'pad', l.convolution_param.pad, 'stride', l.convolution_param.stride);
-    %         weights_diff{2} = weights_diff{2} + outputdzdw;
-    %     else
-    %         [ bottom_diff{1}, weights_diff{1}, weights_diff{2} ]= ...
-    %                          vl_nnconv(bottom{1}, weights{1}, weights{2}, top_diff{1}, 'pad', l.convolution_param.pad, 'stride', l.convolution_param.stride);
-    %     end
+    methods
+        function [data, net] = backward(obj, nn, l, opts, data, net)
+            % if opts.gpuMode
+            %     bottom_diff1 = obj.gb(data.val{l.bottom(1)}, data.val{l.top(1)}, data.diff{l.top(1)});
+            % else
+            %     bottom_diff1 = obj.b(data.val{l.bottom(1)}, data.val{l.top(1)}, data.diff{l.top(1)});
+            % end
+
+            %data = nn.utils.accumulateData(data, bottom_diff1);
+            %net = nn.utils.accumulateWeight(net, weight_diff1, weight_diff2);
+        end
+    end
 
 end

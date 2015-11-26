@@ -50,13 +50,13 @@ classdef Affine < nn.layers.template.BaseLayer
         end
 
         % Forward function for training/testing routines
-        function [top, weights, misc] = forward(obj, opts, top, bottom, weights, misc)
+        function [data, net] = forward(obj, nnObj, l, opts, data, net)
             if opts.gpuMode
-                top{1} = obj.f(bottom{1}, bottom{2});
+                data.val{l.top} = obj.f(data.val{l.bottom});
                 if obj.params.affine.showDebugWindow
                     if mod(obj.count, 20) == 0
-                        s = nn.utils.size4D(bottom{1});
-                        t = gather(bottom{2}(:,:,:,1));
+                        s = nn.utils.size4D(data.val{l.bottom(1)});
+                        t = gather(data.val{l.bottom(2)}(:,:,:,1));
                         o1 = trans(t, [1,1]      , s(1:2));
                         o2 = trans(t, [s(1),1]   , s(1:2));
                         o3 = trans(t, [s(1),s(2)], s(1:2));
@@ -64,13 +64,13 @@ classdef Affine < nn.layers.template.BaseLayer
                         ox = [o1(2),o2(2),o3(2),o4(2)];
                         oy = [o1(1),o2(1),o3(1),o4(1)];
 
-                        subplot(1,2,1), imshow(gather(bottom{1}(:,:,:,1)), []), ...
+                        subplot(1,2,1), imshow(gather(data.val{l.bottom(1)}(:,:,:,1)), []), ...
                                         line(ox(1:2), oy(1:2), 'LineWidth',4,'Color','r'), ...
                                         line(ox(2:3), oy(2:3), 'LineWidth',4,'Color','g'), ...
                                         line(ox(3:4), oy(3:4), 'LineWidth',4,'Color','b'), ...
                                         line(ox([4,1]), oy([4,1]), 'LineWidth',4,'Color','y');
                         set(gca,'Clipping','off');
-                        subplot(1,2,2), imshow(gather(top{1}(:,:,:,1)), []);
+                        subplot(1,2,2), imshow(gather(data.val{l.top}(:,:,:,1)), []);
                         drawnow;
                         obj.count = 0;
                     end
@@ -87,12 +87,13 @@ classdef Affine < nn.layers.template.BaseLayer
             end
         end
         % Backward function for training/testing routines
-        function [bottom_diff, weights_diff, misc] = backward(obj, opts, top, bottom, weights, misc, top_diff, weights_diff)
+        function [data, net] = backward(obj, nnObj, l, opts, data, net)
             if opts.gpuMode
-                [bottom_diff{1}, bottom_diff{2}] = obj.b(bottom{1}, bottom{2}, top{1}, top_diff{1});
+                [bottom_diff{1}, bottom_diff{2}] = obj.b(data.val{l.bottom(1)}, data.val{l.bottom(2)}, data.val{l.top}, data.diff{l.top});
             else
                 error('Affine Layer : only support gpu mode currently.');
             end
+            data = nn.utils.accumulateData(opts, data, l, bottom_diff);
         end
         function outSizes = outputSizes(obj, opts, inSizes)
             assert(inSizes{2}(1) == 1 && inSizes{2}(2) == 1 && inSizes{2}(3) == 6 && inSizes{2}(4) == inSizes{1}(4));

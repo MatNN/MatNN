@@ -76,15 +76,15 @@ classdef Slice < nn.layers.template.BaseLayer
                     end
             end
         end
-        function [top, weights, misc] = forward(obj, opts, top, bottom, weights, misc)
+        function [data, net] = forward(obj, nnObj, l, opts, data, net)
             p = obj.params.slice;
-            top{1} = obj.f(p.dim, p.indices, bottom{1});
+            data.val{l.top} = obj.f(p.dim, p.indices, data.val{l.bottom});
         end
-        function [bottom_diff, weights_diff, misc] = backward(obj, opts, top, bottom, weights, misc, top_diff, weights_diff)
+        function [data, net] = backward(obj, nnObj, l, opts, data, net)
             p = obj.params.slice;
-            bottom_diff{1} = obj.b(p.dim, p.indices, bottom{1}, top_diff{:});
+            data = nn.utils.accumulateData(opts, data, l, obj.b(p.dim, p.indices, data.val{l.bottom}, data.diff{l.top}));
         end
-        function outSizes = outputSizes(obj, opts, inSizes)
+        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
             K = numel(obj.params.slice.indices);
             outSizes = cell(1, K);
             d1 = inSizes{1}(1);
@@ -114,10 +114,10 @@ classdef Slice < nn.layers.template.BaseLayer
                     end
             end
         end
-        function [outSizes, resources] = setup(obj, opts, baseProperties, inSizes)
-            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, baseProperties, inSizes);
-            assert(numel(baseProperties.bottom)==1);
-            assert(numel(baseProperties.top)==numel(obj.params.slice.indices));
+        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
+            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});
+            assert(numel(l.bottom)==1);
+            assert(numel(l.top)==numel(obj.params.slice.indices));
         end
     end
 

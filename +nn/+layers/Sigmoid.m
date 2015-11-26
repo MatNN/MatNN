@@ -9,17 +9,18 @@ classdef Sigmoid < nn.layers.template.BaseLayer
             sigmoid =  1./(1+exp(-in)) ;
             in_diff = out_diff.*(sigmoid.*(1-sigmoid));
         end
-        function [top, weights, misc] = forward(obj, opts, top, bottom, weights, misc)
-            top{1} = 1./(1+exp(-bottom{1}));
+        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+            data.val{l.top} = 1./(1+exp(-data.val{l.bottom}));
         end
-        function [bottom_diff, weights_diff, misc] = backward(obj, opts, top, bottom, weights, misc, top_diff, weights_diff)
-            sigmoid =  1./(1+exp(-bottom{1})) ;
-            bottom_diff{1} = top_diff{1}.*(sigmoid.*(1-sigmoid));
+        function [data, net] = backward(obj, nnObj, l, opts, data, net)
+            sigmoid =  1./(1+exp(-data.val{l.bottom})) ;
+            bottom_diff = data.diff{l.top}.*(sigmoid.*(1-sigmoid));
+            data = nn.utils.accumulateData(opts, data, l, bottom_diff);
         end
-        function [outSizes, resources] = setup(obj, opts, baseProperties, inSizes)
-            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, baseProperties, inSizes);
-            assert(numel(baseProperties.bottom)==1);
-            assert(numel(baseProperties.top)==1);
+        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
+            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});
+            assert(numel(l.bottom)==1);
+            assert(numel(l.top)==1);
         end
     end
 
