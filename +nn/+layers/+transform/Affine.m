@@ -95,19 +95,19 @@ classdef Affine < nn.layers.template.BaseLayer
             end
             data = nn.utils.accumulateData(opts, data, l, bottom_diff);
         end
-        function outSizes = outputSizes(obj, opts, inSizes)
+        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
             assert(inSizes{2}(1) == 1 && inSizes{2}(2) == 1 && inSizes{2}(3) == 6 && inSizes{2}(4) == inSizes{1}(4));
             outSizes = inSizes(1);
         end
-        function setParams(obj, baseProperties)
-            obj.setParams@nn.layers.template.BaseLayer(baseProperties);
+        function setParams(obj, l)
+            obj.setParams@nn.layers.template.BaseLayer(l);
             p = obj.params.affine;
             assert(strcmpi(p.sampler, 'bilinear'));
         end
-        function [outSizes, resources] = setup(obj, opts, baseProperties, inSizes)
-            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, baseProperties, inSizes);
-            assert(numel(baseProperties.bottom)==2);
-            assert(numel(baseProperties.top)==1);
+        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
+            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});
+            assert(numel(l.bottom)==2);
+            assert(numel(l.top)==1);
             obj.createGPUFun(inSizes{1});
         end
         function createGPUFun(obj, sampleSize)

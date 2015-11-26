@@ -94,9 +94,9 @@ classdef RandDistort < nn.layers.template.BaseLayer
         function [data, net] = forward(obj, nnObj, l, opts, data, net)
             p = obj.params.randDistort;
             if opts.gpuMode
-                if numel(top)==1
+                if numel(l.top)==1
                     data.val{l.top} = obj.gf(data.val{l.bottom}, p.angle, p.scaleX, p.scaleY, p.scaleEQ, p.shiftX, p.shiftY, p.extend);
-                elseif numel(top)==2
+                elseif numel(l.top)==2
                     [data.val{l.top(1)}, data.val{l.top(2)}] = obj.gf(data.val{l.bottom}, p.angle, p.scaleX, p.scaleY, p.scaleEQ, p.shiftX, p.shiftY, p.extend);
                 else
                     error('top number mismatch.');
@@ -109,7 +109,7 @@ classdef RandDistort < nn.layers.template.BaseLayer
         function [data, net] = backward(obj, nnObj, l, opts, data, net)
             data = nn.utils.accumulateData(opts, data, l);
         end
-        function outSizes = outputSizes(obj, opts, inSizes)
+        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
             p = obj.params.randDistort;
             if numel(inSizes)==1
                 outSizes = {[p.extend(1)+inSizes{1}(1), p.extend(2)+inSizes{1}(2),inSizes{1}(3), inSizes{1}(4)]};
@@ -117,15 +117,15 @@ classdef RandDistort < nn.layers.template.BaseLayer
                 outSizes = {[p.extend(1)+inSizes{1}(1), p.extend(2)+inSizes{1}(2),inSizes{1}(3), inSizes{1}(4)], [1,1,6,inSizes{1}(4)]};
             end
         end
-        function setParams(obj, baseProperties)
-            obj.setParams@nn.layers.template.BaseLayer(baseProperties);
+        function setParams(obj, l)
+            obj.setParams@nn.layers.template.BaseLayer(l);
             p = obj.params.randDistort;
             assert(all(p.extend>=0));
         end
-        function [outSizes, resources] = setup(obj, opts, baseProperties, inSizes)
-            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, baseProperties, inSizes);
-            assert(numel(baseProperties.bottom)==1);
-            assert(numel(baseProperties.top)>=1 && numel(baseProperties.top)<=2);
+        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
+            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});
+            assert(numel(l.bottom)==1);
+            assert(numel(l.top)>=1 && numel(l.top)<=2);
             obj.createGPUFun(inSizes{1});
         end
         function createGPUFun(obj, sampleSize)
