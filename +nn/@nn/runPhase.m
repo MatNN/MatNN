@@ -7,10 +7,10 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
     optface = obj.pha_opt.(currentFace);
 
     % Create options for fb()
-    optface.disableDropout  = optface.learningRate == 0;
-    optface.outputBlobCount = cellfun(@numel, obj.data.connectId.(currentFace));
+    optface.disableDropout = optface.learningRate == 0;
     optface.name = currentFace;
     optface.gpuMode = numGpus >= 1;
+    optface.inParallel = obj.inParallel;
     optface.gpus = obj.gpus;
 
     % Find initial weight learning rate ~= 0 to update them
@@ -86,6 +86,16 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
         obj.net.weightsDiffCount = obj.net.weightsDiffCount*int32(0);
 
         if optface.learningRate ~= 0
+            if optface.inParallel
+                %labBarrier();
+                %accumulate weight gradients from other labs
+                %res.dzdw = gop(@(a,b) cellfun(@plus, a,b, 'UniformOutput', false), res.dzdw);
+                wd = obj.net.weightsDiff;
+                for nz=1:numel(obj.net.weightsDiff)
+                    wd{nz} = gplus(wd{nz});
+                end
+                obj.net.weightsDiff = wd;
+            end
             if numGpus == 0
                 obj.net = obj.updateWeightCPU(obj.net, learningRate, optface.weightDecay, optface.momentum, optface.iter_size, needToUpdatedWeightsInd);
                 %net = solver.solve(optface, learningRate, net, res, needToUpdatedWeightsInd);
@@ -97,18 +107,7 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
                     end
                     gFun.GridSize = ceil( max(weightsNUMEL)/obj.MaxThreadsPerBlock );
                 end
-                if numGpus == 1
-                    obj.net = obj.updateWeightGPU(obj.net, learningRate, optface.weightDecay, optface.momentum, optface.iter_size, needToUpdatedWeightsInd, gFun, weightsNUMEL);
-                else
-                    labBarrier();
-                    %accumulate weight gradients from other labs
-                    %res.dzdw = gop(@(a,b) cellfun(@plus, a,b, 'UniformOutput', false), res.dzdw);
-                    for nz=1:numel(obj.net.weightsDiff)
-                        obj.net.weightsDiff{nz} = gop(@plus, obj.net.weightsDiff{nz});
-                    end
-                    %net = solver.solve(optface, learningRate, net, res, needToUpdatedWeightsInd);
-                    obj.net = obj.updateWeightGPU(obj.net, learningRate, optface.weightDecay, optface.momentum, optface.iter_size, needToUpdatedWeightsInd, gFun, weightsNUMEL);
-                end
+                obj.net = obj.updateWeightGPU(obj.net, learningRate, optface.weightDecay, optface.momentum, optface.iter_size, needToUpdatedWeightsInd, gFun, weightsNUMEL);
             end
         end
 
