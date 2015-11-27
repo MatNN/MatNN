@@ -79,7 +79,7 @@ classdef EuclideanLoss < nn.layers.template.LossLayer
         % Backward function for training/testing routines
         function [data, net] = backward(obj, nnObj, l, opts, data, net)
             p = obj.params.loss;
-            if numel(bottom) == 3
+            if numel(l.bottom) == 3
                 [bd1,bd2] = obj.b(data.diff{l.top}, data.val{l.bottom(3)});
             else
                 [bd1,bd2] = obj.b(data.diff{l.top});
@@ -92,7 +92,7 @@ classdef EuclideanLoss < nn.layers.template.LossLayer
                 bd1 = gpuArray(bd1);
                 bd2 = gpuArray(bd2);
             end
-            if numel(bottom) == 3
+            if numel(l.bottom) == 3
                 data = nn.utils.accumulateData(opts, data, l, bd1, bd2, []);
             else
                 data = nn.utils.accumulateData(opts, data, l, bd1, bd2);

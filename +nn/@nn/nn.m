@@ -11,6 +11,7 @@ classdef nn < handle
         expDir = fullfile('data','exp');
         showDate = true;
         clearDataOnPhaseStart = true;
+        inParallel = false;
     end
     properties(SetAccess = protected)
         gUpdateFunc;
@@ -93,6 +94,10 @@ classdef nn < handle
         function setClearDataOnPhaseStart(obj, v)
             assert(islogical(v));
             obj.clearDataOnPhaseStart = v;
+        end
+        function setInParallel(obj, v)
+            assert(islogical(v));
+            obj.inParallel = v;
         end
         function setGpu(obj,varargin)
             val = [varargin{:}];

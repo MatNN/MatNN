@@ -13,8 +13,7 @@ classdef Sigmoid < nn.layers.template.BaseLayer
             data.val{l.top} = 1./(1+exp(-data.val{l.bottom}));
         end
         function [data, net] = backward(obj, nnObj, l, opts, data, net)
-            sigmoid =  1./(1+exp(-data.val{l.bottom})) ;
-            bottom_diff = data.diff{l.top}.*(sigmoid.*(1-sigmoid));
+            bottom_diff = data.diff{l.top}.*(data.val{l.top}.*(1-data.val{l.top}));
             data = nn.utils.accumulateData(opts, data, l, bottom_diff);
         end
         function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
