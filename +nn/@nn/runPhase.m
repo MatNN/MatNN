@@ -55,6 +55,9 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
     sb = 1:accumulateOutBlobsNum;
     weightsNUMEL = [];
     gFun = obj.solverGPUFun;
+    for i=layerIDs
+        obj.net.layers{i}.no = i;
+    end
     % -------------------------------
 
     for t = currentIter:optface.numToNext
@@ -68,7 +71,7 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
             % evaluate CNN
             optface.accumulate = s > 1;
             optface.freezeDropout = s > 1;
-            [obj.data,obj.net] = obj.fb(obj.data, obj.net, currentFace, layerIDs, optface, dzdy);
+            [obj.data,obj.net] = obj.forwardbackward(obj.data, obj.net, currentFace, layerIDs, optface, dzdy);
 
             % accumulate backprop errors
             % assume all output blobs are loss-like blobs

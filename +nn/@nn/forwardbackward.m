@@ -3,7 +3,6 @@ function [data, net] = fb(obj, data, net, face, layerIDs, opts, dzdy)
 
     for i = layerIDs
         l = net.layers{i};
-        l.no = i;
         [data, net] = l.obj.forward(obj, l, opts, data, net);
     end
 
@@ -11,7 +10,6 @@ function [data, net] = fb(obj, data, net, face, layerIDs, opts, dzdy)
         data.diff(data.outId.(face)) = {dzdy};
         for i = layerIDs(end:-1:1)
             l = net.layers{i};
-            l.no = i;
             [data, net] = l.obj.backward(obj, l, opts, data, net);
             if strcmp(opts.backpropToLayer, l.name)
                 break;

@@ -26,7 +26,7 @@ classdef Dummy < nn.layers.template.BaseLayer
                 sizes = cellfun(@nn.utils.size4D, data.val(l.bottom), 'un', false);
             end
             for i=1:numel(sizes)
-                if opts.gpuArray
+                if opts.gpuMode
                     if isempty(p.value{i})
                         data.val{l.top(i)} = gpuArray.randn(sizes{i}, 'single');
                     elseif p.value{i}==0

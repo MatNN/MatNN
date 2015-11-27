@@ -1,4 +1,4 @@
-function [data, net] = f(obj, data, net, face, opts)
+function [data, net] = forward(obj, data, net, face, opts)
     for i = net.phase.(face)
         l = net.layers{i};
         l.no = i;

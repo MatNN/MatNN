@@ -26,7 +26,6 @@ function [connectId, replaceId, outId, srcId] = setConnectAndReplaceData(obj, ph
                     end
                     connectId.(face){btm} = [connectId.(face){btm}, i];
 
-
                     % only add first encountered data
                     if all(srcs ~= btm) && all(allTops ~= btm)
                         srcs = [srcs, btm]; %#ok
@@ -35,7 +34,6 @@ function [connectId, replaceId, outId, srcId] = setConnectAndReplaceData(obj, ph
                     %delete used tops
                     outs = outs(~ismember(outs, btm));
                 end
-
                 
             end
             if ~isempty(obj.net.layers{i}.top)

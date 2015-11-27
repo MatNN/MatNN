@@ -1,4 +1,4 @@
-function [data, net] = b(obj, data, net, face, opts)
+function [data, net] = backward(obj, data, net, face, opts)
     % this method does not reset data operation counts
     %data.diffCount = data.diffCount.*int32(0);
 
