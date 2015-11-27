@@ -50,3 +50,7 @@ $RECYCLE.BIN/
 
 #documentation
 site/
+
+# specific files
+dmats.sh
+setpath.m
