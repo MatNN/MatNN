@@ -158,6 +158,7 @@ trainer.setShowDate(false);
 trainOp.numToNext          = 600;  
 trainOp.numToSave          = 600*conf.save;  
 trainOp.displayIter        = 1;
+trainOp.learningRateGamma  = 0.8;
 trainOp.learningRateSteps  = 600;
 trainOp.learningRatePolicy = @lrPolicy;
 trainer.setPhasePara('train', trainOp);
