@@ -7,7 +7,7 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
 
     optface = obj.pha_opt.(currentFace);
 
-    % Create options for forwardbackward
+    % Create options for fb()
     optface.disableDropout  = optface.learningRate == 0;
     optface.outputBlobCount = cellfun(@numel, obj.data.connectId.(currentFace));
     optface.name = currentFace;
@@ -45,6 +45,7 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
     pstart = tic;
     obj.net.weightsDiffCount = obj.net.weightsDiffCount*int32(0);
     layerIDs = obj.net.noSubPhase.(currentFace);
+    ss = 1:optface.iter_size;
     for t = currentIter:optface.numToNext
         % set learning rate
         learningRate = optface.learningRatePolicy(globalIterNum, currentPhaseTotalIter, optface.learningRate, optface.learningRateGamma, optface.learningRatePower, optface.learningRateSteps);
@@ -52,7 +53,7 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
         % set currentIter
         optface.currentIter = t;
 
-        for s=1:optface.iter_size
+        for s=ss
             % evaluate CNN
             optface.accumulate = s > 1;
             optface.freezeDropout = s > 1;
@@ -95,7 +96,6 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
                 obj.net = obj.updateWeightGPU(obj.net, learningRate, optface.weightDecay, optface.momentum, optface.iter_size, needToUpdatedWeightsInd);
             end
         end
-
 
         % Print learning statistics
         if mod(count, optface.displayIter) == 0 || (count == 1 && optface.showFirstIter) || t==optface.numToNext
