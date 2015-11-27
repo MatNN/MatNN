@@ -20,7 +20,7 @@ classdef Bilinear < nn.layers.template.BaseLayer
                 in1_diff = in2 * out_diff';
                 in2_diff = in1 * out_diff;
             else
-                in1_diff = in2 * out_diff;
+                in1_diff = out_diff * in2';
                 in2_diff = in1' * out_diff;
             end
         end
