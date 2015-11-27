@@ -9,6 +9,8 @@ classdef nn < handle
         gpuMode = false;
         globalIter = [];
         expDir = fullfile('data','exp');
+        showDate = true;
+        clearDataOnPhaseStart = true;
     end
     properties(SetAccess = protected)
         gUpdateFunc;
@@ -84,6 +86,14 @@ classdef nn < handle
             assert(~isempty(ff));
             obj.expDir = ff;
         end
+        function setShowDate(obj, v)
+            assert(islogical(v));
+            obj.showDate = v;
+        end
+        function setClearDataOnPhaseStart(obj, v)
+            assert(islogical(v));
+            obj.clearDataOnPhaseStart = v;
+        end
         function setGpu(obj,varargin)
             val = [varargin{:}];
             if numel(val) == 1
@@ -139,13 +149,9 @@ classdef nn < handle
         end
 
 
-        function net = updateWeightGPU(obj, net, lr, weightDecay, momentum, iter_size, updateWeightsInd)
-            gf = obj.solverGPUFun;
-            %mb = obj.MaxThreadsPerBlock;
+        function net = updateWeightGPU(obj, net, lr, weightDecay, momentum, iter_size, updateWeightsInd, gf, len)
             for w = updateWeightsInd
-                len = numel(net.weights{w});
-                %gf.GridSize = ceil( len/mb );
-                [net.momentum{w}, net.weights{w}] = feval(gf, momentum, net.momentum{w}, lr, net.learningRate(w), weightDecay, net.weightDecay(w), net.weights{w}, net.weightsDiff{w}, iter_size, len);
+                [net.momentum{w}, net.weights{w}] = feval(gf, momentum, net.momentum{w}, lr, net.learningRate(w), weightDecay, net.weightDecay(w), net.weights{w}, net.weightsDiff{w}, iter_size, len(w));
             end
         end
         function net = updateWeightCPU(obj, net, lr, weightDecay, momentum, iter_size, updateWeightsInd)

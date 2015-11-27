@@ -153,6 +153,7 @@ trainer.setPhaseOrder('train', 'test');
 trainer.setRepeat(5);
 trainer.setSavePath(fullfile('data','exp'));
 trainer.setGpu(1);
+trainer.setShowDate(false);
 
 trainOp.numToNext          = 600;  
 trainOp.numToSave          = 600*conf.save;  
