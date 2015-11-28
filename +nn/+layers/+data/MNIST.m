@@ -2,7 +2,8 @@ classdef MNIST < nn.layers.template.DataLayer
 
     properties (SetAccess = protected, Transient, GetAccess=public)
         default_mnist_param = {
-            'type' 'train' ... % train / test
+            'type'      'train' ... % train / test
+            'zero_mean' false ...
         };
     end
 
@@ -57,10 +58,12 @@ classdef MNIST < nn.layers.template.DataLayer
                 return;
             end
             if isempty(obj.data)
-                obj.meanData = obj.readMeanData();
                 [obj.data, obj.label] = obj.readMNISTDataset();
-                obj.data = single(obj.data);
-                obj.data = bsxfun(@minus, obj.data, obj.meanData);
+                if obj.params.mnist.zero_mean
+                    obj.meanData = obj.readMeanData();
+                    obj.data = single(obj.data);
+                    obj.data = bsxfun(@minus, obj.data, obj.meanData);
+                end
             else
                 
             end
