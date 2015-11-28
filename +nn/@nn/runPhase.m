@@ -54,11 +54,16 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
     ss = 1:optface.iter_size;
     sb = 1:accumulateOutBlobsNum;
     weightsNUMEL = [];
-    gFun = obj.solverGPUFun;
+    if optface.gpuMode
+        gFun = obj.solverGPUFun;
+    end
     for i=layerIDs
         obj.net.layers{i}.no = i;
     end
     % -------------------------------
+    data = obj.data;
+    net = obj.net;
+    obj.net.weights = {};% conserve memory
 
     for t = currentIter:optface.numToNext
         % set learning rate
@@ -71,43 +76,48 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
             % evaluate CNN
             optface.accumulate = s > 1;
             optface.freezeDropout = s > 1;
-            [obj.data,obj.net] = obj.forwardbackward(obj.data, obj.net, currentFace, layerIDs, optface, dzdy);
+            [data, net] = obj.forwardbackward(data, net, currentFace, layerIDs, optface, dzdy);
 
             % accumulate backprop errors
             % assume all output blobs are loss-like blobs
             for ac = sb
                 if isempty(accumulateOutBlobs{ac})
-                    accumulateOutBlobs{ac} = obj.data.val{outputBlobID(ac)};
+                    accumulateOutBlobs{ac} = data.val{outputBlobID(ac)};
                 else
-                    accumulateOutBlobs{ac} = accumulateOutBlobs{ac} + obj.data.val{outputBlobID(ac)};
+                    accumulateOutBlobs{ac} = accumulateOutBlobs{ac} + data.val{outputBlobID(ac)};
                 end
             end
         end
-        obj.net.weightsDiffCount = obj.net.weightsDiffCount*int32(0);
+        net.weightsDiffCount = net.weightsDiffCount*int32(0);
 
         if optface.learningRate ~= 0
             if optface.inParallel
                 %labBarrier();
                 %accumulate weight gradients from other labs
                 %res.dzdw = gop(@(a,b) cellfun(@plus, a,b, 'UniformOutput', false), res.dzdw);
-                wd = obj.net.weightsDiff;
-                for nz=1:numel(obj.net.weightsDiff)
-                    wd{nz} = gplus(wd{nz});
+                
+                %wd = net.weightsDiff;
+                for nz=1:numel(net.weightsDiff)
+                    net.weightsDiff{nz} = gplus(net.weightsDiff{nz});
                 end
-                obj.net.weightsDiff = wd;
+                %net.weightsDiff = wd;
             end
             if numGpus == 0
-                obj.net = obj.updateWeightCPU(obj.net, learningRate, optface.weightDecay, optface.momentum, optface.iter_size, needToUpdatedWeightsInd);
+                net = obj.updateWeightCPU(net, learningRate, optface.weightDecay, optface.momentum, optface.iter_size, needToUpdatedWeightsInd);
                 %net = solver.solve(optface, learningRate, net, res, needToUpdatedWeightsInd);
             else
-                if isempty(weightsNUMEL)
-                    weightsNUMEL = zeros(size(obj.net.weights),'single');
-                    for i=1:numel(needToUpdatedWeightsInd)
-                        weightsNUMEL(needToUpdatedWeightsInd(i)) = numel(obj.net.weights{needToUpdatedWeightsInd(i)});
+                if ~isempty(needToUpdatedWeightsInd)
+                    if isempty(weightsNUMEL)
+                        weightsNUMEL = zeros(size(net.weights),'single');
+                        for i=1:numel(needToUpdatedWeightsInd)
+                            weightsNUMEL(needToUpdatedWeightsInd(i)) = numel(net.weights{needToUpdatedWeightsInd(i)});
+                        end
+                        gFun.GridSize = ceil( max(weightsNUMEL)/obj.MaxThreadsPerBlock );
                     end
-                    gFun.GridSize = ceil( max(weightsNUMEL)/obj.MaxThreadsPerBlock );
+                    net = obj.updateWeightGPU(net, learningRate, optface.weightDecay, optface.momentum, optface.iter_size, needToUpdatedWeightsInd, gFun, weightsNUMEL);
+                else
+                    warning('No need to be update weights.');
                 end
-                obj.net = obj.updateWeightGPU(obj.net, learningRate, optface.weightDecay, optface.momentum, optface.iter_size, needToUpdatedWeightsInd, gFun, weightsNUMEL);
             end
         end
 
@@ -127,7 +137,7 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
             for ac = 1:accumulateOutBlobsNum
                 if ~isempty(accumulateOutBlobs{ac})
                     fprintf(preStr);
-                    fprintf('%s(%.6g) ', obj.data.names{outputBlobID(ac)}, accumulateOutBlobs{ac}./(optface.iter_size*count_per_display)); % this is a per-batch avg., not output avg.
+                    fprintf('%s(%.6g) ', data.names{outputBlobID(ac)}, accumulateOutBlobs{ac}./(optface.iter_size*count_per_display)); % this is a per-batch avg., not output avg.
                 end
                 if ac~=numel(accumulateOutBlobs)
                     fprintf('\n');
@@ -161,6 +171,8 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
     end
     %obj.data.val = cell(size(data.val));
     %obj.data.diff = cell(size(data.diff));
+    obj.data = data;
+    obj.net = net;
     obj.globalIter = globalIterNum;
     toc(pstart);
 end

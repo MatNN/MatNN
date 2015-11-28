@@ -25,7 +25,7 @@ classdef Multiply < nn.layers.template.BaseLayer
             end
         end
 
-        function out = fGpu(~, transpose, in1, in2, outSizes)
+        function out = gf(~, transpose, in1, in2, outSizes)
             if transpose
                 in1 = permute(in1, [2 1 3 4]);
             end
@@ -49,7 +49,7 @@ classdef Multiply < nn.layers.template.BaseLayer
             end
         end
 
-        function [in1_diff, in2_diff] = bGpu(~, transpose, in1, in2, out_diff)
+        function [in1_diff, in2_diff] = gb(~, transpose, in1, in2, out_diff)
             if transpose
                 out_diff_T = permute(out_diff, [2 1 3 4]);
                 in1_diff = pagefun(@mtimes, in2, out_diff_T);
@@ -96,7 +96,7 @@ classdef Multiply < nn.layers.template.BaseLayer
         function [data, net] = backward(obj, nnObj, l, opts, data, net)
             p = obj.params.multiply;
             if opts.gpuMode
-                [bottom_diff{1}, bottom_diff{2}] = obj.bGpu(p.transpose, data.val{l.bottom(1)}, data.val{l.bottom(2)}, data.diff{l.top});
+                [bottom_diff{1}, bottom_diff{2}] = obj.gb(p.transpose, data.val{l.bottom(1)}, data.val{l.bottom(2)}, data.diff{l.top});
             else
                 [bottom_diff{1}, bottom_diff{2}] = obj.b(p.transpose, data.val{l.bottom(1)}, data.val{l.bottom(2)}, data.diff{l.top});
             end
