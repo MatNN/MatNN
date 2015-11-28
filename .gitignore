@@ -47,3 +47,10 @@ $RECYCLE.BIN/
 *.mexglx
 *.mexw64
 *.mexw32
+
+#documentation
+site/
+
+# specific files
+dmats.sh
+setpath.m
