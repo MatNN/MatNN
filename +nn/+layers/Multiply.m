@@ -76,7 +76,7 @@ classdef Multiply < nn.layers.template.BaseLayer
             end
 
             if opts.gpuMode
-                data.val{l.top} = obj.fGpu(p.transpose, in1, in2, outSizes);
+                data.val{l.top} = obj.gf(p.transpose, in1, in2, outSizes);
                 if p.showDebugWindow
                     if mod(obj.count, 20) == 0
 
