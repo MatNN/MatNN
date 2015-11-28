@@ -11,6 +11,10 @@ classdef MNIST < nn.layers.template.DataLayer
         label;
     end
 
+    properties (Access = protected)
+        meanData;
+    end
+
     methods
         function v = propertyDevice(obj)
             v = obj.propertyDevice@nn.layers.template.DataLayer();
@@ -53,7 +57,10 @@ classdef MNIST < nn.layers.template.DataLayer
                 return;
             end
             if isempty(obj.data)
+                obj.meanData = obj.readMeanData();
                 [obj.data, obj.label] = obj.readMNISTDataset();
+                obj.data = single(obj.data);
+                obj.data = bsxfun(@minus, obj.data, obj.meanData);
             else
                 
             end
@@ -108,5 +115,15 @@ classdef MNIST < nn.layers.template.DataLayer
             clearvars m;
         end
         
+        function meanData = readMeanData(obj)
+            m = memmapfile(fullfile(obj.params.data.src, 'train-images-idx3-ubyte'),'Offset', 16,'Format', {'uint8' [28 28] 'img'});
+            imgData = m.Data;
+            clearvars m;
+            data4D = zeros(28,28,1,numel(imgData), 'uint8');
+            for i=1:numel(imgData)
+                data4D(:,:,1,i) = imgData(i).img';
+            end
+            meanData = mean(mean(data4D,4),3);
+        end
     end
 end
