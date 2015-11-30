@@ -1,4 +1,9 @@
-function mnist_spatialTransform()
+function mnist_spatialTransform(varargin)
+if numel(varargin) == 0
+    showWindow = true;
+else
+    showWindow = varargin{1};
+end
 
 conf = nn.examples.config();
 trainer = nn.nn('MNIST_SpatialTransform');
@@ -169,7 +174,7 @@ trainer.add({
     'bottom' {'data2', 'local4'} ...
     'top'    'lt' ...
     'affine_param' {...
-        'showDebugWindow' true ...
+        'showDebugWindow' showWindow ...
         }
     });
 %------------------End of Spatial Transform

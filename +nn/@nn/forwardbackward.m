@@ -1,4 +1,4 @@
-function [data, net] = fb(obj, data, net, face, layerIDs, opts, dzdy)
+function [data, net] = forwardbackward(obj, data, net, face, layerIDs, opts, dzdy)
     data.diffCount = data.diffCount.*int32(0);
 
     for i = layerIDs

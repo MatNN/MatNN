@@ -36,10 +36,10 @@ classdef Affine < nn.layers.template.BaseLayer
             in_diff = out_diff.*single(0);
             s = nn.utils.size4D(out_diff);
             len = prod(s);
-            affine_diff = affineMatrix.*single(0);
+            affine_diff = gpuArray.zeros(s(1), s(2), 6, s(4), s(3),'single'); % 5-dimensions
             obj.backwardHandle.GridSize = ceil( len/obj.MaxThreadsPerBlock );
             [in_diff, affine_diff] = feval(obj.backwardHandle, in, gpuArray(int32(s)), affineMatrix, gpuArray(int32(len)), out, out_diff, in_diff, affine_diff);
-            %[bottom_diff{1}, bottom_diff{2}] = feval(ab, bottom{1}, s, bottom{2}, len, top{1}, top_diff{1}, bottom_diff{1}, bottom_diff{2});
+            affine_diff = sum(sum(sum(affine_diff, 1), 2), 5);
             % should in_diff divivded by pixelnumber?
         end
         function out = gf(obj, varargin)

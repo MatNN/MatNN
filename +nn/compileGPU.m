@@ -43,15 +43,13 @@ function compile_cu2ptx(nvcc_path, arch)
         [fileP, name] = fileparts(list{i});
         outputname = fullfile(fileP, [name, '.ptx']);
         cmd = [nvcc_path, ' -ptx ', list{i}, ' -o ', outputname, ' ', arch{:}];
+        fprintf('Compiling %s \n', list{i});
         stat = system(cmd);
         if stat
             fprintf('Command %s failed.\n', cmd);
         end
     end
 end
-
-%nvcc -ptx affine.cu -gencode arch=compute_35,code=sm_35
-
 
 function list = getAllCudaFiles(fPath) % only finds .cu files in 'private' directories
     l = dir(fPath);
@@ -62,7 +60,7 @@ function list = getAllCudaFiles(fPath) % only finds .cu files in 'private' direc
             continue;
         elseif l(i).isdir
             list = [list, getAllCudaFiles(fullfile(fPath, l(i).name))];
-        elseif strcmpi(l(i).name(end-2:end), '.cu') && strcmp(currentDir, 'private')
+        elseif numel(l(i).name)>3 && strcmpi(l(i).name(end-2:end), '.cu') && strcmp(currentDir, 'private')
             list{end+1} = fullfile(fPath, l(i).name);
         end
     end

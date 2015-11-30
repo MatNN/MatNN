@@ -89,11 +89,22 @@ __global__ void AffineBackward(const float* bottom_data,
       }
     }
     
-    atomicAdd((bottom_diff2+n*6)+0, nw *dx*top_diff[index]);
-    atomicAdd((bottom_diff2+n*6)+2, nh *dx*top_diff[index]);
-    atomicAdd((bottom_diff2+n*6)+4, 1.0*dx*top_diff[index]);
-    atomicAdd((bottom_diff2+n*6)+1, nw *dy*top_diff[index]);
-    atomicAdd((bottom_diff2+n*6)+3, nh *dy*top_diff[index]);
-    atomicAdd((bottom_diff2+n*6)+5, 1.0*dy*top_diff[index]);
+    // atomicAdd((bottom_diff2+n*6)+0, nw *dx*top_diff[index]);
+    // atomicAdd((bottom_diff2+n*6)+2, nh *dx*top_diff[index]);
+    // atomicAdd((bottom_diff2+n*6)+4, 1.0*dx*top_diff[index]);
+    // atomicAdd((bottom_diff2+n*6)+1, nw *dy*top_diff[index]);
+    // atomicAdd((bottom_diff2+n*6)+3, nh *dy*top_diff[index]);
+    // atomicAdd((bottom_diff2+n*6)+5, 1.0*dy*top_diff[index]);
+
+    // Above 6 lines causes illegal memory address error after large iterations.
+
+    int fourS = bottomSize[3]*bottomSize[2]*bottomSize[1]*bottomSize[0];
+    int threeS = bottomSize[2]*bottomSize[1]*bottomSize[0];
     
+    bottom_diff2[c*fourS + n*threeS + 0*bottomSize[1]*bottomSize[0] + w*bottomSize[0] + h] = nw *dx*top_diff[index];
+    bottom_diff2[c*fourS + n*threeS + 1*bottomSize[1]*bottomSize[0] + w*bottomSize[0] + h] = nh *dx*top_diff[index];
+    bottom_diff2[c*fourS + n*threeS + 2*bottomSize[1]*bottomSize[0] + w*bottomSize[0] + h] =     dx*top_diff[index];
+    bottom_diff2[c*fourS + n*threeS + 3*bottomSize[1]*bottomSize[0] + w*bottomSize[0] + h] = nw *dy*top_diff[index];
+    bottom_diff2[c*fourS + n*threeS + 4*bottomSize[1]*bottomSize[0] + w*bottomSize[0] + h] = nh *dy*top_diff[index];
+    bottom_diff2[c*fourS + n*threeS + 5*bottomSize[1]*bottomSize[0] + w*bottomSize[0] + h] =     dy*top_diff[index];
 }
