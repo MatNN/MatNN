@@ -76,6 +76,7 @@ __global__ void AffineBackward(const float* bottom_data,
     float u = 0.0;
     float dx = 0.0;
     float dy = 0.0;
+    int cc = 0;
     for (int x = floor(w_new); x <= ceil(w_new); x++) {
       for (int y = floor(h_new); y <= ceil(h_new); y++) {
         if (x < 0 || x>= bottomSize[1] || y < 0 || y >= bottomSize[0]){
@@ -83,7 +84,9 @@ __global__ void AffineBackward(const float* bottom_data,
         }else{
           u = bottom_data[n*bottomSize[2]*bottomSize[1]*bottomSize[0] + c*bottomSize[1]*bottomSize[0] + x*bottomSize[0] + y];
         }
-        atomicAdd(bottom_diff1 + (n*bottomSize[2]*bottomSize[1]*bottomSize[0] + c*bottomSize[1]*bottomSize[0] + x*bottomSize[0] + y),  top_diff[index] * (1-abs(w_new - (float)x)) * (1-abs(h_new - (float)y))  );
+        //atomicAdd(bottom_diff1 + (n*bottomSize[2]*bottomSize[1]*bottomSize[0] + c*bottomSize[1]*bottomSize[0] + x*bottomSize[0] + y),  top_diff[index] * (1-abs(w_new - (float)x)) * (1-abs(h_new - (float)y))  );
+        bottom_diff1[cc*len + n*bottomSize[2]*bottomSize[1]*bottomSize[0] + c*bottomSize[1]*bottomSize[0] + x*bottomSize[0] + y] = top_diff[index] * (1-abs(w_new - (float)x)) * (1-abs(h_new - (float)y));
+        cc++;
         dx += u * (1-abs(h_new - (float)y)) * ((float)x >= w_new ? 1.0:-1.0 );
         dy += u * (1-abs(w_new - (float)x)) * ((float)y >= h_new ? 1.0:-1.0 );
       }
@@ -98,13 +101,19 @@ __global__ void AffineBackward(const float* bottom_data,
 
     // Above 6 lines causes illegal memory address error after large iterations.
 
-    int fourS = bottomSize[3]*bottomSize[2]*bottomSize[1]*bottomSize[0];
-    int threeS = bottomSize[2]*bottomSize[1]*bottomSize[0];
-    
-    bottom_diff2[c*fourS + n*threeS + 0*bottomSize[1]*bottomSize[0] + w*bottomSize[0] + h] = nw *dx*top_diff[index];
-    bottom_diff2[c*fourS + n*threeS + 1*bottomSize[1]*bottomSize[0] + w*bottomSize[0] + h] = nh *dx*top_diff[index];
-    bottom_diff2[c*fourS + n*threeS + 2*bottomSize[1]*bottomSize[0] + w*bottomSize[0] + h] =     dx*top_diff[index];
-    bottom_diff2[c*fourS + n*threeS + 3*bottomSize[1]*bottomSize[0] + w*bottomSize[0] + h] = nw *dy*top_diff[index];
-    bottom_diff2[c*fourS + n*threeS + 4*bottomSize[1]*bottomSize[0] + w*bottomSize[0] + h] = nh *dy*top_diff[index];
-    bottom_diff2[c*fourS + n*threeS + 5*bottomSize[1]*bottomSize[0] + w*bottomSize[0] + h] =     dy*top_diff[index];
+    // int threeS = bottomSize[2]*bottomSize[1]*bottomSize[0];
+
+    // bottom_diff2[c*len + n*threeS + 0*bottomSize[1]*bottomSize[0] + w*bottomSize[0] + h] = nw *dx*top_diff[index];
+    // bottom_diff2[c*len + n*threeS + 2*bottomSize[1]*bottomSize[0] + w*bottomSize[0] + h] = nh *dx*top_diff[index];
+    // bottom_diff2[c*len + n*threeS + 4*bottomSize[1]*bottomSize[0] + w*bottomSize[0] + h] = 1.0*dx*top_diff[index];
+    // bottom_diff2[c*len + n*threeS + 1*bottomSize[1]*bottomSize[0] + w*bottomSize[0] + h] = nw *dy*top_diff[index];
+    // bottom_diff2[c*len + n*threeS + 3*bottomSize[1]*bottomSize[0] + w*bottomSize[0] + h] = nh *dy*top_diff[index];
+    // bottom_diff2[c*len + n*threeS + 5*bottomSize[1]*bottomSize[0] + w*bottomSize[0] + h] = 1.0*dy*top_diff[index];
+
+    bottom_diff2[index*6+0] = nw *dx*top_diff[index];
+    bottom_diff2[index*6+2] = nh *dx*top_diff[index];
+    bottom_diff2[index*6+4] = 1.0*dx*top_diff[index];
+    bottom_diff2[index*6+1] = nw *dy*top_diff[index];
+    bottom_diff2[index*6+3] = nh *dy*top_diff[index];
+    bottom_diff2[index*6+5] = 1.0*dy*top_diff[index];
 }

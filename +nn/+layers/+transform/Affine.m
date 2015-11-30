@@ -33,13 +33,19 @@ classdef Affine < nn.layers.template.BaseLayer
             out = feval(obj.forwardHandle, in, gpuArray(int32(s)), affineMatrix, gpuArray(int32(len)), out);
         end
         function [in_diff, affine_diff] = b(obj, in, affineMatrix, out, out_diff)
-            in_diff = out_diff.*single(0);
             s = nn.utils.size4D(out_diff);
             len = prod(s);
-            affine_diff = gpuArray.zeros(s(1), s(2), 6, s(4), s(3),'single'); % 5-dimensions
+            %in_diff = out_diff.*single(0);
+            in_diff = gpuArray.zeros(s(1), s(2), s(3), s(4), 9,'single');
+            affine_diff = gpuArray.zeros(6, s(1), s(2), s(3), s(4),'single');
+            %affine_diff = gpuArray.zeros(s(1),s(2),6,s(4),s(3),'single');
             obj.backwardHandle.GridSize = ceil( len/obj.MaxThreadsPerBlock );
             [in_diff, affine_diff] = feval(obj.backwardHandle, in, gpuArray(int32(s)), affineMatrix, gpuArray(int32(len)), out, out_diff, in_diff, affine_diff);
-            affine_diff = sum(sum(sum(affine_diff, 1), 2), 5);
+            affine_diff = sum(sum(sum(affine_diff, 2), 3), 4);
+            affine_diff = reshape(affine_diff, 1, 1, 6, s(4));
+            %affine_diff = sum(sum(sum(affine_diff, 1), 2), 5);
+
+            in_diff = sum(in_diff, 5);
             % should in_diff divivded by pixelnumber?
         end
         function out = gf(obj, varargin)

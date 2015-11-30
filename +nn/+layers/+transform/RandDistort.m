@@ -13,6 +13,7 @@ classdef RandDistort < nn.layers.template.BaseLayer
             'shiftX' [0,  0.3] ...
             'shiftY' [0,  0.3] ...
             'extend' [28,  28] ... % must >=0
+            'mix'    0      ... % mix other images in the same batch, value = mix times
         };
     end
 
@@ -29,10 +30,10 @@ classdef RandDistort < nn.layers.template.BaseLayer
             v.forwardHandle = 1;
         end
         
-        function varargout = f(obj, in, angles, scaleX, scaleY, scaleEQ, shiftX, shiftY, extend)
+        function varargout = f(obj, in, angles, scaleX, scaleY, scaleEQ, shiftX, shiftY, extend, doMix)
             error('not implemented yet.');
         end
-        function varargout = gf(obj, in, angles, scaleX, scaleY, scaleEQ, shiftX, shiftY, extend)
+        function varargout = gf(obj, in, angles, scaleX, scaleY, scaleEQ, shiftX, shiftY, extend, doMix)
             out = in.*single(0);
             s = nn.utils.size4D(in);
             len = prod(s);
@@ -71,8 +72,19 @@ classdef RandDistort < nn.layers.template.BaseLayer
                     out(randPosy(i):(randPosy(i)+s(1)-1), randPosx(i):(randPosx(i)+s(2)-1),1,i) = tmpp(:,:,1,i);
                 end
             end
+
+            if doMix > 0
+                maxV = max(out(:));
+                for i=1:(doMix-1)
+                    oo = out(:,:,:,randperm(s(4)));
+                    oo = circshift(oo,randi(s(1)),1);
+                    oo = circshift(oo,randi(s(2)),2);
+                    out = min(out + oo, maxV);
+                end
+            end
+
             varargout{1} = out;
-            %top{1}(randperm(len, floor(len*0.05))) = randi(255,1,floor(len*0.05));
+            
             if numel(nargout)==2
                 ww = reshape(w,2,3,[]);
                 w = gpuArray.zeros(3,3,s(4),'single');
@@ -92,9 +104,9 @@ classdef RandDistort < nn.layers.template.BaseLayer
             p = obj.params.randDistort;
             if opts.gpuMode
                 if numel(l.top)==1
-                    data.val{l.top} = obj.gf(data.val{l.bottom}, p.angle, p.scaleX, p.scaleY, p.scaleEQ, p.shiftX, p.shiftY, p.extend);
+                    data.val{l.top} = obj.gf(data.val{l.bottom}, p.angle, p.scaleX, p.scaleY, p.scaleEQ, p.shiftX, p.shiftY, p.extend, p.mix);
                 elseif numel(l.top)==2
-                    [data.val{l.top(1)}, data.val{l.top(2)}] = obj.gf(data.val{l.bottom}, p.angle, p.scaleX, p.scaleY, p.scaleEQ, p.shiftX, p.shiftY, p.extend);
+                    [data.val{l.top(1)}, data.val{l.top(2)}] = obj.gf(data.val{l.bottom}, p.angle, p.scaleX, p.scaleY, p.scaleEQ, p.shiftX, p.shiftY, p.extend, p.mix);
                 else
                     error('top number mismatch.');
                 end
