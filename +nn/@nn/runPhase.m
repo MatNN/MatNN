@@ -156,9 +156,23 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
             if numGpus > 1
                 labBarrier();
             end
-            if labindex == 1 % only one worker can save the model
-                obj.save(obj.saveFilePath(globalIterNum, net.name));
+            obj.data = data;
+            obj.net = net;
+            data = [];
+            net = [];
+            if numGpus > 1
+                labBarrier();
             end
+            if labindex == 1 % only one worker can save the model
+                obj.save(obj.saveFilePath(globalIterNum));
+            end
+            if numGpus > 1
+                labBarrier();
+            end
+            data = obj.data;
+            net = obj.net;
+            obj.data = [];
+            obj.net = [];
             if numGpus > 1
                 labBarrier();
             end
