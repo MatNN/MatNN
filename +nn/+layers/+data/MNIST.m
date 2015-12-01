@@ -2,13 +2,18 @@ classdef MNIST < nn.layers.template.DataLayer
 
     properties (SetAccess = protected, Transient, GetAccess=public)
         default_mnist_param = {
-            'type' 'train' ... % train / test
+            'type'      'train' ... % train / test
+            'zero_mean' false ...
         };
     end
 
     properties (Access = protected, Transient)
         data;
         label;
+    end
+
+    properties (Access = protected)
+        meanData;
     end
 
     methods
@@ -54,6 +59,11 @@ classdef MNIST < nn.layers.template.DataLayer
             end
             if isempty(obj.data)
                 [obj.data, obj.label] = obj.readMNISTDataset();
+                if obj.params.mnist.zero_mean
+                    obj.meanData = obj.readMeanData();
+                    obj.data = single(obj.data);
+                    obj.data = bsxfun(@minus, obj.data, obj.meanData);
+                end
             else
                 
             end
@@ -108,5 +118,15 @@ classdef MNIST < nn.layers.template.DataLayer
             clearvars m;
         end
         
+        function meanData = readMeanData(obj)
+            m = memmapfile(fullfile(obj.params.data.src, 'train-images-idx3-ubyte'),'Offset', 16,'Format', {'uint8' [28 28] 'img'});
+            imgData = m.Data;
+            clearvars m;
+            data4D = zeros(28,28,1,numel(imgData), 'uint8');
+            for i=1:numel(imgData)
+                data4D(:,:,1,i) = imgData(i).img';
+            end
+            meanData = mean(mean(data4D,4),3);
+        end
     end
 end
