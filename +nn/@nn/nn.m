@@ -372,8 +372,12 @@ classdef nn < handle
             clearvars backupnet backupdata;
             fprintf('done.\n');
         end
-        function p = saveFilePath(obj, iter)
-            p = fullfile(obj.expDir, sprintf('%s-Iter%d.mat', obj.net.name, iter));
+        function p = saveFilePath(obj, iter, varargin) %varargin{1} = name
+            if isempty(varargin)
+                p = fullfile(obj.expDir, sprintf('%s-Iter%d.mat', obj.net.name, iter));
+            else
+                p = fullfile(obj.expDir, sprintf('%s-Iter%d.mat', varargin{1}, iter));
+            end
         end
         function moveTo(obj, varargin)
             if numel(varargin)==0

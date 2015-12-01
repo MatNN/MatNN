@@ -157,7 +157,7 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
                 labBarrier();
             end
             if labindex == 1 % only one worker can save the model
-                obj.save(obj.saveFilePath(globalIterNum));
+                obj.save(obj.saveFilePath(globalIterNum, net.name));
             end
             if numGpus > 1
                 labBarrier();
