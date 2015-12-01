@@ -59,7 +59,7 @@ classdef EuclideanLoss < nn.layers.template.LossLayer
         % Forward function for training/testing routines
         function [data, net] = forward(obj, nnObj, l, opts, data, net)
             lst = obj.params.loss.labelIndex_start;
-            if numel(bottom) == 3
+            if numel(l.bottom) == 3
                 loss = obj.params.loss.loss_weight * obj.f(data.val{l.bottom(1)}, data.val{l.bottom(2)}-lst+1, data.val{l.bottom(3)});
             else
                 loss = obj.params.loss.loss_weight * obj.f(data.val{l.bottom(1)}, data.val{l.bottom(2)}-lst+1);

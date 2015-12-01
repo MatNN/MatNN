@@ -74,39 +74,22 @@ __global__ void AffineBackward(const float* bottom_data,
     float w_new = ((a[0]*nw + a[2]*nh + a[4])/2.0+0.5)*(float)bs[1];
     float h_new = ((a[1]*nw + a[3]*nh + a[5])/2.0+0.5)*(float)bs[0];
 
-
     float u = 0.0;
     float dx = 0.0;
     float dy = 0.0;
-    int cc = 0;
-    for (int x = floor(w_new); x <= ceil(w_new); x++) {
-      for (int y = floor(h_new); y <= ceil(h_new); y++) {
-        if (x < 0 || x>= bs[1] || y < 0 || y >= bs[0]){
-          u = 0.0;
-        }else{
+    for (int x = max(floor(w_new),0.0); x <= min(ceil(w_new),(float)bs[1]); x++) {
+      for (int y = max(floor(h_new),0.0); y <= min(ceil(h_new),(float)bs[0]); y++) {
           u = bottom_data[n*bs[2]*bs[1]*bs[0] + c*bs[1]*bs[0] + x*bs[0] + y];
-        }
-        //atomicAdd(bottom_diff1 + (n*bs[2]*bs[1]*bs[0] + c*bs[1]*bs[0] + x*bs[0] + y),  top_diff[index] * (1-abs(w_new - (float)x)) * (1-abs(h_new - (float)y))  );
-        bottom_diff1[cc*len + n*len/bs[3] + c*bs[1]*bs[0] + x*bs[0] + y] = top_diff[index] * (1-abs(w_new - (float)x)) * (1-abs(h_new - (float)y));
-        cc++;
-        dx += u * (1-abs(h_new - (float)y)) * ((float)x >= w_new ? 1.0:-1.0 );
-        dy += u * (1-abs(w_new - (float)x)) * ((float)y >= h_new ? 1.0:-1.0 );
+          atomicAdd(bottom_diff1 + (n*bs[2]*bs[1]*bs[0] + c*bs[1]*bs[0] + x*bs[0] + y),  top_diff[index] * (1-abs(w_new - (float)x)) * (1-abs(h_new - (float)y))  );
+          dx += u * (1-abs(h_new - (float)y)) * ((float)x >= w_new ? 1.0:-1.0 );
+          dy += u * (1-abs(w_new - (float)x)) * ((float)y >= h_new ? 1.0:-1.0 );
       }
     }
     
-    // atomicAdd((bottom_diff2+n*6)+0, nw *dx*top_diff[index]);
-    // atomicAdd((bottom_diff2+n*6)+2, nh *dx*top_diff[index]);
-    // atomicAdd((bottom_diff2+n*6)+4, 1.0*dx*top_diff[index]);
-    // atomicAdd((bottom_diff2+n*6)+1, nw *dy*top_diff[index]);
-    // atomicAdd((bottom_diff2+n*6)+3, nh *dy*top_diff[index]);
-    // atomicAdd((bottom_diff2+n*6)+5, 1.0*dy*top_diff[index]);
-
-    // Above 6 lines causes illegal memory address error after large iterations.
-
-    bottom_diff2[c*bs[3]*6*bs[1]*bs[0] + n*6*bs[1]*bs[0] + 0*bs[1]*bs[0] + w*bs[0] + h] = nw *dx*top_diff[index];
-    bottom_diff2[c*bs[3]*6*bs[1]*bs[0] + n*6*bs[1]*bs[0] + 2*bs[1]*bs[0] + w*bs[0] + h] = nh *dx*top_diff[index];
-    bottom_diff2[c*bs[3]*6*bs[1]*bs[0] + n*6*bs[1]*bs[0] + 4*bs[1]*bs[0] + w*bs[0] + h] = 1.0*dx*top_diff[index];
-    bottom_diff2[c*bs[3]*6*bs[1]*bs[0] + n*6*bs[1]*bs[0] + 1*bs[1]*bs[0] + w*bs[0] + h] = nw *dy*top_diff[index];
-    bottom_diff2[c*bs[3]*6*bs[1]*bs[0] + n*6*bs[1]*bs[0] + 3*bs[1]*bs[0] + w*bs[0] + h] = nh *dy*top_diff[index];
-    bottom_diff2[c*bs[3]*6*bs[1]*bs[0] + n*6*bs[1]*bs[0] + 5*bs[1]*bs[0] + w*bs[0] + h] = 1.0*dy*top_diff[index];
+    atomicAdd((bottom_diff2+n*6)+0, nw *dx*top_diff[index]);
+    atomicAdd((bottom_diff2+n*6)+2, nh *dx*top_diff[index]);
+    atomicAdd((bottom_diff2+n*6)+4, 1.0*dx*top_diff[index]);
+    atomicAdd((bottom_diff2+n*6)+1, nw *dy*top_diff[index]);
+    atomicAdd((bottom_diff2+n*6)+3, nh *dy*top_diff[index]);
+    atomicAdd((bottom_diff2+n*6)+5, 1.0*dy*top_diff[index]);
 }

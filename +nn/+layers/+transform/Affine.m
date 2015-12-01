@@ -13,7 +13,6 @@ classdef Affine < nn.layers.template.BaseLayer
         forwardHandle;
         backwardHandle;
         count = 0;
-        MaxThreadsPerBlock = 1024;
     end
 
 
@@ -33,17 +32,13 @@ classdef Affine < nn.layers.template.BaseLayer
             out = feval(obj.forwardHandle, in, s, affineMatrix, len, out);
         end
         function [in_diff, affine_diff] = b(obj, in, affineMatrix, out, out_diff)
-            s = nn.utils.size4D(out_diff);
+            s   = nn.utils.size4D(out_diff);
             len = prod(s);
-
-            in_diff = gpuArray.zeros(s(1), s(2), s(3), s(4), 9,'single');
-            affine_diff = gpuArray.zeros(s(1), s(2), 6, s(4), s(3), 'single');
-            
+            in_diff = in.*single(0);
+            affine_diff = affineMatrix.*single(0);
             obj.backwardHandle.GridSize = ceil( len/obj.MaxThreadsPerBlock );
             [in_diff, affine_diff] = feval(obj.backwardHandle, in, s, affineMatrix, len, out, out_diff, in_diff, affine_diff);
             
-            affine_diff = sum(sum(sum(affine_diff, 5), 1), 2);
-            in_diff = sum(in_diff, 5);
         end
         function out = gf(obj, varargin)
             out = obj.f(varargin{:});

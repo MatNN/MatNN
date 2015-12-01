@@ -20,7 +20,6 @@ classdef RandDistort < nn.layers.template.BaseLayer
     % intermediate savings (computed values, recomputed every time)
     properties (Access = protected)
         forwardHandle;
-        MaxThreadsPerBlock = 1024;
     end
 
 

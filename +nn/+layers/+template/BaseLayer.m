@@ -13,6 +13,7 @@ classdef BaseLayer < handle
     properties (SetAccess = protected, GetAccess = public)
         params;
         didSetup = false;
+        MaxThreadsPerBlock = 1024; %this value will be replaced by your GPU configuration.
     end
 
 
@@ -90,6 +91,10 @@ classdef BaseLayer < handle
             outSizes  = obj.outputSizes(opts, l, inSizes, varargin{:});
             resources = obj.createResources(opts, l, inSizes, varargin{:});
             obj.didSetup = true;
+            if opts.gpuMode
+                dg = gpuDevice();
+                obj.MaxThreadsPerBlock = dg.MaxThreadsPerBlock;
+            end
         end
 
         % Constructor
@@ -148,6 +153,7 @@ classdef BaseLayer < handle
         function v = propertyDevice(~)
             v.params   = -1;
             v.didSetup = -1;
+            v.MaxThreadsPerBlock = 1;
         end
     end
 

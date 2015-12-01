@@ -63,7 +63,8 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
     % -------------------------------
     data = obj.data;
     net = obj.net;
-    obj.net.weights = {};% conserve memory
+    obj.data = {};
+    obj.net = {};
 
     for t = currentIter:optface.numToNext
         % set learning rate

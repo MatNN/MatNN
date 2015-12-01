@@ -32,7 +32,7 @@ classdef Crop < nn.layers.template.BaseLayer
             if isempty(offset)
                 offset = -round((s(1:2) - sizeofBlob1(1:2))/2);% compatible with FCN's crop layer??
             end
-            in1_diff = in.*single(0);
+            in1_diff = in1.*single(0);
             in1_diff(offset(1)+1:offset(1)+s(1), offset(2)+1:offset(2)+s(2), :, :) = out_diff;
             in2_diff = [];
         end
