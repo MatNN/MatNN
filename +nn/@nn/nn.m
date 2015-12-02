@@ -330,7 +330,7 @@ classdef nn < handle
                 fprintf('===================================\n');
                 for i=1:numel(network.weights)
                     name = network.weightsNames{i};
-                    if isequal(size(obj.net.weights{obj.net.weightsNamesIndex.(name)}), network.weights{i})
+                    if isequal(size(obj.net.weights{obj.net.weightsNamesIndex.(name)}), size(network.weights{i}))
                         obj.net.weights{obj.net.weightsNamesIndex.(name)} = network.weights{i};
                         obj.net.momentum{obj.net.weightsNamesIndex.(name)} = network.momentum{i};
                         fprintf('Replace with loaded weight: %s\n', name);
