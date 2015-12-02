@@ -149,11 +149,11 @@ classdef BaseLayer < handle
             end
         end
 
-        %check if a property can be on CPU(0) or GPU(1) or both(2) or ignore(-1)
+        %check if a property can be on CPU(0), GPU(1), both(2), ignore(-1), methodName(to build)
         function v = propertyDevice(~)
             v.params   = -1;
             v.didSetup = -1;
-            v.MaxThreadsPerBlock = 1;
+            v.MaxThreadsPerBlock = 0;
         end
     end
 
@@ -177,6 +177,9 @@ classdef BaseLayer < handle
             end
             
             if togo==-1
+                return;
+            elseif ischar(togo)
+                va = obj.(togo)(dest);
                 return;
             end
             if isnumeric(va)

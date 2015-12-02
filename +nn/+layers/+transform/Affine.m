@@ -9,7 +9,7 @@ classdef Affine < nn.layers.template.BaseLayer
     end
 
     % intermediate savings (computed values, recomputed every time)
-    properties (Access = protected)
+    properties (SetAccess = {?nn.layers.template.BaseLayer}, GetAccess = public)
         forwardHandle;
         backwardHandle;
         count = 0;
@@ -20,8 +20,8 @@ classdef Affine < nn.layers.template.BaseLayer
         function v = propertyDevice(obj)
             v = obj.propertyDevice@nn.layers.template.BaseLayer();
             v.count = 0;
-            v.forwardHandle = 1;
-            v.backwardHandle  = 1;
+            v.forwardHandle = 'createForwardHandle';
+            v.backwardHandle  = 'createBackwardHandle';
         end
 
         function out = f(obj, in, affineMatrix)
@@ -108,11 +108,28 @@ classdef Affine < nn.layers.template.BaseLayer
             obj.createGPUFun(inSizes{1});
         end
         function createGPUFun(obj, sampleSize)
-            mf = fileparts(mfilename('fullpath'));
-            ptxp = fullfile(mf, 'private', 'affine.ptx');
-            cup = fullfile(mf, 'private', 'affine.cu');
-            obj.forwardHandle = nn.utils.gpu.createHandle(prod(sampleSize), ptxp, cup, 'AffineForward');
-            obj.backwardHandle = nn.utils.gpu.createHandle(prod(sampleSize), ptxp, cup, 'AffineBackward');
+            obj.forwardHandle = obj.createForwardHandle();
+            obj.backwardHandle = obj.createBackwardHandle();
+        end
+        function h = createForwardHandle(obj, varargin)
+            if isempty(varargin) || strcmpi(varargin{1}, 'GPU')
+                mf = fileparts(mfilename('fullpath'));
+                ptxp = fullfile(mf, 'private', 'affine.ptx');
+                cup = fullfile(mf, 'private', 'affine.cu');
+                h = nn.utils.gpu.createHandle(1, ptxp, cup, 'AffineForward');
+            elseif strcmpi(varargin{1}, 'CPU')
+                h = [];
+            end
+        end
+        function h = createBackwardHandle(obj, varargin)
+            if isempty(varargin) || strcmpi(varargin{1}, 'GPU')
+                mf = fileparts(mfilename('fullpath'));
+                ptxp = fullfile(mf, 'private', 'affine.ptx');
+                cup = fullfile(mf, 'private', 'affine.cu');
+                h = nn.utils.gpu.createHandle(1, ptxp, cup, 'AffineBackward');
+            elseif strcmpi(varargin{1}, 'CPU')
+                h = [];
+            end
         end
     end
 end

@@ -8,7 +8,7 @@ classdef BilinearInterpolation < nn.layers.template.BaseLayer
     end
 
     % intermediate savings (computed values, recomputed every time)
-    properties (Access = protected)
+    properties (SetAccess = {?nn.layers.template.BaseLayer}, GetAccess = public)
         forwardHandle;
         backwardHandle;
         count = 0;
@@ -19,8 +19,8 @@ classdef BilinearInterpolation < nn.layers.template.BaseLayer
         function v = propertyDevice(obj)
             v = obj.propertyDevice@nn.layers.template.BaseLayer();
             v.count = 0;
-            v.forwardHandle = 1;
-            v.backwardHandle  = 1;
+            v.forwardHandle = 'createForwardHandle';
+            v.backwardHandle  = 'createBackwardHandle';
         end
 
         function out = f(obj, in, pos)
@@ -85,11 +85,28 @@ classdef BilinearInterpolation < nn.layers.template.BaseLayer
             obj.createGPUFun(inSizes{2});
         end
         function createGPUFun(obj, sampleSize)
-            mf = fileparts(mfilename('fullpath'));
-            ptxp = fullfile(mf, 'private', 'bilinearInterpolation.ptx');
+            obj.forwardHandle = obj.createForwardHandle();
+            obj.backwardHandle = obj.createBackwardHandle();
+        end
+        function h = createForwardHandle(obj, varargin)
+            if isempty(varargin) || strcmpi(varargin{1}, 'GPU')
+                mf = fileparts(mfilename('fullpath'));
+                ptxp = fullfile(mf, 'private', 'bilinearInterpolation.ptx');
             cup = fullfile(mf, 'private', 'bilinearInterpolation.cu');
-            obj.forwardHandle = nn.utils.gpu.createHandle(prod(sampleSize), ptxp, cup, 'BilinearInterpolationForward');
-            obj.backwardHandle = nn.utils.gpu.createHandle(prod(sampleSize), ptxp, cup, 'BilinearInterpolationBackward');
+                h = nn.utils.gpu.createHandle(prod(sampleSize), ptxp, cup, 'BilinearInterpolationForward');
+            elseif strcmpi(varargin{1}, 'CPU')
+                h = [];
+            end
+        end
+        function h = createBackwardHandle(obj, varargin)
+            if isempty(varargin) || strcmpi(varargin{1}, 'GPU')
+                mf = fileparts(mfilename('fullpath'));
+                ptxp = fullfile(mf, 'private', 'bilinearInterpolation.ptx');
+            cup = fullfile(mf, 'private', 'bilinearInterpolation.cu');
+                h = nn.utils.gpu.createHandle(prod(sampleSize), ptxp, cup, 'BilinearInterpolationBackward');
+            elseif strcmpi(varargin{1}, 'CPU')
+                h = [];
+            end
         end
     end
 end

@@ -18,7 +18,7 @@ classdef RandDistort < nn.layers.template.BaseLayer
     end
 
     % intermediate savings (computed values, recomputed every time)
-    properties (Access = protected)
+    properties (SetAccess = {?nn.layers.template.BaseLayer}, GetAccess = public)
         forwardHandle;
     end
 
@@ -26,7 +26,7 @@ classdef RandDistort < nn.layers.template.BaseLayer
     methods
         function v = propertyDevice(obj)
             v = obj.propertyDevice@nn.layers.template.BaseLayer();
-            v.forwardHandle = 1;
+            v.forwardHandle = 'createForwardHandle';
         end
         
         function varargout = f(obj, in, angles, scaleX, scaleY, scaleEQ, shiftX, shiftY, extend, doMix)
@@ -137,10 +137,17 @@ classdef RandDistort < nn.layers.template.BaseLayer
             obj.createGPUFun(inSizes{1});
         end
         function createGPUFun(obj, sampleSize)
-            mf = fileparts(mfilename('fullpath'));
-            ptxp = fullfile(mf, 'private', 'affine.ptx');
-            cup = fullfile(mf, 'private', 'affine.cu');
-            obj.forwardHandle = nn.utils.gpu.createHandle(prod(sampleSize), ptxp, cup, 'AffineForward');
+            obj.forwardHandle = obj.createForwardHandle();
+        end
+        function h = createForwardHandle(obj, varargin)
+            if isempty(varargin) || strcmpi(varargin{1}, 'GPU')
+                mf = fileparts(mfilename('fullpath'));
+                ptxp = fullfile(mf, 'private', 'affine.ptx');
+                cup = fullfile(mf, 'private', 'affine.cu');
+                h = nn.utils.gpu.createHandle(1, ptxp, cup, 'AffineForward');
+            elseif strcmpi(varargin{1}, 'CPU')
+                h = [];
+            end
         end
     end
 
