@@ -19,11 +19,11 @@ classdef Conv < nn.layers.template.BaseLayer & nn.layers.template.hasWeight
         end
         function [data, net] = forward(obj, nnObj, l, opts, data, net)
             p = obj.params.conv;
-            data.val{l.top} = obj.f(data.val{l.bottom}, net.weights{l.weights(1)}, net.weights{l.weights(2)}, p.pad, p.stride);
+            data.val{l.top} = vl_nnconv(data.val{l.bottom}, net.weights{l.weights(1)}, net.weights{l.weights(2)}, 'pad', p.pad, 'stride', p.stride);
         end
         function [data, net] = backward(obj, nnObj, l, opts, data, net)
             p = obj.params.conv;
-            [bottom_diff, weights_diff{1}, weights_diff{2}] = obj.b(data.val{l.bottom}, data.diff{l.top}, net.weights{l.weights(1)}, net.weights{l.weights(2)}, p.pad, p.stride);
+            [bottom_diff, weights_diff{1}, weights_diff{2}] = vl_nnconv(data.val{l.bottom}, net.weights{l.weights(1)}, net.weights{l.weights(2)}, data.diff{l.top}, 'pad', p.pad, 'stride', p.stride);
             data = nn.utils.accumulateData(opts, data, l, bottom_diff);
             net  = nn.utils.accumulateWeight(net, l.weights, weights_diff{:});
         end

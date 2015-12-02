@@ -12,6 +12,8 @@ classdef nn < handle
         showDate = true;
         clearDataOnPhaseStart = true;
         inParallel = false;
+
+        seed = [];
     end
     properties(SetAccess = protected)
         gUpdateFunc;
@@ -116,6 +118,7 @@ classdef nn < handle
             end
             %reset data
             obj.gpuMode = numel(obj.gpus) > 0;
+            obj.setRandomSeed();
         end
         function setPhasePara(obj, face, opt_user)
             opt.numToNext          = 100;   % Runs how many iterations to next phase
@@ -322,6 +325,7 @@ classdef nn < handle
 
                 end
                 obj.needReBuild = false;
+                obj.setRandomSeed();
             else
                 obj.build();
                 if exist('data', 'var')
@@ -397,6 +401,42 @@ classdef nn < handle
             end
             obj.net.learningRate = obj.moveTo_private(dest,obj.net.learningRate);
             obj.net.weightDecay = obj.moveTo_private(dest,obj.net.weightDecay);
+        end
+        function setRandomSeed(obj, varargin)
+            if ~isempty(varargin)
+                if ~isempty(varargin{1})
+                    sc = RandStream('CombRecursive','Seed',varargin{1});
+                    RandStream.setGlobalStream(sc);
+                    if numel(obj.gpus) > 0
+                        sg = parallel.gpu.RandStream('CombRecursive','Seed',varargin{1});
+                        parallel.gpu.RandStream.setGlobalStream(sg);
+                    end
+                    obj.seed = varargin{1};
+                else
+                    sc = RandStream('CombRecursive','Seed',now);
+                    RandStream.setGlobalStream(sc);
+                    if numel(obj.gpus) > 0
+                        sg = parallel.gpu.RandStream('CombRecursive','Seed',now);
+                        parallel.gpu.RandStream.setGlobalStream(sg);
+                    end
+                end
+            else
+                if ~isempty(obj.seed)
+                    sc = RandStream('CombRecursive','Seed',obj.seed);
+                    RandStream.setGlobalStream(sc);
+                    if numel(obj.gpus) > 0
+                        sg = parallel.gpu.RandStream('CombRecursive','Seed',obj.seed);
+                        parallel.gpu.RandStream.setGlobalStream(sg);
+                    end
+                else
+                    sc = RandStream('CombRecursive','Seed',now);
+                    RandStream.setGlobalStream(sc);
+                    if numel(obj.gpus) > 0
+                        sg = parallel.gpu.RandStream('CombRecursive','Seed',now);
+                        parallel.gpu.RandStream.setGlobalStream(sg);
+                    end
+                end
+            end
         end
         
     end

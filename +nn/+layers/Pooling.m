@@ -22,12 +22,12 @@ classdef Pooling < nn.layers.template.BaseLayer
         % Forward function for training/testing routines
         function [data, net] = forward(obj, nnObj, l, opts, data, net)
             p = obj.params.pooling;
-            data.val{l.top} = obj.f(data.val{l.bottom}, p.kernel_size, p.pad, p.stride, p.method);
+            data.val{l.top} = vl_nnpool(data.val{l.bottom}, p.kernel_size, 'pad', p.pad, 'stride', p.stride, 'method', p.method);
         end
         % Backward function for training/testing routines
         function [data, net] = backward(obj, nnObj, l, opts, data, net)
             p = obj.params.pooling;
-            data = nn.utils.accumulateData(opts, data, l, obj.b(data.val{l.bottom}, data.diff{l.top}, p.kernel_size, p.pad, p.stride, p.method));
+            data = nn.utils.accumulateData(opts, data, l, vl_nnpool(data.val{l.bottom}, p.kernel_size, data.diff{l.top}, 'pad', p.pad, 'stride', p.stride, 'method', p.method));
         end
 
         function outSizes = outputSizes(obj, opts, l, inSizes, varargin)

@@ -182,4 +182,5 @@ function build(obj, varargin)
 
     obj.moveTo();
     obj.needReBuild = false;
+    obj.setRandomSeed();
 end

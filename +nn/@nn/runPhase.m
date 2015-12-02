@@ -117,7 +117,7 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
                     end
                     net = obj.updateWeightGPU(net, learningRate, optface.weightDecay, optface.momentum, optface.iter_size, needToUpdatedWeightsInd, gFun, weightsNUMEL);
                 else
-                    warning('No need to be update weights.');
+                    warning('No need to update weights.');
                 end
             end
         end
