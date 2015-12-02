@@ -49,13 +49,11 @@ classdef MNIST < nn.layers.template.DataLayer
         end
 
         function [list, ind] = next(obj, list, ind)
-            if ~isempty(ind)
-                return;
-            end
             if isempty(obj.data)
                 [obj.data, obj.label] = obj.readMNISTDataset();
-            else
-                
+            end
+            if ~isempty(ind)
+                return;
             end
 
             p = obj.params.data;
