@@ -1,0 +1,41 @@
+I.  Make a network runs like a function
+    1.  Class
+        a. Easily inherit from other layers
+        b. Elegant design
+        c. Automatic GPU/CPU "function" transition
+           eg. CPU: vector/blas function; GPU: cuda/arrayfun
+        d. Drawback: extremely slow on realtime projects, like "object detection".
+    2.  Nested function
+        a. Faster than class
+        b. Drawback: ugly & hard to create layers
+    3.  Function
+        a. Fastest
+        b. Drawback: hard to draft a network
+    4.  TODO: (Solution)
+        a. Make compatible netowork savings with MatConvNet(DagNN)
+        b. Insert a network as a layer to another network
+        c. Compact network:
+           Call nn.trim to get compact network, which is formed by functions.
+           Detail: Nested Layers
+        d. Faster execution and esaily inherit
+           like c., or "class" is the wrapper for nn to call,
+           the actually execution unit is function or nested function
+        e. ...
+
+II. Phase based environment
+    1.  Easily to do ccomplex workflow
+    2.  TODO: Each parameters can have their own phase settings
+
+III.Documentation
+IV. Caffe model conversion tool
+V.  Faster Multi-GPU solution
+    1.  Make a custom mex to sum up the gradients from other GPU
+        Details:
+        a. main process created by spmd calls mex and gets others' GPUArray pointer
+        b. convert address 
+        c. get data and sum up
+        d. cp results to other GPUArray
+        e. return to each matlab process, now they get the same data
+
+
+Implementation order: natural order.

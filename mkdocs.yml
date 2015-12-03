@@ -1,0 +1,22 @@
+site_name: MatNN
+theme: slate
+repo_url: https://github.com/MatNN/
+remote_branch: master
+remote_name: master
+pages:
+- Home: index.md
+- 'Getting Started':
+    - 'Installation': 'gs/install.md'
+#    - 'Use Models': 'gs/pretrainedModel.md'
+#    - 'Tutorial':
+#        - 'Handwriting digits recongnition (MNIST)': 'gs/mnist.md'
+#- 'User Guide':
+#    - 'Layers': 'guide/layers.md'
+#    - 'Network': 'guide/netowrk.md'
+#    - 'Train/Test': 'guide/train_test.md'
+#    - 'Utilities': 'guide/utilities.md'
+#- Contribute:
+#    - 'MatNN': 'contribute/MatNN.md'
+#    - 'MatConvNet': 'contribute/matconvnet.md'
+#    - 'Caffe': 'contribute/caffe.md'
+#- About: about.md
