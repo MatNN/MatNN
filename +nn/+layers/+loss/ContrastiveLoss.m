@@ -57,7 +57,7 @@ classdef ContrastiveLoss < nn.layers.template.LossLayer
             in1_diff = out_diff * (bsxfun(@times, d_+rightTerm, y) - rightTerm) / obj.N;
             in2_diff = -in1_diff;
         end
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+        function forward(obj, nnObj, l, opts, data, net)
             loss = obj.params.loss.loss_weight * obj.f(data.val{l.bottom}, obj.params.contrastiveLoss.margin);
             if obj.params.loss.accumulate
                 if opts.currentIter == 1
@@ -70,7 +70,7 @@ classdef ContrastiveLoss < nn.layers.template.LossLayer
             end
             data.val{l.top} = loss;
         end
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
+        function backward(obj, nnObj, l, opts, data, net)
             p = obj.params.loss;
             [bd1,bd2] = obj.b(data.val{l.bottom}, obj.params.contrastiveLoss.margin, data.diff{l.top});
 
@@ -81,7 +81,7 @@ classdef ContrastiveLoss < nn.layers.template.LossLayer
                 bd1 = gpuArray(bd1);
                 bd2 = gpuArray(bd2);
             end
-            data = nn.utils.accumulateData(opts, data, l, bd1, bd2, []);
+            nn.utils.accumulateData(opts, data, l, bd1, bd2, []);
         end
         function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
             assert( isequal(inSizes{1}, inSizes{2}) );

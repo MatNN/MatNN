@@ -19,21 +19,21 @@ classdef BNorm < nn.layers.template.BaseLayer & nn.layers.template.hasWeight
         function [in_diff, w1_diff, w2_diff] = b(~, in, out_diff, w1, w2)
             [ in_diff, w1_diff, w2_diff ] = vl_nnbnorm(in, w1, w2, out_diff);
         end
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+        function forward(obj, nnObj, l, opts, data, net)
             if ~opts.layerSettings.enableBnorm
                 data.val{l.top} = data.val{l.bottom};
             else
                 data.val{l.top} = obj.f(data.val{l.bottom}, net.weights{l.weights(1)}, net.weights{l.weights(2)});
             end
         end
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
+        function backward(obj, nnObj, l, opts, data, net)
             if ~opts.layerSettings.enableBnorm
                 bottom_diff = data.diff{l.top};
             else
                 [bottom_diff, weights_diff{1}, weights_diff{2}] = obj.b(data.val{l.bottom}, data.diff{l.top}, net.weights{l.weights(1)}, net.weights{l.weights(2)});
             end
-            data = nn.utils.accumulateData(opts, data, l, bottom_diff);
-            net  = nn.utils.accumulateWeight(net, l.weights, weights_diff{:});
+            nn.utils.accumulateData(opts, data, l, bottom_diff);
+            nn.utils.accumulateWeight(net, l.weights, weights_diff{:});
         end
         function resources = createResources(obj, opts, l, inSizes, varargin)
             resources.weight = {[],[]};

@@ -16,7 +16,7 @@ classdef Dropout < nn.layers.template.BaseLayer
         function in_diff = b(obj, out_diff, mask)
             in_diff = out_diff.*mask;
         end
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+        function forward(obj, nnObj, l, opts, data, net)
             tmp = net.weightsIsMisc(l.weights);
             miscInd = l.weights(tmp);
             btm = data.val{l.bottom(1)};
@@ -38,7 +38,7 @@ classdef Dropout < nn.layers.template.BaseLayer
             end
             data.val{l.top} = top;
         end
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
+        function backward(obj, nnObj, l, opts, data, net)
             tmp = net.weightsIsMisc(l.weights);
             miscInd = l.weights(tmp);
 
@@ -47,7 +47,7 @@ classdef Dropout < nn.layers.template.BaseLayer
             else
                 bottom_diff = data.diff{l.top} .* net.weights{miscInd};
             end
-            data = nn.utils.accumulateData(opts, data, l, bottom_diff);
+            nn.utils.accumulateData(opts, data, l, bottom_diff);
         end
         function resources = createResources(obj, opts, l, inSizes, varargin)
             p = obj.params.dropout;

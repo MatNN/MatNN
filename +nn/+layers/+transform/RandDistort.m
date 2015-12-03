@@ -99,7 +99,7 @@ classdef RandDistort < nn.layers.template.BaseLayer
             in_diff = [];
         end
 
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+        function forward(obj, nnObj, l, opts, data, net)
             p = obj.params.randDistort;
             if opts.gpuMode
                 if numel(l.top)==1
@@ -113,8 +113,8 @@ classdef RandDistort < nn.layers.template.BaseLayer
                 error('RandDistort Layer : only support gpu mode currently.');
             end
         end
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
-            data = nn.utils.accumulateData(opts, data, l);
+        function backward(obj, nnObj, l, opts, data, net)
+            nn.utils.accumulateData(opts, data, l);
         end
 
         function outSizes = outputSizes(obj, opts, l, inSizes, varargin)

@@ -1,4 +1,4 @@
-function net = accumulateWeight(net, weightsInd, varargin)
+function accumulateWeight(net, weightsInd, varargin)
 % be careful of modifying this.
 
 dzdwEmpty  = ~cellfun('isempty', varargin); % find d_weights are not empty

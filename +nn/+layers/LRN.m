@@ -16,13 +16,13 @@ classdef LRN < nn.layers.template.BaseLayer
         function in_diff = b(~, in, out_diff, window, kappa, alpha, beta)
             in_diff = vl_nnnormalize(in, [window, kappa, alpha, beta], out_diff);
         end
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+        function forward(obj, nnObj, l, opts, data, net)
             p = obj.params.lrn;
             data.val{l.top} = obj.f(data.val{l.bottom}, p.window_size, p.kappa, p.alpha, p.beta);
         end
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
+        function backward(obj, nnObj, l, opts, data, net)
             p = obj.params.lrn;
-            data = nn.utils.accumulateData(opts, data, l, obj.b(data.val{l.bottom}, data.diff{l.top}, p.window_size, p.kappa, p.alpha, p.beta));
+            nn.utils.accumulateData(opts, data, l, obj.b(data.val{l.bottom}, data.diff{l.top}, p.window_size, p.kappa, p.alpha, p.beta));
         end
         function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
             [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});

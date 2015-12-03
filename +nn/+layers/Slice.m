@@ -76,13 +76,13 @@ classdef Slice < nn.layers.template.BaseLayer
                     end
             end
         end
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+        function forward(obj, nnObj, l, opts, data, net)
             p = obj.params.slice;
             data.val{l.top} = obj.f(p.dim, p.indices, data.val{l.bottom});
         end
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
+        function backward(obj, nnObj, l, opts, data, net)
             p = obj.params.slice;
-            data = nn.utils.accumulateData(opts, data, l, obj.b(p.dim, p.indices, data.val{l.bottom}, data.diff{l.top}));
+            nn.utils.accumulateData(opts, data, l, obj.b(p.dim, p.indices, data.val{l.bottom}, data.diff{l.top}));
         end
         function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
             K = numel(obj.params.slice.indices);

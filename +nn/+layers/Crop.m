@@ -36,12 +36,12 @@ classdef Crop < nn.layers.template.BaseLayer
             in1_diff(offset(1)+1:offset(1)+s(1), offset(2)+1:offset(2)+s(2), :, :) = out_diff;
             in2_diff = [];
         end
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+        function forward(obj, nnObj, l, opts, data, net)
             data.val{l.top} = obj.f(data.val{l.bottom(1)}, data.val{l.bottom(2)}, obj.params.crop.offset);
         end
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
+        function backward(obj, nnObj, l, opts, data, net)
             [bottom_diff{1}, bottom_diff{2}] = obj.b(data.val{l.bottom(1)}, data.val{l.bottom(2)}, data.diff{l.top}, obj.params.crop.offset);
-            data = nn.utils.accumulateData(opts, data, l, bottom_diff{:});
+            nn.utils.accumulateData(opts, data, l, bottom_diff{:});
         end
         function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
             HW1 = inSizes{1}(1:2);

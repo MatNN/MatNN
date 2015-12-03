@@ -17,15 +17,15 @@ classdef Conv < nn.layers.template.BaseLayer & nn.layers.template.hasWeight
         function [in_diff, w1_diff, w2_diff] = b(obj, in, out_diff, w1, w2, pad, stride) %#ok
             [in_diff, w1_diff, w2_diff ] = vl_nnconv(in, w1, w2, out_diff, 'pad', pad, 'stride', stride);
         end
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+        function forward(obj, nnObj, l, opts, data, net)
             p = obj.params.conv;
             data.val{l.top} = vl_nnconv(data.val{l.bottom}, net.weights{l.weights(1)}, net.weights{l.weights(2)}, 'pad', p.pad, 'stride', p.stride);
         end
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
+        function backward(obj, nnObj, l, opts, data, net)
             p = obj.params.conv;
             [bottom_diff, weights_diff{1}, weights_diff{2}] = vl_nnconv(data.val{l.bottom}, net.weights{l.weights(1)}, net.weights{l.weights(2)}, data.diff{l.top}, 'pad', p.pad, 'stride', p.stride);
-            data = nn.utils.accumulateData(opts, data, l, bottom_diff);
-            net  = nn.utils.accumulateWeight(net, l.weights, weights_diff{:});
+            nn.utils.accumulateData(opts, data, l, bottom_diff);
+            nn.utils.accumulateWeight(net, l.weights, weights_diff{:});
         end
         function resources = createResources(obj, opts, l, inSizes, varargin)
             p = obj.params.conv;

@@ -95,13 +95,14 @@ classdef Cat < nn.layers.template.BaseLayer
                 end
             end
         end
-        function [top, weights, misc] = forward(obj, opts, top, bottom, weights, misc)
+        function forward(obj, nnObj, l, opts, data, net)
             p = obj.params.slice;
-            top{1} = obj.f(p.dim, p.indices, bottom{:});
+            data.val{l.top} = obj.f(p.dim, p.indices, data.val{l.bottom});
         end
-        function [bottom_diff, weights_diff, misc] = backward(obj, opts, top, bottom, weights, misc, top_diff, bottom_diff, weights_diff)
+        function backward(obj, nnObj, l, opts, data, net)
             p = obj.params.slice;
-            bottom_diff{1:numel(bottom)} = obj.b(p.dim, p.indices, top_diff{1}, bottom{:});
+            bottom_diff{1:numel(l.bottom)} = obj.b(p.dim, p.indices, data.diff{l.top}, data.val{l.bottom});
+            nn.utils.accumulateData(opts, data, l, bottom_diff{:});
         end
         function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
             p = obj.params.cat;
@@ -119,18 +120,18 @@ classdef Cat < nn.layers.template.BaseLayer
             end
             outSizes = {topSizes};
         end
-        function setParams(obj, baseProperties)
-            obj.setParams@nn.layers.template.BaseLayer(baseProperties);
+        function setParams(obj, l)
+            obj.setParams@nn.layers.template.BaseLayer(l);
             p = obj.params.cat;
             assert(numel(p.dim) == 1 && p.dim >= 1 && p.dim <= 4);
         end
-        function [outSizes, resources] = setup(obj, opts, baseProperties, inSizes, varargin)
-            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, baseProperties, inSizes, varargin{:});
-            assert(numel(baseProperties.bottom)>=1);
-            assert(numel(baseProperties.top)==1);
+        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
+            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});
+            assert(numel(l.bottom)>=1);
+            assert(numel(l.top)==1);
             p = obj.params.cat;
             if ~isempty(p.indices)
-                assert(numel(p.indices)==numel(baseProperties.bottom));
+                assert(numel(p.indices)==numel(l.bottom));
                 assert(all(unique([p.indices{:}])>0));
                 sumSize = sum(cell2mat(inSizes'),1);
                 assert(numel(unique([p.indices{:}]))==sumSize(3));

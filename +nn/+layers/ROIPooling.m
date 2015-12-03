@@ -41,7 +41,7 @@ classdef ROIPooling < nn.layers.template.BaseLayer
             in_diff = in.*0;
             in_diff = feval(obj.backwardHandle, len, out_diff, argmax_data, size(rois,1), spatial_scale, s(3), s(1), s(2), output_size(1), output_size(2), in_diff, rois);
         end
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+        function forward(obj, nnObj, l, opts, data, net)
             p = obj.params.roiPooling;
             if opts.gpuMode
                 [data.val{l.top}, obj.argmaxData] = obj.gf(data.val{l.bottom(1)}, data.val{l.bottom(2)}, p.output_size, p.spatial_scale);
@@ -49,14 +49,14 @@ classdef ROIPooling < nn.layers.template.BaseLayer
                 error('Not implemented yet.');
             end
         end
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
+        function backward(obj, nnObj, l, opts, data, net)
             p = obj.params.roiPooling;
             if opts.gpuMode
                 bottom_diff = obj.gb(data.val{l.bottom(1)}, data.val{l.bottom(2)}, data.diff{l.top}, p.output_size, p.spatial_scale, obj.argmaxData);
             else
                 error('Not implemented yet.');
             end
-            data = nn.utils.accumulateData(opts, data, l, bottom_diff);
+            nn.utils.accumulateData(opts, data, l, bottom_diff);
         end
         function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
             p = obj.params.roiPooling;

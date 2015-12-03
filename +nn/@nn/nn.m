@@ -30,47 +30,17 @@ classdef nn < handle
 
     methods
         function obj = nn(netName)
-            n                   = {};
-            n.name              = netName;
-            n.layers            = {}; %layer
-            n.weights           = {}; %weights stores here
-            n.weightsDiff       = {};
-            n.weightsDiffCount  = [];
-            n.phase             = {}; %A structure, each field is a phase name, eg. net.phase.train. And each field contains the IDs of layers.
-            n.noSubPhase        = {};
-            
-            n.momentum          = {}; % number and size exactly the same as weights
-            n.learningRate      = []; % learningRate of each weight
-            n.weightDecay       = []; % weight Decay of each weight
-
-            n.weightsNames      = {}; %weights names here                                           eg. {'conv1_w1', 'relu1', ...}
-            n.weightsNamesIndex = {}; %Inverted index from weight name to weight index. A struct    eg. net.weightsNamesIndex.conv1_w1 = 1, ...
-            n.weightsIsMisc     = []; %Stores res.(***), ***= field name. because there are layers use .weights to store miscs, not weights.
-
-            n.layerNames        = {}; %Each layer's name
-            n.layerNamesIndex   = {}; %Inverted index from layer name to layer index. A struct
-
-            obj.net = n;
-
-            % ======================
-
-            obj.data.val   = {};
-            obj.data.diff  = {};
-            obj.data.diffCount = [];
-            obj.data.names = {};
-            obj.data.namesInd  = {};
-            obj.data.connectId = {};
-            obj.data.replaceId = {};
-            obj.data.outId = {};
-            obj.data.srcId = {};
+            obj.net = nn.utils.net();
+            obj.data = nn.utils.data();
+            obj.net.name = netName;
         end
 
 
         build(obj, varargin)
         [dataSizes, otherPhaseDataSizes] = buildPhase(obj, face, varargin)
-        [data, net] = forward(obj, data, net, face, opts)
-        [data, net] = backward(obj, data, net, face, opts)
-        [data, net] = forwardbackward(obj, data, net, face, layerIDs, opts, dzdy)
+        forward(obj, data, net, face, opts)
+        backward(obj, data, net, face, opts)
+        forwardbackward(obj, data, net, face, layerIDs, opts, dzdy)
         %[data, net] = f(obj, data, net, face, opts, inVals)
         %[data, net] = b(obj, data, net, face, opts, outDiffs)
         run(obj)
@@ -157,12 +127,12 @@ classdef nn < handle
         end
 
 
-        function net = updateWeightGPU(obj, net, lr, weightDecay, momentum, iter_size, updateWeightsInd, gf, len)
+        function updateWeightGPU(obj, net, lr, weightDecay, momentum, iter_size, updateWeightsInd, gf, len)
             for w = updateWeightsInd
                 [net.momentum{w}, net.weights{w}] = feval(gf, momentum, net.momentum{w}, lr, net.learningRate(w), weightDecay, net.weightDecay(w), net.weights{w}, net.weightsDiff{w}, iter_size, len(w));
             end
         end
-        function net = updateWeightCPU(obj, net, lr, weightDecay, momentum, iter_size, updateWeightsInd)
+        function updateWeightCPU(obj, net, lr, weightDecay, momentum, iter_size, updateWeightsInd)
             for w = updateWeightsInd
                 thisDecay = weightDecay * net.weightDecay(w);
                 thisLR = lr * net.learningRate(w);

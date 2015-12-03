@@ -18,7 +18,7 @@ classdef Dummy < nn.layers.template.BaseLayer
         function b(~, varargin)
             error('Not supported.');
         end
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+        function forward(obj, nnObj, l, opts, data, net)
             p = obj.params.dummy;
             if numel(l.bottom)==0
                 sizes = p.sizes;
@@ -49,8 +49,8 @@ classdef Dummy < nn.layers.template.BaseLayer
                 end
             end
         end
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
-            data = nn.utils.accumulateData(opts, data, l);
+        function backward(obj, nnObj, l, opts, data, net)
+            nn.utils.accumulateData(opts, data, l);
         end
         function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
             p = obj.params.dummy;

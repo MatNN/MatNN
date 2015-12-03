@@ -98,7 +98,7 @@ classdef SoftMaxLoss < nn.layers.template.LossLayer
             end
         end
 
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+        function forward(obj, nnObj, l, opts, data, net)
             if opts.gpuMode
                 loss = obj.params.loss.loss_weight * obj.gf(data.val{l.bottom});
             else
@@ -116,7 +116,7 @@ classdef SoftMaxLoss < nn.layers.template.LossLayer
             end
             data.val{l.top} = loss;
         end
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
+        function backward(obj, nnObj, l, opts, data, net)
             p = obj.params.loss;
             if opts.gpuMode
                 if numel(l.bottom) == 3
@@ -136,9 +136,9 @@ classdef SoftMaxLoss < nn.layers.template.LossLayer
                 bd = gpuArray(bd);
             end
             if numel(l.bottom) == 3
-                data = nn.utils.accumulateData(opts, data, l, bd, [], []);
+                nn.utils.accumulateData(opts, data, l, bd, [], []);
             else
-                data = nn.utils.accumulateData(opts, data, l, bd, []);
+                nn.utils.accumulateData(opts, data, l, bd, []);
             end
         end
 

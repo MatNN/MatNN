@@ -40,7 +40,7 @@ classdef BaseLayer < handle
         end
 
         % Forward function for training/testing routines
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+        function forward(obj, nnObj, l, opts, data, net)
             tmp = net.weightsIsMisc(l.weights);
             weightsInd = l.weights(~tmp);
             miscInd = l.weights(tmp);
@@ -51,14 +51,14 @@ classdef BaseLayer < handle
             end
         end
         % Backward function for training/testing routines
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
+        function backward(obj, nnObj, l, opts, data, net)
             if opts.gpuMode
                 bottom_diff1 = obj.gb(data.val{l.bottom(1)}, data.val{l.top(1)}, data.diff{l.top(1)});
             else
                 bottom_diff1 = obj.b(data.val{l.bottom(1)}, data.val{l.top(1)}, data.diff{l.top(1)});
             end
 
-            data = nn.utils.accumulateData(opts, data, bottom_diff1);
+            nn.utils.accumulateData(opts, data, bottom_diff1);
         end
 
         % Create resources (weight, misc)

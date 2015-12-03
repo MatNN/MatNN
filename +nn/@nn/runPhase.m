@@ -63,8 +63,11 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
     % -------------------------------
     data = obj.data;
     net = obj.net;
-    obj.data = {};
-    obj.net = {};
+    obj.net = [];
+    obj.data = [];
+    data_val_placeholder = cell(size(data.val));
+    data_diff_placeholder = cell(size(data.diff));
+    net_weightsDiff_placeholder = cell(size(net.weightsDiff));
 
     for t = currentIter:optface.numToNext
         % set learning rate
@@ -73,11 +76,15 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
         % set currentIter
         optface.currentIter = t;
 
+        
+        net.weightsDiff = net_weightsDiff_placeholder;
         for s=ss
+            data.val = data_val_placeholder;
+            data.diff = data_diff_placeholder;
             % evaluate CNN
             optface.accumulate = s > 1;
             optface.freezeDropout = s > 1;
-            [data, net] = obj.forwardbackward(data, net, currentFace, layerIDs, optface, dzdy);
+            obj.forwardbackward(data, net, currentFace, layerIDs, optface, dzdy);
 
             % accumulate backprop errors
             % assume all output blobs are loss-like blobs
@@ -104,7 +111,7 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
                 %net.weightsDiff = wd;
             end
             if numGpus == 0
-                net = obj.updateWeightCPU(net, learningRate, optface.weightDecay, optface.momentum, optface.iter_size, needToUpdatedWeightsInd);
+                obj.updateWeightCPU(net, learningRate, optface.weightDecay, optface.momentum, optface.iter_size, needToUpdatedWeightsInd);
                 %net = solver.solve(optface, learningRate, net, res, needToUpdatedWeightsInd);
             else
                 if ~isempty(needToUpdatedWeightsInd)
@@ -115,7 +122,7 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
                         end
                         gFun.GridSize = ceil( max(weightsNUMEL)/obj.MaxThreadsPerBlock );
                     end
-                    net = obj.updateWeightGPU(net, learningRate, optface.weightDecay, optface.momentum, optface.iter_size, needToUpdatedWeightsInd, gFun, weightsNUMEL);
+                    obj.updateWeightGPU(net, learningRate, optface.weightDecay, optface.momentum, optface.iter_size, needToUpdatedWeightsInd, gFun, weightsNUMEL);
                 else
                     %warning('No need to update weights.');
                 end
@@ -156,23 +163,9 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
             if numGpus > 1
                 labBarrier();
             end
-            obj.data = data;
-            obj.net = net;
-            data = [];
-            net = [];
-            if numGpus > 1
-                labBarrier();
-            end
             if labindex == 1 % only one worker can save the model
                 obj.save(obj.saveFilePath(globalIterNum));
             end
-            if numGpus > 1
-                labBarrier();
-            end
-            data = obj.data;
-            net = obj.net;
-            obj.data = [];
-            obj.net = [];
             if numGpus > 1
                 labBarrier();
             end
@@ -184,10 +177,8 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
         currentPhaseTotalIter = currentPhaseTotalIter+1;
 
     end
-    %obj.data.val = cell(size(data.val));
-    %obj.data.diff = cell(size(data.diff));
-    obj.data = data;
-    obj.net = net;
+    %data.val = cell(size(data.val));
+    %data.diff = cell(size(data.diff));
     obj.globalIter = globalIterNum;
     toc(pstart);
 end

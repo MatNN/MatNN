@@ -57,7 +57,7 @@ classdef Multiply < nn.layers.template.BaseLayer
             end
         end
 
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+        function forward(obj, nnObj, l, opts, data, net)
             p = obj.params.multiply;
             in1 = data.val{l.bottom(1)};
             in2 = data.val{l.bottom(2)};
@@ -77,14 +77,14 @@ classdef Multiply < nn.layers.template.BaseLayer
             end
         end
 
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
+        function backward(obj, nnObj, l, opts, data, net)
             p = obj.params.multiply;
             if opts.gpuMode
                 [bottom_diff{1}, bottom_diff{2}] = obj.gb(p.transpose, data.val{l.bottom(1)}, data.val{l.bottom(2)}, data.diff{l.top});
             else
                 [bottom_diff{1}, bottom_diff{2}] = obj.b(p.transpose, data.val{l.bottom(1)}, data.val{l.bottom(2)}, data.diff{l.top});
             end
-            data = nn.utils.accumulateData(opts, data, l, bottom_diff{:});
+            nn.utils.accumulateData(opts, data, l, bottom_diff{:});
         end
 
         function outSizes =  outputSizes(obj, opts, l, inSizes, varargin)

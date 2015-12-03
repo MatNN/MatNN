@@ -100,7 +100,7 @@ classdef Accuracy < nn.layers.template.BaseLayer
             end
         end
 
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+        function forward(obj, nnObj, l, opts, data, net)
             p = obj.params.accuracy;
             if p.meanClassAcc
                 [a, b] = obj.f(data.val{l.bottom(1)}, data.val{l.bottom(2)}, p.labelIndex_start, p.meanClassAcc, opts.currentIter);
@@ -109,7 +109,7 @@ classdef Accuracy < nn.layers.template.BaseLayer
                 data.val{l.top} = single(obj.f(data.val{l.bottom(1)}, data.val{l.bottom(2)}, p.labelIndex_start, p.meanClassAcc, opts.currentIter));
             end
         end
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
+        function backward(obj, nnObj, l, opts, data, net)
         end
 
         function outSizes = outputSizes(obj, opts, l, inSizes, varargin)

@@ -20,11 +20,11 @@ classdef Reshape < nn.layers.template.BaseLayer
         function in_diff = b(~, in, out_diff)
             in_diff = reshape(out_diff, nn.utils.size4D(in));
         end
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+        function forward(obj, nnObj, l, opts, data, net)
             data.val{l.top} = obj.f(data.val{l.bottom}, obj.params.reshape.output_size);
         end
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
-            data = nn.utils.accumulateData(opts, data, l, obj.b(data.val{l.bottom}, data.diff{l.top}));
+        function backward(obj, nnObj, l, opts, data, net)
+            nn.utils.accumulateData(opts, data, l, obj.b(data.val{l.bottom}, data.diff{l.top}));
         end
         function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
             % replace 0

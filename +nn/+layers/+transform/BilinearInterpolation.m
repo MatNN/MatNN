@@ -49,7 +49,7 @@ classdef BilinearInterpolation < nn.layers.template.BaseLayer
             in_diff = obj.b(varargin{:});
         end
 
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+        function forward(obj, nnObj, l, opts, data, net)
             if opts.gpuMode
                 data.val{l.top} = obj.f(data.val{l.bottom(1)}, data.val{l.bottom(2)});
                 if obj.params.bilinear.showDebugWindow
@@ -65,13 +65,13 @@ classdef BilinearInterpolation < nn.layers.template.BaseLayer
                 error('BilinearInterpolation Layer : only support gpu mode currently.');
             end
         end
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
+        function backward(obj, nnObj, l, opts, data, net)
             if opts.gpuMode
                 [bottom_diff{1}, bottom_diff{2}] = obj.b(data.val{l.bottom(1)}, data.val{l.bottom(2)}, data.val{l.top}, data.diff{l.top});
             else
                 error('BilinearInterpolation Layer : only support gpu mode currently.');
             end
-            data = nn.utils.accumulateData(opts, data, l, bottom_diff{:});
+            nn.utils.accumulateData(opts, data, l, bottom_diff{:});
         end
         
         function outSizes = outputSizes(obj, opts, l, inSizes, varargin)

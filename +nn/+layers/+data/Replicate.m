@@ -18,7 +18,7 @@ classdef Replicate < nn.layers.template.BaseLayer
             error('Not supported.');
         end
 
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+        function forward(obj, nnObj, l, opts, data, net)
             p = obj.params.replicate;
             value = p.value;
             for i=1:numel(value)
@@ -31,8 +31,8 @@ classdef Replicate < nn.layers.template.BaseLayer
             end
         end
 
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
-            data = nn.utils.accumulateData(opts, data, l);
+        function backward(obj, nnObj, l, opts, data, net)
+            nn.utils.accumulateData(opts, data, l);
         end
 
         function outSizes = outputSizes(obj, opts, l, inSizes, varargin)

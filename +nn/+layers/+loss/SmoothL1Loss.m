@@ -49,7 +49,7 @@ classdef SmoothL1Loss < nn.layers.template.LossLayer
             in1_diff = der;
             in2_diff = -der;
         end
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+        function forward(obj, nnObj, l, opts, data, net)
             loss = obj.params.loss.loss_weight * obj.f(data.val{l.bottom});
             
             if obj.params.loss.accumulate
@@ -63,7 +63,7 @@ classdef SmoothL1Loss < nn.layers.template.LossLayer
             end
             data.val{l.top} = loss;
         end
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
+        function backward(obj, nnObj, l, opts, data, net)
             p = obj.params.loss;
             if numel(l.bottom) == 3
                 [bd1, bd2] = obj.b(data.diff{l.top}, data.val{l.bottom(3)});
@@ -78,9 +78,9 @@ classdef SmoothL1Loss < nn.layers.template.LossLayer
                 bd2 = gpuArray(bd2);
             end
             if numel(l.bottom) == 3
-                data = nn.utils.accumulateData(opts, data, l, bd1, bd2, []);
+                nn.utils.accumulateData(opts, data, l, bd1, bd2, []);
             else
-                data = nn.utils.accumulateData(opts, data, l, bd1, bd2);
+                nn.utils.accumulateData(opts, data, l, bd1, bd2);
             end
         end
         function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
