@@ -45,6 +45,8 @@ classdef nn < handle
         %[data, net] = b(obj, data, net, face, opts, outDiffs)
         run(obj)
         runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIter)
+        load(obj, dest, varargin)
+        moveTo(obj, varargin)
 
         
         function setPhaseOrder(obj, varargin)
@@ -125,8 +127,45 @@ classdef nn < handle
             % set opts
             obj.pha_opt.(face) = opt;
         end
-
-
+        function setRandomSeed(obj, varargin)
+            if ~isempty(varargin)
+                if ~isempty(varargin{1})
+                    sc = RandStream('CombRecursive','Seed',varargin{1});
+                    RandStream.setGlobalStream(sc);
+                    if numel(obj.gpus) > 0
+                        sg = parallel.gpu.RandStream('CombRecursive','Seed',varargin{1});
+                        parallel.gpu.RandStream.setGlobalStream(sg);
+                    end
+                    obj.seed = varargin{1};
+                else
+                    sc = RandStream('CombRecursive','Seed',now);
+                    RandStream.setGlobalStream(sc);
+                    if numel(obj.gpus) > 0
+                        sg = parallel.gpu.RandStream('CombRecursive','Seed',now);
+                        parallel.gpu.RandStream.setGlobalStream(sg);
+                    end
+                end
+            else
+                if ~isempty(obj.seed)
+                    sc = RandStream('CombRecursive','Seed',obj.seed);
+                    RandStream.setGlobalStream(sc);
+                    if numel(obj.gpus) > 0
+                        sg = parallel.gpu.RandStream('CombRecursive','Seed',obj.seed);
+                        parallel.gpu.RandStream.setGlobalStream(sg);
+                    end
+                else
+                    sc = RandStream('CombRecursive','Seed',now);
+                    RandStream.setGlobalStream(sc);
+                    if numel(obj.gpus) > 0
+                        sg = parallel.gpu.RandStream('CombRecursive','Seed',now);
+                        parallel.gpu.RandStream.setGlobalStream(sg);
+                    end
+                end
+            end
+        end
+        function p = saveFilePath(obj, iter)
+            p = fullfile(obj.expDir, sprintf('%s-Iter%d.mat', obj.net.name, iter));
+        end
         function updateWeightGPU(obj, net, lr, weightDecay, momentum, iter_size, updateWeightsInd, gf, len)
             for w = updateWeightsInd
                 [net.momentum{w}, net.weights{w}] = feval(gf, momentum, net.momentum{w}, lr, net.learningRate(w), weightDecay, net.weightDecay(w), net.weights{w}, net.weightsDiff{w}, iter_size, len(w));
@@ -229,7 +268,7 @@ classdef nn < handle
                 for j=1:numel(obj.net.layers)
                     if strcmp(obj.net.layers{j}.name, layerName)
                         obj.net.layers{j}.subPhase = [layerName, obj.subPhaseName];
-                        fprintf('Set Layer: %s.phase = %s', layerName, obj.net.layers{j}.subPhase);
+                        fprintf('Set Layer: %s.subPhase = %s', layerName, obj.net.layers{j}.subPhase);
                         break;
                     end
                 end
@@ -250,72 +289,6 @@ classdef nn < handle
         % end
         function layerObj = getLayer(obj, name)
             layerObj = obj.net.layers{obj.net.layerNamesIndex.(name)}.obj;
-        end
-
-        function load(obj, dest, varargin)
-            if isnumeric(dest)
-                obj.globalIter = dest;
-                dest = obj.saveFilePath(dest);
-            else
-                obj.globalIter = [];
-            end
-            if numel(varargin)==1
-                if strcmpi(varargin{1}, 'weights')
-                    onlyWeights = true;
-                elseif strcmpi(varargin{1}, 'all')
-                    onlyWeights = false;
-                end
-            else
-                onlyWeights = false;
-            end
-            if ~exist(dest, 'file')
-                error('Cannot find saved network file.');
-            end
-            fprintf('Load network from %s....', dest);
-            load(dest, 'network', 'data');
-            %merge
-            if (isempty(obj.net.weights) && ~onlyWeights) && (exist('network', 'var') && exist('data', 'var'))
-                obj.net = network;
-                obj.data = data;
-                clearvars network data;
-                for i=1:numel(obj.net.layers)
-                    tmpObj = [];
-                    try
-                        tmpHandle = str2func(['nn.layers.', obj.net.layers{i}.type]);
-                        tmpObj = tmpHandle();
-                    catch
-                        tmpHandle = str2func(obj.net.layers{i}.type);
-                        tmpObj = tmpHandle();
-                    end
-                    tmpObj.load(obj.net.layers{i}.obj);
-                    if numel(obj.gpus)>0
-                        tmpObj.moveTo('GPU');
-                    end
-                    obj.net.layers{i}.obj = tmpObj;
-
-                end
-                obj.needReBuild = false;
-                obj.setRandomSeed();
-            else
-                obj.build();
-                if exist('data', 'var')
-                    clearvars data;
-                end
-                fprintf('===================================\n');
-                for i=1:numel(network.weights)
-                    name = network.weightsNames{i};
-                    if isequal(size(obj.net.weights{obj.net.weightsNamesIndex.(name)}), size(network.weights{i}))
-                        obj.net.weights{obj.net.weightsNamesIndex.(name)} = network.weights{i};
-                        obj.net.momentum{obj.net.weightsNamesIndex.(name)} = network.momentum{i};
-                        fprintf('Replace with loaded weight: %s\n', name);
-                    else
-                        fprintf('Did ont replace with weight: %s, size mismatch.\n', name);
-                    end
-                end
-                clearvars network;
-            end
-            obj.moveTo();
-            fprintf('done.\n');
         end
         function save(obj, varargin)
             if numel(varargin)==0
@@ -346,74 +319,10 @@ classdef nn < handle
             clearvars backupnet backupdata;
             fprintf('done.\n');
         end
-        function p = saveFilePath(obj, iter)
-            p = fullfile(obj.expDir, sprintf('%s-Iter%d.mat', obj.net.name, iter));
-        end
-        function moveTo(obj, varargin)
-            if numel(varargin)==0
-                if numel(obj.gpus)>0
-                    dest = 'gpu';
-                else
-                    dest = 'cpu';
-                end
-            else
-                dest = varargin{1};
-            end
-            for i=1:numel(obj.data.val)
-                obj.data.val{i} = obj.moveTo_private(dest,obj.data.val{i});
-                obj.data.diff{i} = obj.moveTo_private(dest,obj.data.diff{i});
-            end
-            for i=1:numel(obj.net.weights)
-                obj.net.weights{i} = obj.moveTo_private(dest,obj.net.weights{i});
-            end
-            for i=1:numel(obj.net.momentum)
-                obj.net.momentum{i} = obj.moveTo_private(dest,obj.net.momentum{i});
-            end
-            obj.net.learningRate = obj.moveTo_private(dest,obj.net.learningRate);
-            obj.net.weightDecay = obj.moveTo_private(dest,obj.net.weightDecay);
-        end
-        function setRandomSeed(obj, varargin)
-            if ~isempty(varargin)
-                if ~isempty(varargin{1})
-                    sc = RandStream('CombRecursive','Seed',varargin{1});
-                    RandStream.setGlobalStream(sc);
-                    if numel(obj.gpus) > 0
-                        sg = parallel.gpu.RandStream('CombRecursive','Seed',varargin{1});
-                        parallel.gpu.RandStream.setGlobalStream(sg);
-                    end
-                    obj.seed = varargin{1};
-                else
-                    sc = RandStream('CombRecursive','Seed',now);
-                    RandStream.setGlobalStream(sc);
-                    if numel(obj.gpus) > 0
-                        sg = parallel.gpu.RandStream('CombRecursive','Seed',now);
-                        parallel.gpu.RandStream.setGlobalStream(sg);
-                    end
-                end
-            else
-                if ~isempty(obj.seed)
-                    sc = RandStream('CombRecursive','Seed',obj.seed);
-                    RandStream.setGlobalStream(sc);
-                    if numel(obj.gpus) > 0
-                        sg = parallel.gpu.RandStream('CombRecursive','Seed',obj.seed);
-                        parallel.gpu.RandStream.setGlobalStream(sg);
-                    end
-                else
-                    sc = RandStream('CombRecursive','Seed',now);
-                    RandStream.setGlobalStream(sc);
-                    if numel(obj.gpus) > 0
-                        sg = parallel.gpu.RandStream('CombRecursive','Seed',now);
-                        parallel.gpu.RandStream.setGlobalStream(sg);
-                    end
-                end
-            end
-        end
         
     end
 
     methods (Access=protected)
-        [connectId, replaceId, outId, srcId] = setConnectAndReplaceData(obj, phase, blobSizes)
-
         function v = invertIndex(~, fields)
             v = struct();
             for i=1:numel(fields)
@@ -471,19 +380,6 @@ classdef nn < handle
                 tmpLayer.phase = {};
             end
             obj.needReBuild = true;
-        end
-        function va = moveTo_private(obj, dest, va)
-            if strcmpi(dest, 'gpu')
-                if ~isa(va, 'gpuArray')
-                    va = gpuArray(single(va));
-                end
-            elseif strcmpi(dest, 'cpu')
-                if isa(va, 'gpuArray')
-                    va = gather(va);
-                end
-            else
-                error('Unknown destination.');
-            end
         end
         function clearData(obj)
             s = size(obj.data.val);
