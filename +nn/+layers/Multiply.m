@@ -1,7 +1,7 @@
-classdef Bilinear < nn.layers.template.BaseLayer
+classdef Multiply < nn.layers.template.BaseLayer
 
     properties (SetAccess = protected, Transient)
-        default_bilinear_param = {
+        default_multiply_param = {
             'transpose' true...
         };
     end
@@ -58,7 +58,7 @@ classdef Bilinear < nn.layers.template.BaseLayer
         end
 
         function [data, net] = forward(obj, nnObj, l, opts, data, net)
-            p = obj.params.bilinear;
+            p = obj.params.multiply;
             in1 = data.val{l.bottom(1)};
             in2 = data.val{l.bottom(2)};
             
@@ -78,7 +78,7 @@ classdef Bilinear < nn.layers.template.BaseLayer
         end
 
         function [data, net] = backward(obj, nnObj, l, opts, data, net)
-            p = obj.params.bilinear;
+            p = obj.params.multiply;
             if opts.gpuMode
                 [bottom_diff{1}, bottom_diff{2}] = obj.gb(p.transpose, data.val{l.bottom(1)}, data.val{l.bottom(2)}, data.diff{l.top});
             else
@@ -88,7 +88,7 @@ classdef Bilinear < nn.layers.template.BaseLayer
         end
 
         function outSizes =  outputSizes(obj, opts, l, inSizes, varargin)
-            p = obj.params.bilinear;
+            p = obj.params.multiply;
             if p.transpose
                 outSizes = {[inSizes{1}(2), inSizes{2}(2), inSizes{1}(3:end)]};
             else
@@ -100,7 +100,7 @@ classdef Bilinear < nn.layers.template.BaseLayer
             assert(inSizes{1}(3)==inSizes{2}(3));
             assert(inSizes{1}(4)==inSizes{2}(4));
             [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});
-            p = obj.params.bilinear;
+            p = obj.params.multiply;
             assert(numel(l.bottom)==2);
             assert(numel(l.top) == 1);
             if p.transpose
