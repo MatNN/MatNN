@@ -19,7 +19,6 @@ classdef Accuracy < nn.layers.template.BaseLayer
         accumulate = false;
     end
     
-
     methods
         function v = propertyDevice(obj)
             v = obj.propertyDevice@nn.layers.template.BaseLayer();
@@ -29,6 +28,7 @@ classdef Accuracy < nn.layers.template.BaseLayer
             v.accumulateAcc = 2;
             v.accumulate = 0;
         end
+
         function varargout = f(obj, in, label, labelIndex_start, doMeanClass, varargin) %varargin{1} = currentIter
             resSize = nn.utils.size4D(in);
             if resSize(4) == numel(label) && size(label,4) ~= resSize(4)
@@ -56,8 +56,6 @@ classdef Accuracy < nn.layers.template.BaseLayer
                             obj.perClassAcc(i)  = obj.perClassAcc(i)+sum(argMax(mask)==correctLabelInd);
                             obj.perClassArea(i) = obj.perClassArea(i)+sum(mask(:));
                         end
-                        nonZeroArea = obj.perClassArea~=0;
-                        varargout{2} = mean(obj.perClassAcc(nonZeroArea)./obj.perClassArea(nonZeroArea));
                     else
                         obj.perClassAcc = obj.perClassAcc.*0;
                         obj.perClassArea = obj.perClassArea.*0;
@@ -67,9 +65,9 @@ classdef Accuracy < nn.layers.template.BaseLayer
                             obj.perClassAcc(i)  = sum(argMax(mask)==correctLabelInd);
                             obj.perClassArea(i) = sum(mask(:));
                         end
-                        nonZeroArea = obj.perClassArea~=0;
-                        varargout{2} = mean(obj.perClassAcc(nonZeroArea)./obj.perClassArea(nonZeroArea));
                     end
+                    nonZeroArea = obj.perClassArea~=0;
+                    varargout{2} = mean(obj.perClassAcc(nonZeroArea)./obj.perClassArea(nonZeroArea));
                 end
             else
                 k = bsxfun(@eq, in, label);
@@ -94,7 +92,6 @@ classdef Accuracy < nn.layers.template.BaseLayer
         function in_diff = b(obj, in, out, out_diff)
             in_diff = [];
         end
-
         function varargout = gf(obj, in, label, doMeanClass, varargin)
             if doMeanClass
                 [varargout{1}, varargout{2}] = obj.f(in, label, doMeanClass,varargin{:});
@@ -103,7 +100,6 @@ classdef Accuracy < nn.layers.template.BaseLayer
             end
         end
 
-        % Forward function for training/testing routines
         function [data, net] = forward(obj, nnObj, l, opts, data, net)
             p = obj.params.accuracy;
             if p.meanClassAcc
@@ -113,12 +109,9 @@ classdef Accuracy < nn.layers.template.BaseLayer
                 data.val{l.top} = single(obj.f(data.val{l.bottom(1)}, data.val{l.bottom(2)}, p.labelIndex_start, p.meanClassAcc, opts.currentIter));
             end
         end
-        % Backward function for training/testing routines
         function [data, net] = backward(obj, nnObj, l, opts, data, net)
-            data = nn.utils.accumulateData(opts, data, l);
         end
 
-        % Calc Output sizes
         function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
             resSize = inSizes{1};
             ansSize = inSizes{2};
@@ -131,13 +124,10 @@ classdef Accuracy < nn.layers.template.BaseLayer
             obj.perClassAcc  = zeros(1, resSize(3), 'single');
             outSizes = {[1,1,1,1]};
         end
-
         function setParams(obj, l)
             obj.setParams@nn.layers.template.BaseLayer(l);
             obj.accumulate = obj.params.accuracy.accumulate;
         end
-
-        % Setup function for training/testing routines
         function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
             [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});
             assert(numel(l.bottom)==2);
