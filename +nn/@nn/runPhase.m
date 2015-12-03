@@ -63,11 +63,9 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
     % -------------------------------
     data = obj.data;
     net = obj.net;
-    obj.net = [];
-    obj.data = [];
-    data_val_placeholder = cell(size(data.val));
-    data_diff_placeholder = cell(size(data.diff));
-    net_weightsDiff_placeholder = cell(size(net.weightsDiff));
+    %data_val_placeholder = cell(size(data.val));
+    %data_diff_placeholder = cell(size(data.diff));
+    %net_weightsDiff_placeholder = cell(size(net.weightsDiff));
 
     for t = currentIter:optface.numToNext
         % set learning rate
@@ -77,10 +75,10 @@ function runPhase(obj, currentFace, currentRepeatTimes, globalIterNum, currentIt
         optface.currentIter = t;
 
         
-        net.weightsDiff = net_weightsDiff_placeholder;
+        %net.weightsDiff = net_weightsDiff_placeholder;
         for s=ss
-            data.val = data_val_placeholder;
-            data.diff = data_diff_placeholder;
+            %data.val = data_val_placeholder;
+            %data.diff = data_diff_placeholder;
             % evaluate CNN
             optface.accumulate = s > 1;
             optface.freezeDropout = s > 1;
