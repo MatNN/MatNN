@@ -19,49 +19,51 @@ if ~exist(dest, 'file')
     error('Cannot find saved network file.');
 end
 fprintf('Load network from %s....', dest);
-load(dest, 'network', 'data');
+load(dest, 'network');
 %merge
-if (isempty(obj.net.weights) && ~onlyWeights) && (exist('network', 'var') && exist('data', 'var'))
-    obj.net = network;
-    obj.data = data;
-    clearvars network data;
-    for i=1:numel(obj.net.layers)
-        tmpObj = [];
+if ~onlyWeights && exist('network', 'var')
+    obj.data.load(network.data);
+    network.data = [];
+    obj.randomSeed = network.randomSeed;
+    obj.layerNames = network.layerNames;
+    obj.layerNamesInd = network.layerNamesInd;
+
+    for i=1:numel(network.layers)
         try
-            tmpHandle = str2func(['nn.layers.', obj.net.layers{i}.type]);
+            tmpHandle = str2func(['nn.layers.', network.layers{i}.origParams.type]);
             tmpObj = tmpHandle();
         catch
-            tmpHandle = str2func(obj.net.layers{i}.type);
+            tmpHandle = str2func(network.layers{i}.origParams.type);
             tmpObj = tmpHandle();
         end
-        tmpObj.load(obj.net.layers{i}.obj);
-        if numel(obj.gpus)>0
+        origDisableConnectData = tmpObj.disableConnectData;
+        tmpObj.disableConnectData = true;
+        tmpObj.net = obj;
+        tmpObj.load(network.layers{i});
+        tmpObj.disableConnectData = origDisableConnectData;
+        if obj.gpu
             tmpObj.moveTo('GPU');
         end
-        obj.net.layers{i}.obj = tmpObj;
-
+        obj.layers{i} = tmpObj;
     end
-    obj.needReBuild = false;
-    obj.setRandomSeed();
+    clearvars network;
 else
-    obj.build();
-    if exist('data', 'var')
-        clearvars data;
-    end
-    fprintf('===================================\n');
-    for i=1:numel(network.weights)
-        name = network.weightsNames{i};
-        if isequal(size(obj.net.weights{obj.net.weightsNamesIndex.(name)}), size(network.weights{i}))
-            obj.net.weights{obj.net.weightsNamesIndex.(name)} = network.weights{i};
-            obj.net.momentum{obj.net.weightsNamesIndex.(name)} = network.momentum{i};
-            fprintf('Replace with loaded weight: %s\n', name);
-        else
-            fprintf('Did ont replace with weight: %s, size mismatch.\n', name);
-        end
+    preservedName = network.data.names(network.data.preserve);
+    for ff=preservedName
+        f = ff{1};
+        newid = obj.data.namesInd.(f);
+        oldid = network.data.namesInd.(f);
+        obj.data.val{newid} = network.data.val{oldid};
+        obj.data.momentum{newid} = network.data.momentum{oldid};
     end
     clearvars network;
 end
-obj.moveTo();
+if obj.gpu
+    obj.data.moveTo('GPU');
+else
+    obj.data.moveTo('CPU');
+end
+
 fprintf('done.\n');
 
 end
