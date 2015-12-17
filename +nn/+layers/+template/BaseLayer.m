@@ -1,4 +1,4 @@
-classdef BaseLayer < handle
+classdef BaseLayer < nn.BaseObject
 
     % Default parameters
     properties (SetAccess = protected, Transient)
@@ -10,10 +10,23 @@ classdef BaseLayer < handle
     end
 
     % variables (not computed every time, eg. once at launch)
-    properties (SetAccess = protected, GetAccess = public)
+    properties (SetAccess = {?nn.BaseObject}, GetAccess = public)
         params;
         didSetup = false;
         MaxThreadsPerBlock = 1024; %this value will be replaced by your GPU configuration.
+    end
+
+    % layer info
+    properties
+        origParams;
+        name;
+        net;
+        bottom = [];
+        top = [];
+    end
+
+    properties (Access = {?nn.nn})
+        disableConnectData = false;
     end
 
 
@@ -40,43 +53,43 @@ classdef BaseLayer < handle
         end
 
         % Forward function for training/testing routines
-        function forward(obj, nnObj, l, opts, data, net)
-            tmp = net.weightsIsMisc(l.weights);
-            weightsInd = l.weights(~tmp);
-            miscInd = l.weights(tmp);
-            if opts.gpuMode
-                data.val{l.top(1)} = obj.gf(data.val{l.bottom(1)});
+        function forward(obj)
+            %tmp = net.weightsIsMisc(l.weights);
+            %weightsInd = l.weights(~tmp);
+            %miscInd = l.weights(tmp);
+            if obj.net.opts.gpu
+                obj.net.data.val{obj.top} = obj.gf(obj.net.data.val{obj.bottom});
             else
-                data.val{l.top(1)} = obj.f(data.val{l.bottom(1)});
+                obj.net.data.val{obj.top} = obj.f(obj.net.data.val{obj.bottom});
             end
+            obj.net.data.forwardCount(obj.bottom, obj.top);
         end
         % Backward function for training/testing routines
-        function backward(obj, nnObj, l, opts, data, net)
-            if opts.gpuMode
-                bottom_diff1 = obj.gb(data.val{l.bottom(1)}, data.val{l.top(1)}, data.diff{l.top(1)});
+        function backward(obj)
+            if obj.net.opts.gpu
+                bottom_diff1 = obj.gb(obj.net.data.val{obj.bottom}, obj.net.data.val{obj.top}, obj.net.data.diff{obj.top});
             else
-                bottom_diff1 = obj.b(data.val{l.bottom(1)}, data.val{l.top(1)}, data.diff{l.top(1)});
+                bottom_diff1 = obj.b(obj.net.data.val{obj.bottom}, obj.net.data.val{obj.top}, obj.net.data.diff{obj.top});
             end
-
-            nn.utils.accumulateData(opts, data, bottom_diff1);
+            data.backwardCount(obj.bottom,  obj.top, bottom_diff);
+            %nn.utils.accumulateDiff(obj.net.data, obj.bottom,  obj.top, bottom_diff1);
         end
 
         % Create resources (weight, misc)
-        function resources = createResources(obj, opts, l, inSizes, varargin)
-            resources = {};
+        function createResources(obj, inSizes)
         end
         % Calc Output sizes
-        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
+        function outSizes = outputSizes(obj, inSizes)
             outSizes = inSizes;
         end
         % Set parameters
-        function setParams(obj, l)
+        function setParams(obj)
             p = metaclass(obj);
             for va = p.PropertyList'
                 if numel(va.Name) > numel('default__param')
                     if strcmp(va.Name(1:8), 'default_') && strcmp(va.Name((end-5):end), '_param')
-                        if isfield(l, va.Name(9:end))
-                            wp = nn.utils.vararginHelper(obj.(va.Name), l.(va.Name(9:end)));
+                        if isfield(obj.origParams, va.Name(9:end))
+                            wp = nn.utils.vararginHelper(obj.(va.Name), obj.origParams.(va.Name(9:end)));
                         else
                             wp = nn.utils.vararginHelper(obj.(va.Name), obj.(va.Name));
                         end
@@ -86,15 +99,51 @@ classdef BaseLayer < handle
             end
         end
         % Setup function for training/testing routines
-        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin) % varargin{1} = nnObj, {2} = sizes, {3} = nested depth
-            obj.setParams(l);
-            outSizes  = obj.outputSizes(opts, l, inSizes, varargin{:});
-            resources = obj.createResources(opts, l, inSizes, varargin{:});
+        function outSizes = setup(obj, inSizes)
+            obj.setParams();
+            outSizes  = obj.outputSizes(inSizes);
+            obj.createResources(inSizes);
             obj.didSetup = true;
-            if opts.gpuMode
+            if obj.net.opts.gpu
                 dg = gpuDevice();
                 obj.MaxThreadsPerBlock = dg.MaxThreadsPerBlock;
             end
+        end
+        function release(obj)
+            obj.top = [];
+            obj.bottom = [];
+        end
+        function vars = holdVars(obj)
+            vars = [obj.bottom, obj.top];
+        end
+
+        function set.bottom(obj, dataIDorNames)
+            obj.bottom = obj.connectData('bottom', dataIDorNames);
+        end
+        function set.top(obj, dataIDorNames)
+            obj.top = obj.connectData('top', dataIDorNames);
+        end
+
+        function v = propertyDevice(~)
+            v.origParams = -1;
+            v.params   = -1;
+            v.didSetup = -1;
+            v.name = -1;
+            v.bottom = -1;
+            v.top = -1;
+            v.net = -2;
+            v.MaxThreadsPerBlock = 0;
+            v.disableConnectData = -2;
+        end
+        function varargout = moveTo(obj, dest)
+            origDisableConnectData = obj.disableConnectData;
+            obj.disableConnectData = true;
+            if nargout == 1
+                varargout{1} = obj.moveTo@nn.BaseObject(dest);
+            elseif nargout == 0
+                obj.moveTo@nn.BaseObject(dest);
+            end
+            obj.disableConnectData = origDisableConnectData;
         end
 
         % Constructor
@@ -102,102 +151,68 @@ classdef BaseLayer < handle
             obj.modifyDefaultParams();
         end
 
-        % Move variables/parameters to CPU/GPU
-        function varargout = moveTo(obj, dest)
-            p = metaclass(obj);
-            if nargout == 0
-                for va = p.PropertyList'
-                    if va.Abstract || va.Transient || va.Dependent
-                        continue;
-                    else
-                        obj.(va.Name) = obj.moveTo_private(dest, va.Name, obj.(va.Name));
-                    end
-                end
-            elseif nargout == 1
-                o = struct();
-                for va = p.PropertyList'
-                    if va.Abstract || va.Transient || va.Dependent
-                        continue;
-                    else
-                        o.(va.Name) = obj.moveTo_private(dest, va.Name, obj.(va.Name));
-                    end
-                end
-                varargout{1} = o;
-            else
-                error('Too many outputs.');
-            end
-            
-        end
-        % Save variables
-        function o = save(obj)
-            o = struct();
-            p = metaclass(obj);
-            for va = p.PropertyList'
-                if va.Abstract || va.Transient || va.Dependent
-                    continue;
-                else
-                    o.(va.Name) = obj.moveTo_private('cpu', va.Name, obj.(va.Name));
-                end
-            end
-        end
-        % Load variables
-        function load(obj, o)
-            assert(isstruct(o));
-            for ff = fieldnames(o)'
-                f = ff{1};
-                obj.(f) = o.(f);
-            end
-        end
-
-        %check if a property can be on CPU(0), GPU(1), both(2), ignore(-1), methodName(to build)
-        function v = propertyDevice(~)
-            v.params   = -1;
-            v.didSetup = -1;
-            v.MaxThreadsPerBlock = 0;
-        end
     end
 
     methods (Access = protected)
         function modifyDefaultParams(obj)
             % modify superclass' parameters
         end
-        function val = checkProperty(obj, t)
-            v = obj.propertyDevice();
-            if isfield(v, t)
-                val = v.(t);
+        function connectedIDs = connectData(obj, propName, dataIDorNames, varargin)
+            data = obj.net.data;
+            if ~obj.disableConnectData
+                if iscell(dataIDorNames)
+                    newNames = dataIDorNames;
+                elseif ischar(dataIDorNames)
+                    newNames = {dataIDorNames};
+                elseif isreal(dataIDorNames)
+                    for i=dataIDorNames
+                        assert(data.isVar(i), 'Provided data ID is not valid.');
+                    end
+                    newNames = data.names(dataIDorNames);
+                else
+                    error('Not a valid data id or name.');
+                end
+
+                origNames = data.names(obj.(propName));
+                disconnectedVar = origNames(~ismember(origNames, newNames));
+                newconnectedVar = newNames(~ismember(newNames, origNames));
+                
+                % delete ref
+                for i = disconnectedVar
+                    dName = i{1};
+                    data.releaseVar(dName);
+                end
+                
+                % add ref
+                newIDs = zeros(size(newNames));
+                for i = 1:numel(newconnectedVar)
+                    dName = newconnectedVar{i};
+                    data.addVar(dName, varargin{:});
+                    if data.isVar(dName)
+                        data.holdVar(dName);
+                    else
+                        data.holdVar(dName);
+                    end
+                    newIDs(i) = data.getIDbyName(dName);
+                end
+                connectedIDs = newIDs;
             else
-                val = 2;
-            end
-        end
-        function va = moveTo_private(obj, dest, vaName, va)
-            if ~ischar(vaName)
-                togo = vaName;
-            else
-                togo = obj.checkProperty(vaName);
-            end
-            
-            if togo==-1
-                return;
-            elseif ischar(togo)
-                va = obj.(togo)(dest);
-                return;
-            end
-            if isnumeric(va)
-                % prevent gpuArray(gpuArray(va))
-                if isa(va, 'gpuArray') && (togo==0 || togo==2) && strcmpi(dest, 'cpu')
-                    va = gather(va);
-                elseif ~isa(va, 'gpuArray') && (togo==1 || togo==2) && strcmpi(dest, 'gpu')
-                    va = gpuArray(va);
+                if iscell(dataIDorNames)
+                    ids = zeros(size(dataIDorNames));
+                    for i=1:numel(dataIDorNames)
+                        ids(i) = data.namesInd.(dataIDorNames{i});
+                    end
+                elseif ischar(dataIDorNames)
+                    ids = data.namesInd.(dataIDorNames);
+                elseif isreal(dataIDorNames)
+                    for i=dataIDorNames
+                        assert(data.isVar(data.names{i}), 'Provided data ID is not valid.');
+                    end
+                    ids = dataIDorNames;
+                else
+                    error('Not a valid data id or name.');
                 end
-            elseif iscell(va)
-                for i=1:numel(va)
-                    va{i} = obj.moveTo_private(dest, togo, va{i});
-                end
-            elseif isstruct(va)
-                for ff=fieldnames(va)'
-                    f = ff{1};
-                    va.(f) = obj.moveTo_private(dest, togo, va.(f));
-                end
+                connectedIDs = ids;
             end
         end
     end
