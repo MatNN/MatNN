@@ -200,7 +200,7 @@ trainer.add({
 trainer.flowOrder = {'train'};
 trainer.repeat     = 100;
 trainer.savePath   = fullfile('data','exp');
-trainer.gpu        = 2;
+trainer.gpu        = 1;
 
 trainOp.iter        = 600;  
 trainOp.numToSave   = 600*conf.save;  
