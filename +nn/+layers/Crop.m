@@ -46,7 +46,7 @@ classdef Crop < nn.layers.template.BaseLayer
             [bottom_diff1, bottom_diff2] = obj.b(data.val{obj.bottom}, data.diff{obj.top}, obj.params.crop.offset);
             data.backwardCount(obj.bottom,  obj.top, bottom_diff1, bottom_diff2);
         end
-        function outSizes = outputSizes(inSizes)
+        function outSizes = outputSizes(obj, inSizes)
             HW1 = inSizes{1}(1:2);
             HW2 = inSizes{2}(1:2);
             % use the smallest bottom size as top size
@@ -56,7 +56,7 @@ classdef Crop < nn.layers.template.BaseLayer
                 error('Crop Layer bottom size is wrong.');
             end
         end
-        function outSizes = setup(inSizes)
+        function outSizes = setup(obj, inSizes)
             outSizes = obj.setup@nn.layers.template.BaseLayer(inSizes);
             assert(numel(obj.bottom)==2);
             assert(numel(obj.top)==1);

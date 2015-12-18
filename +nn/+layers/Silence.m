@@ -8,11 +8,11 @@ classdef Silence < nn.layers.template.BaseLayer
             error('Not supported.');
         end
         function forward(obj)
-            data.forwardCount(obj.bottom, []);
+            obj.net.data.forwardCount(obj.bottom, []);
         end
         function backward(obj)
             a = cell(1, numel(obj.bottom));
-            data.backwardCount(obj.bottom,  obj.top, a{:});
+            obj.net.data.backwardCount(obj.bottom,  obj.top, a{:});
         end
         function outSizes = outputSizes(obj, inSizes)
             outSizes = {};

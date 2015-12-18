@@ -257,18 +257,18 @@ trainer.add({
 
 
 trainer.flowOrder = {'train', 'test'};
-trainer.repeat     = 100;
-trainer.savePath   = fullfile('data','exp');
-trainer.gpu        = 1;
+trainer.repeat    = 100;
+trainer.savePath  = fullfile('data','exp');
+trainer.gpu       = 1;
 
-trainOp.numToNext    = 600;  
+trainOp.iter         = 600;  
 trainOp.numToSave    = 600*conf.save;  
 trainOp.displayIter  = 20;
 trainOp.lrSteps      = 600;
 trainOp.lrGamma      = 0.95;
 trainOp.lrPolicy     = @lrPolicy;
 
-testOp.numToNext     = 100;
+testOp.iter          = 100;
 testOp.numToSave     = [];
 testOp.displayIter   = 100;
 testOp.showFirstIter = false;

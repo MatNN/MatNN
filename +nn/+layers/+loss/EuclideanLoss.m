@@ -57,7 +57,8 @@ classdef EuclideanLoss < nn.layers.template.LossLayer
 
         function forward(obj)
             lst = obj.params.loss.labelIndex_start;
-            data = obj.net.data;
+            net = obj.net;
+            data = net.data;
             if numel(obj.bottom) == 3
                 loss = obj.params.loss.loss_weight * obj.f(data.val{obj.bottom(1)}, data.val{obj.bottom(2)}-lst+1, data.val{obj.bottom(3)});
             else
@@ -65,7 +66,7 @@ classdef EuclideanLoss < nn.layers.template.LossLayer
             end
             
             if obj.params.loss.accumulate
-                if opts.currentIter == 1
+                if net.opts.currentIter == 1
                     obj.accumulateL = obj.accumulateL*0;
                     obj.accumulateN = obj.accumulateN*0;
                 end
