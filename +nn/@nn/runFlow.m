@@ -2,9 +2,8 @@ function runFlow(obj, flowOpts, flowLayerIDs, currentRepeatTimes, globalIterNum,
 %RUNFLOW
 %
 % GUIDELINE
-% 1. DO NOT perform add/remove vars or layers statements in layers 
-%    which are execuated by this function.
-%    eg. addlayers in your layer.forward(). You should .addlayer in setup()
+% 1. DO NOT perform add/remove vars or layers statements in layers
+%    eg. addVar in your layer.forward(). You should .addVar in setup()
 %
 data = obj.data;
 
