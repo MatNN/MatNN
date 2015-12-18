@@ -42,7 +42,7 @@ classdef Dropout < nn.layers.template.BaseLayer
             end
             data.val{obj.top} = top;
             data.forwardCount(obj.bottom, obj.top);
-            data.forwardCount(obj.mask);
+            data.forwardCount(obj.mask, []);
         end
         function backward(obj)
             data = obj.net.data;
