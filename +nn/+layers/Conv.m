@@ -1,4 +1,4 @@
-classdef Conv < nn.layers.template.BaseLayer & nn.layers.template.hasWeight
+classdef Conv < nn.layers.template.WeightLayer
     
     % Default parameters
     properties (SetAccess = protected, Transient)
@@ -17,29 +17,36 @@ classdef Conv < nn.layers.template.BaseLayer & nn.layers.template.hasWeight
         function [in_diff, w1_diff, w2_diff] = b(obj, in, out_diff, w1, w2, pad, stride) %#ok
             [in_diff, w1_diff, w2_diff ] = vl_nnconv(in, w1, w2, out_diff, 'pad', pad, 'stride', stride);
         end
-        function forward(obj, nnObj, l, opts, data, net)
+        function forward(obj)
             p = obj.params.conv;
-            data.val{l.top} = vl_nnconv(data.val{l.bottom}, net.weights{l.weights(1)}, net.weights{l.weights(2)}, 'pad', p.pad, 'stride', p.stride);
+            data = obj.net.data;
+
+            data.val{obj.top} = vl_nnconv(data.val{obj.bottom}, data.val{obj.weights}, 'pad', p.pad, 'stride', p.stride);
+            data.forwardCount(obj.bottom, obj.top);
+            data.forwardCount(obj.weights, []);
         end
-        function backward(obj, nnObj, l, opts, data, net)
+        function backward(obj)
             p = obj.params.conv;
-            [bottom_diff, weights_diff{1}, weights_diff{2}] = vl_nnconv(data.val{l.bottom}, net.weights{l.weights(1)}, net.weights{l.weights(2)}, data.diff{l.top}, 'pad', p.pad, 'stride', p.stride);
-            nn.utils.accumulateData(opts, data, l, bottom_diff);
-            nn.utils.accumulateWeight(net, l.weights, weights_diff{:});
+            data = obj.net.data;
+
+            [bottom_diff, weights_diff1, weights_diff2] = vl_nnconv(data.val{obj.bottom}, data.val{obj.weights}, data.diff{obj.top}, 'pad', p.pad, 'stride', p.stride);
+            data.backwardCount(obj.bottom,  obj.top, bottom_diff);
+            data.backwardCount(obj.weights, [],      weights_diff1, weights_diff2);
+            %nn.utils.accumulateDiff(data, obj.bottom,  obj.top, bottom_diff);
+            %nn.utils.accumulateDiff(data, obj.weights, [],      weights_diff1, weights_diff2);
         end
-        function resources = createResources(obj, opts, l, inSizes, varargin)
+        function createResources(obj, inSizes)
             p = obj.params.conv;
             btmSize = inSizes{1};
-
-            resources.weight = {[],[]};
             if obj.params.weight.enable_terms(1)
-                resources.weight{1} = obj.params.weight.generator{1}([p.kernel_size(1), p.kernel_size(2), btmSize(3), p.num_output], obj.params.weight.generator_param{1});
+                w1Size = [p.kernel_size(1), p.kernel_size(2), btmSize(3), p.num_output];
             end
             if obj.params.weight.enable_terms(2)
-                resources.weight{2} = obj.params.weight.generator{2}([1, p.num_output], obj.params.weight.generator_param{2});
+                w2Size = [1, p.num_output];
             end
+            obj.createResources@nn.layers.template.WeightLayer(inSizes, w1Size, w2Size);
         end
-        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
+        function outSizes = outputSizes(obj, inSizes)
             p = obj.params.conv;
             btmSize     = inSizes{1};
 
@@ -48,8 +55,8 @@ classdef Conv < nn.layers.template.BaseLayer & nn.layers.template.hasWeight
                          p.num_output, ...
                          btmSize(4)]};
         end
-        function setParams(obj, l)
-            obj.setParams@nn.layers.template.BaseLayer(l);
+        function setParams(obj)
+            obj.setParams@nn.layers.template.BaseLayer();
             p = obj.params.conv;
             assert(all(p.stride~=0));
             if numel(p.kernel_size) == 1
@@ -65,10 +72,10 @@ classdef Conv < nn.layers.template.BaseLayer & nn.layers.template.hasWeight
             end
             obj.params.conv = p;
         end
-        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
-            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});
-            assert(numel(l.bottom)==1);
-            assert(numel(l.top)==1);
+        function outSizes = setup(obj, inSizes)
+            outSizes = obj.setup@nn.layers.template.BaseLayer(inSizes);
+            assert(numel(obj.bottom)==1);
+            assert(numel(obj.top)==1);
         end
 
     end

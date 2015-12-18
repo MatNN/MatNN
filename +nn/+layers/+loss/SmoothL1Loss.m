@@ -1,7 +1,6 @@
 classdef SmoothL1Loss < nn.layers.template.LossLayer
 
-
-    properties (Access = {?nn.layers.template.BaseLayer, ?nn.layers.template.LossLayer})
+    properties (SetAccess = {?nn.BaseObject}, GetAccess = public)
         threshold = realmin('single');
         batchSize = 1;
         N           = [];
@@ -9,7 +8,6 @@ classdef SmoothL1Loss < nn.layers.template.LossLayer
         accumulateN = single(0);
         accumulateL = single(0);
     end
-    
 
     methods
         function v = propertyDevice(obj)
@@ -49,8 +47,9 @@ classdef SmoothL1Loss < nn.layers.template.LossLayer
             in1_diff = der;
             in2_diff = -der;
         end
-        function forward(obj, nnObj, l, opts, data, net)
-            loss = obj.params.loss.loss_weight * obj.f(data.val{l.bottom});
+        function forward(obj)
+            data = obj.net.data;
+            loss = obj.params.loss.loss_weight * obj.f(data.val{obj.bottom});
             
             if obj.params.loss.accumulate
                 if opts.currentIter == 1
@@ -61,44 +60,47 @@ classdef SmoothL1Loss < nn.layers.template.LossLayer
                 obj.accumulateN = obj.accumulateN + obj.batchSize;
                 loss = obj.accumulateL/obj.accumulateN;
             end
-            data.val{l.top} = loss;
+            data.val{obj.top} = loss;
+            data.forwardCount(obj.bottom, obj.top);
         end
-        function backward(obj, nnObj, l, opts, data, net)
+        function backward(obj)
             p = obj.params.loss;
-            if numel(l.bottom) == 3
-                [bd1, bd2] = obj.b(data.diff{l.top}, data.val{l.bottom(3)});
+            net = obj.net;
+            data = net.data;
+            if numel(obj.bottom) == 3
+                [bd1, bd2] = obj.b(data.diff{obj.top}, data.val{obj.bottom(3)});
             else
-                [bd1, bd2] = obj.b(data.diff{l.top});
+                [bd1, bd2] = obj.b(data.diff{obj.top});
             end
             bd1 = bd1*p.loss_weight;
             bd2 = bd2*p.loss_weight;
 
-            if ~isa(bd1,'gpuArray') && opts.gpuMode
+            if ~isa(bd1,'gpuArray') && net.opts.gpu
                 bd1 = gpuArray(bd1);
                 bd2 = gpuArray(bd2);
             end
-            if numel(l.bottom) == 3
-                nn.utils.accumulateData(opts, data, l, bd1, bd2, []);
+            if numel(obj.bottom) == 3
+                data.backwardCount(obj.bottom,  obj.top, bd1, bd2, []);
             else
-                nn.utils.accumulateData(opts, data, l, bd1, bd2);
+                data.backwardCount(obj.bottom,  obj.top, bd1, bd2);
             end
         end
-        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
+        function outSizes = outputSizes(obj, inSizes)
             assert(isequal(inSizes{1},inSizes{2}), 'bottom1 and bottom2 must have the same sizes.');
             if numel(inSizes)==3
                 assert(isequal(inSizes{1},inSizes{3}), 'bottom1 and bottom3 must have the same sizes.');
             end
             outSizes = {[1,1,1,1]};
         end
-        function setParams(obj, l)
-            obj.setParams@nn.layers.template.BaseLayer(l);
+        function setParams(obj)
+            obj.setParams@nn.layers.template.BaseLayer();
             obj.threshold = obj.params.loss.threshold;
         end
-        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
-            [outSizes, resources] = obj.setup@nn.layers.template.LossLayer(opts, l, inSizes, varargin{:});
-            assert(numel(l.bottom)>=2 && numel(l.bottom)<=3);
-            assert(numel(l.top)==1);
-            if opts.gpuMode
+        function outSizes = setup(obj, inSizes)
+            outSizes = obj.setup@nn.layers.template.LossLayer(inSizes);
+            assert(numel(obj.bottom)>=2 && numel(obj.bottom)<=3);
+            assert(numel(obj.top)==1);
+            if obj.net.opts.gpu
                 obj.accumulateN = gpuArray.zeros(1,1,'single');
                 obj.accumulateL = gpuArray.zeros(1,1,'single');
             end

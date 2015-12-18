@@ -23,7 +23,6 @@ trainer.add({
     'mnist_param' {
            'type' 'train' ...
         } ...
-    'phase' 'train'
     });
 trainer.add({
     'type' 'data.MNIST'...
@@ -39,7 +38,6 @@ trainer.add({
     'mnist_param' {
            'type' 'test' ...
         } ...
-    'phase' 'test'
     });
 %------------------Spatial Transform
 trainer.add({
@@ -246,7 +244,6 @@ trainer.add({
     'name'   'loss'...
     'bottom' {'conv3', 'label'}...
     'top'    'loss2'...
-    'phase'  'train'...
     });
 trainer.add({
     'type'   'Accuracy'...
@@ -256,35 +253,43 @@ trainer.add({
     'accuracy_param' {
         'meanClassAcc' true ...
         }...
-    'phase'  'test'...
     });
 
 
-trainer.setPhaseOrder('train', 'test');
-trainer.setRepeat(100);
-trainer.setSavePath(fullfile('data','exp'));
-trainer.setGpu(1);
+trainer.flowOrder = {'train', 'test'};
+trainer.repeat     = 100;
+trainer.savePath   = fullfile('data','exp');
+trainer.gpu        = 1;
 
-trainOp.numToNext          = 600;  
-trainOp.numToSave          = 600*conf.save;  
-trainOp.displayIter        = 20;
-trainOp.learningRateSteps  = 600;
-trainOp.learningRateGamma  = 0.95;
-trainOp.learningRatePolicy = @lrPolicy;
-trainer.setPhasePara('train', trainOp);
+trainOp.numToNext    = 600;  
+trainOp.numToSave    = 600*conf.save;  
+trainOp.displayIter  = 20;
+trainOp.lrSteps      = 600;
+trainOp.lrGamma      = 0.95;
+trainOp.lrPolicy     = @lrPolicy;
 
-testOp.numToNext           = 100;
-testOp.numToSave           = [];
-testOp.displayIter         = 100;
-testOp.showFirstIter       = false;
-testOp.learningRate        = 0;
-trainer.setPhasePara('test', testOp);
+testOp.numToNext     = 100;
+testOp.numToSave     = [];
+testOp.displayIter   = 100;
+testOp.showFirstIter = false;
+testOp.lr            = 0;
+
+trainLayers = trainer.getLayerIDs('data_train', 'RandomDistortion', 'lp1', 'local1', 'lr1', ...
+                                  'lp2', 'local2', 'lr2', 'local3', 'lr3', 'local4', 'localTransform', ...
+                                  'conv1', 'relu1', 'conv2', 'relu2', 'conv3', 'loss');
+testLayers  = trainer.getLayerIDs('data_train', 'RandomDistortion', 'lp1', 'local1', 'lr1', ...
+                                  'lp2', 'local2', 'lr2', 'local3', 'lr3', 'local4', 'localTransform', ...
+                                  'conv1', 'relu1', 'conv2', 'relu2', 'conv3', 'accuracy');
+
+trainer.addFlow('train', trainOp, trainLayers);
+trainer.addFlow('test',  testOp,  testLayers );
+
+%trainer.load(600);
 
 trainer.run();
 
 end
 
 function res = lrPolicy(globalIterNum, currentPhaseTotalIter, lr, gamma, power, steps)
-     %res = lr*(gamma^floor((currentPhaseTotalIter-1)/steps));
      res = lr;
 end

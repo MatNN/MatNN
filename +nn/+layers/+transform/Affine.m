@@ -9,7 +9,7 @@ classdef Affine < nn.layers.template.BaseLayer
     end
 
     % intermediate savings (computed values, recomputed every time)
-    properties (SetAccess = {?nn.layers.template.BaseLayer}, GetAccess = public)
+    properties (SetAccess = {?nn.BaseObject}, GetAccess = public)
         forwardHandle;
         backwardHandle;
         count = 0;
@@ -47,13 +47,15 @@ classdef Affine < nn.layers.template.BaseLayer
             in_diff = obj.b(varargin{:});
         end
 
-        function forward(obj, nnObj, l, opts, data, net)
-            if opts.gpuMode
-                data.val{l.top} = obj.f(data.val{l.bottom(1)}, data.val{l.bottom(2)});
+        function forward(obj)
+            net = obj.net;
+            data = net.data;
+            if net.opts.gpu
+                data.val{obj.top} = obj.f(data.val{obj.bottom});
                 if obj.params.affine.showDebugWindow
                     if mod(obj.count, 20) == 0
-                        s = nn.utils.size4D(data.val{l.bottom(1)});
-                        t = gather(data.val{l.bottom(2)}(:,:,:,1));
+                        s = nn.utils.size4D(data.val{obj.bottom(1)});
+                        t = gather(data.val{obj.bottom(2)}(:,:,:,1));
                         o1 = trans(t, [1,1]      , s(1:2));
                         o2 = trans(t, [s(1),1]   , s(1:2));
                         o3 = trans(t, [s(1),s(2)], s(1:2));
@@ -61,13 +63,13 @@ classdef Affine < nn.layers.template.BaseLayer
                         ox = [o1(2),o2(2),o3(2),o4(2)];
                         oy = [o1(1),o2(1),o3(1),o4(1)];
 
-                        subplot(1,2,1), imshow(gather(data.val{l.bottom(1)}(:,:,:,1)), []), ...
+                        subplot(1,2,1), imshow(gather(data.val{obj.bottom(1)}(:,:,:,1)), []), ...
                                         line(ox(1:2), oy(1:2), 'LineWidth',4,'Color','r'), ...
                                         line(ox(2:3), oy(2:3), 'LineWidth',4,'Color','g'), ...
                                         line(ox(3:4), oy(3:4), 'LineWidth',4,'Color','b'), ...
                                         line(ox([4,1]), oy([4,1]), 'LineWidth',4,'Color','y');
                         set(gca,'Clipping','off');
-                        subplot(1,2,2), imshow(gather(data.val{l.top}(:,:,:,1)), []);
+                        subplot(1,2,2), imshow(gather(data.val{obj.top}(:,:,:,1)), []);
                         drawnow;
                         obj.count = 0;
                     end
@@ -82,29 +84,32 @@ classdef Affine < nn.layers.template.BaseLayer
                 o(1) = a(2)*p(2) + a(4)*p(1) + a(6);
                 o = (o./2+0.5).*s;
             end
+            data.forwardCount(obj.bottom, obj.top);
         end
-        function backward(obj, nnObj, l, opts, data, net)
-            if opts.gpuMode
-                [bottom_diff{1}, bottom_diff{2}] = obj.b(data.val{l.bottom(1)}, data.val{l.bottom(2)}, data.val{l.top}, data.diff{l.top});
+        function backward(obj)
+            net = obj.net;
+            data = net.data;
+            if net.opts.gpu
+                [bottom_diff1, bottom_diff2] = obj.b(data.val{obj.bottom}, data.val{obj.top}, data.diff{obj.top});
             else
                 error('Affine Layer : only support gpu mode currently.');
             end
-            nn.utils.accumulateData(opts, data, l, bottom_diff{:});
+            data.backwardCount(obj.bottom, obj.top, bottom_diff1, bottom_diff2);
         end
         
-        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
+        function outSizes = outputSizes(obj, inSizes)
             assert(inSizes{2}(1) == 1 && inSizes{2}(2) == 1 && inSizes{2}(3) == 6 && inSizes{2}(4) == inSizes{1}(4));
             outSizes = inSizes(1);
         end
-        function setParams(obj, l)
-            obj.setParams@nn.layers.template.BaseLayer(l);
+        function setParams(obj)
+            obj.setParams@nn.layers.template.BaseLayer();
             p = obj.params.affine;
             assert(strcmpi(p.sampler, 'bilinear'));
         end
-        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
-            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});
-            assert(numel(l.bottom)==2);
-            assert(numel(l.top)==1);
+        function outSizes = setup(obj, inSizes)
+            outSizes = obj.setup@nn.layers.template.BaseLayer(inSizes);
+            assert(numel(obj.bottom)==2);
+            assert(numel(obj.top)==1);
             obj.createGPUFun(inSizes{1});
         end
         function createGPUFun(obj, sampleSize)

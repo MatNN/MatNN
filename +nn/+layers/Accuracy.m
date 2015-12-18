@@ -11,7 +11,7 @@ classdef Accuracy < nn.layers.template.BaseLayer
     end
 
     % variables (not computed every time, eg. once at launch)
-    properties (Access = {?nn.layers.template.BaseLayer})
+    properties (Access = {?nn.BaseObject})
         counting = single(0);
         perClassArea = single(0);
         perClassAcc  = single(0);
@@ -100,19 +100,23 @@ classdef Accuracy < nn.layers.template.BaseLayer
             end
         end
 
-        function forward(obj, nnObj, l, opts, data, net)
+        function forward(obj)
             p = obj.params.accuracy;
+            net = obj.net;
+            data = net.data;
             if p.meanClassAcc
-                [a, b] = obj.f(data.val{l.bottom(1)}, data.val{l.bottom(2)}, p.labelIndex_start, p.meanClassAcc, opts.currentIter);
-                data.val(l.top) = {single(a), single(b)};
+                [a, b] = obj.f(data.val{obj.bottom(1)}, data.val{obj.bottom(2)}, p.labelIndex_start, p.meanClassAcc, net.opts.currentIter);
+                data.val(obj.top) = {single(a), single(b)};
             else
-                data.val{l.top} = single(obj.f(data.val{l.bottom(1)}, data.val{l.bottom(2)}, p.labelIndex_start, p.meanClassAcc, opts.currentIter));
+                data.val{obj.top} = single(obj.f(data.val{obj.bottom(1)}, data.val{obj.bottom(2)}, p.labelIndex_start, p.meanClassAcc, net.opts.currentIter));
             end
+            data.forwardCount(obj.bottom, obj.top);
         end
-        function backward(obj, nnObj, l, opts, data, net)
+        function backward(obj)
+            obj.net.data.backwardCount(obj.bottom,  obj.top, []);
         end
 
-        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
+        function outSizes = outputSizes(obj, inSizes)
             resSize = inSizes{1};
             ansSize = inSizes{2};
             if ~isequal(resSize(4),prod(ansSize))
@@ -124,20 +128,20 @@ classdef Accuracy < nn.layers.template.BaseLayer
             obj.perClassAcc  = zeros(1, resSize(3), 'single');
             outSizes = {[1,1,1,1]};
         end
-        function setParams(obj, l)
-            obj.setParams@nn.layers.template.BaseLayer(l);
+        function setParams(obj)
+            obj.setParams@nn.layers.template.BaseLayer();
             obj.accumulate = obj.params.accuracy.accumulate;
         end
-        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
-            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});
-            assert(numel(l.bottom)==2);
+        function outSizes = setup(obj, inSizes)
+            outSizes = obj.setup@nn.layers.template.BaseLayer(inSizes);
+            assert(numel(obj.bottom)==2);
             if obj.params.accuracy.meanClassAcc
-                assert(numel(l.top)==2, 'Accuracy layer will generate two outputs if you set ''meanClassAcc'' to true.');
+                assert(numel(obj.top)==2, 'Accuracy layer will generate two outputs if you set ''meanClassAcc'' to true.');
             else
-                assert(numel(l.top)==1);
+                assert(numel(obj.top)==1);
             end
 
-            if opts.gpuMode
+            if obj.net.opts.gpu
                 obj.perClassArea = gpuArray(obj.perClassArea);
                 obj.perClassAcc  = gpuArray(obj.perClassAcc);
             end

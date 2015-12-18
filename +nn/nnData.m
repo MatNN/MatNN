@@ -176,15 +176,19 @@ classdef nnData < nn.BaseObject
             for i=numel(inIds):-1:1
                 id = inIds(i);
                 if c{id}(1) > 0 && m{id}(1) > 1
-                    if isempty(obj.diff{id}) || m{id}(1) == c{id}(1)
-                        obj.diff{id} = varargin{i};
-                    else
-                        %fprintf('Var %s ACTUALLY added!, its ref = %d, count = %d\n', obj.names{id}, obj.ref(id), c{id});
-                        obj.diff{id} = obj.diff{id}+varargin{i};
+                    if ~isempty(varargin) && ~isempty(varargin{i})
+                        if isempty(obj.diff{id}) || m{id}(1) == c{id}(1)
+                            obj.diff{id} = varargin{i};
+                        else
+                            %fprintf('Var %s ACTUALLY added!, its ref = %d, count = %d\n', obj.names{id}, obj.ref(id), c{id});
+                            obj.diff{id} = obj.diff{id}+varargin{i};
+                        end
                     end
                     c{id}(1) = c{id}(1)-1;
                 elseif c{id} == 1
-                    obj.diff{id} = varargin{i};
+                    if ~isempty(varargin) && ~isempty(varargin{i})
+                        obj.diff{id} = varargin{i};
+                    end
                     c{id}(1) = c{id}(1)-1;
                 else
                     error('Attempt to save diff to an non-avaliable variable');

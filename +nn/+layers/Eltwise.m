@@ -45,22 +45,25 @@ classdef Eltwise < nn.layers.template.BaseLayer
             end
         end
 
-        function forward(obj, nnObj, l, opts, data, net)
-            data.val{l.top} = obj.(obj.params.eltwise.operation)(data.val{l.bottom(1)}, data.val{l.bottom(2)}, []);
+        function forward(obj)
+            data = obj.net.data;
+            data.val{obj.top} = obj.(obj.params.eltwise.operation)(data.val{obj.bottom}, []);
+            data.forwardCount(obj.bottom, obj.top);
         end
-        function backward(obj, nnObj, l, opts, data, net)
-            [bottom_diff{1}, bottom_diff{2}] = obj.(obj.params.eltwise.operation)(data.val{l.bottom(1)}, data.val{l.bottom(2)}, data.diff{l.top});
-            nn.utils.accumulateData(opts, data, l, bottom_diff{:});
+        function backward(obj)
+            data = obj.net.data;
+            [bottom_diff{1}, bottom_diff{2}] = obj.(obj.params.eltwise.operation)(data.val{obj.bottom}, data.diff{obj.top});
+            data.backwardCount(obj.bottom,  obj.top, bottom_diff{:});
         end
 
-        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
+        function outSizes = outputSizes(obj, inSizes)
             assert(isequal(inSizes{1},inSizes{2}));
             outSizes = inSizes(1);
         end
-        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
-            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});
-            assert(numel(l.bottom)==2);
-            assert(numel(l.top)==1);
+        function outSizes = setup(obj, inSizes)
+            outSizes = obj.setup@nn.layers.template.BaseLayer(inSizes);
+            assert(numel(obj.bottom)==2);
+            assert(numel(obj.top)==1);
         end
 
     end

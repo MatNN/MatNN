@@ -10,27 +10,26 @@ classdef Pooling < nn.layers.template.BaseLayer
     end
 
     methods
-        % CPU Forward
         function out = f(~, in, kernel, pad, stride, method)
             out = vl_nnpool(in, kernel, 'pad', pad, 'stride', stride, 'method', method);
         end
-        % CPU Backward
         function in_diff = b(~, in, out_diff, kernel, pad, stride, method) %#ok
             in_diff = vl_nnpool(in, kernel, out_diff, 'pad', pad, 'stride', stride, 'method', method);
         end
 
-        % Forward function for training/testing routines
-        function forward(obj, nnObj, l, opts, data, net)
+        function forward(obj)
             p = obj.params.pooling;
-            data.val{l.top} = vl_nnpool(data.val{l.bottom}, p.kernel_size, 'pad', p.pad, 'stride', p.stride, 'method', p.method);
+            data = obj.net.data;
+            data.val{obj.top} = vl_nnpool(data.val{obj.bottom}, p.kernel_size, 'pad', p.pad, 'stride', p.stride, 'method', p.method);
+            obj.net.data.forwardCount(obj.bottom, obj.top);
         end
-        % Backward function for training/testing routines
-        function backward(obj, nnObj, l, opts, data, net)
+        function backward(obj)
             p = obj.params.pooling;
-            nn.utils.accumulateData(opts, data, l, vl_nnpool(data.val{l.bottom}, p.kernel_size, data.diff{l.top}, 'pad', p.pad, 'stride', p.stride, 'method', p.method));
+            data = obj.net.data;
+            data.backwardCount(obj.bottom,  obj.top, vl_nnpool(data.val{obj.bottom}, p.kernel_size, data.diff{obj.top}, 'pad', p.pad, 'stride', p.stride, 'method', p.method));
         end
 
-        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
+        function outSizes = outputSizes(obj, inSizes)
             p = obj.params.pooling;
             btmSize = inSizes{1};
 
@@ -38,8 +37,8 @@ classdef Pooling < nn.layers.template.BaseLayer
                                 (btmSize(2)+p.pad(3)+p.pad(4)-p.kernel_size(2))/p.stride(2)+1]), ...
                          btmSize(3), btmSize(4)]};
         end
-        function setParams(obj, l)
-            obj.setParams@nn.layers.template.BaseLayer(l);
+        function setParams(obj)
+            obj.setParams@nn.layers.template.BaseLayer();
             p = obj.params.pooling;
             assert(all(p.stride~=0));
             if numel(p.kernel_size) == 1
@@ -55,14 +54,11 @@ classdef Pooling < nn.layers.template.BaseLayer
             end
             obj.params.pooling = p;
         end
-
-        % Setup function for training/testing routines
-        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
-            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});
-            assert(numel(l.bottom)==1);
-            assert(numel(l.top)==1);
+        function outSizes = setup(obj, inSizes)
+            outSizes = obj.setup@nn.layers.template.BaseLayer(inSizes);
+            assert(numel(obj.bottom)==1);
+            assert(numel(obj.top)==1);
         end
-
     end
 
 end

@@ -8,6 +8,9 @@ classdef Dropout < nn.layers.template.BaseLayer
                     'rate' 0.5       ...
         };
     end
+    properties
+        mask;
+    end
 
     methods
         function out = f(obj, in, mask)
@@ -16,63 +19,85 @@ classdef Dropout < nn.layers.template.BaseLayer
         function in_diff = b(obj, out_diff, mask)
             in_diff = out_diff.*mask;
         end
-        function forward(obj, nnObj, l, opts, data, net)
-            tmp = net.weightsIsMisc(l.weights);
-            miscInd = l.weights(tmp);
-            btm = data.val{l.bottom(1)};
+        function forward(obj)
+            data = obj.net.data;
+            opts = obj.net.opts;
+
+            btm = data.val{obj.bottom(1)};
 
             p = obj.params.dropout;
             if opts.disableDropout || ~p.enable_terms
                 top = btm;
-            elseif opts.freezeDropout && numel(btm) == numel(net.weights{miscInd})
-                top = btm.*net.weights{miscInd};
+            elseif opts.freezeDropout && numel(btm) == numel(data.val{obj.mask})
+                top = btm.*data.val{obj.mask};
             else
-                if opts.gpuMode
-                    mask = single(1 / (1 - p.rate)) .* (gpuArray.rand(size(btm),'single') >= p.rate);
-                    top = btm .* mask;
+                if opts.gpu
+                    m = single(1 / (1 - p.rate)) .* (gpuArray.rand(size(btm),'single') >= p.rate);
+                    top = btm .* m;
                 else
-                    mask = single(1 / (1 - p.rate)) .* (rand(size(btm),'single') >= p.rate);
-                    top = btm .* mask;
+                    m = single(1 / (1 - p.rate)) .* (rand(size(btm),'single') >= p.rate);
+                    top = btm .* m;
                 end
-                net.weights{miscInd} = mask;
+                data.val{obj.mask} = m;
             end
-            data.val{l.top} = top;
+            data.val{obj.top} = top;
+            data.forwardCount(obj.bottom, obj.top);
+            data.forwardCount(obj.mask);
         end
-        function backward(obj, nnObj, l, opts, data, net)
-            tmp = net.weightsIsMisc(l.weights);
-            miscInd = l.weights(tmp);
+        function backward(obj)
+            data = obj.net.data;
+            opts = obj.net.opts;
 
             if opts.disableDropout || ~obj.params.dropout.enable_terms
-                bottom_diff = data.diff{l.top};
+                bottom_diff = data.diff{obj.top};
             else
-                bottom_diff = data.diff{l.top} .* net.weights{miscInd};
+                bottom_diff = data.diff{obj.top} .* data.val{obj.mask};
             end
-            nn.utils.accumulateData(opts, data, l, bottom_diff);
+            data.backwardCount(obj.bottom,  obj.top, bottom_diff);
+            data.backwardCount(obj.mask, [], []);
         end
-        function resources = createResources(obj, opts, l, inSizes, varargin)
+        function createResources(obj, inSizes)
             p = obj.params.dropout;
+            data = obj.net.data;
+            if isempty(p.name{1})
+                maskName = [obj.name, '_mask'];
+            else
+                maskName = p.name{1};
+            end
+            obj.mask = maskName;
             if p.enable_terms
                 scale = single(1 / (1 - p.rate)) ;
-                resources.misc{1} = scale.* single(rand(inSizes{1}) >= p.rate);
-            else
-                resources = {};
+                data.setPartial(maskName,      'val', scale.* single(rand(inSizes{1}) >= p.rate), ...
+                                          'preserve', true);
+                if obj.net.opts.gpu
+                    data.val{obj.mask} = gpuArray(obj.net.data.val{obj.mask});
+                end
             end
         end
-        function setParams(obj, l)
-            obj.setParams@nn.layers.template.BaseLayer(l);
-            miscParam = obj.params.dropout;
-            miscParam.name = {''};
-            miscParam.enable_terms = true;
-            miscParam.learningRate = 0;
-            miscParam.weightDecay  = 0;
-            obj.params.misc = miscParam;
+        function setParams(obj)
+            obj.setParams@nn.layers.template.BaseLayer();
+            p = obj.params.dropout;
+            assert(p.rate >= 0 && p.rate <=1);
         end
-        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
-            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});
-            assert(numel(l.bottom)==1);
-            assert(numel(l.top)==1);
-
+        function outSizes = setup(obj, inSizes)
+            outSizes = obj.setup@nn.layers.template.BaseLayer(inSizes);
+            assert(numel(obj.bottom)==1);
+            assert(numel(obj.top)==1);
         end
-
+        function set.mask(obj, val)
+            obj.mask = obj.connectData('mask', val, true);
+        end
+        function release(obj)
+            obj.top = [];
+            obj.bottom = [];
+            obj.mask = [];
+        end
+        function vars = holdVars(obj)
+            vars = [obj.bottom, obj.top, obj.mask];
+        end
+        function v = propertyDevice(obj)
+            v = obj.propertyDevice@nn.layers.template.BaseLayer();
+            v.mask = -1;
+        end
     end
 end

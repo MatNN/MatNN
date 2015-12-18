@@ -18,24 +18,26 @@ classdef Replicate < nn.layers.template.BaseLayer
             error('Not supported.');
         end
 
-        function forward(obj, nnObj, l, opts, data, net)
+        function forward(obj)
             p = obj.params.replicate;
+            data = obj.net.data;
             value = p.value;
             for i=1:numel(value)
                 singleValue = single(value{i});
-                if opts.gpuMode
-                    data.val{l.top(i)} = gpuArray(singleValue);
+                if obj.net.opts.gpu
+                    data.val{obj.top(i)} = gpuArray(singleValue);
                 else
-                    data.val{l.top(i)} = singleValue;
+                    data.val{obj.top(i)} = singleValue;
                 end
             end
+            data.forwardCount(obj.bottom, obj.top);
         end
 
-        function backward(obj, nnObj, l, opts, data, net)
-            nn.utils.accumulateData(opts, data, l);
+        function backward(obj)
+            obj.net.data.backwardCount(obj.bottom,  obj.top);
         end
 
-        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
+        function outSizes = outputSizes(obj, inSizes)
             p = obj.params.replicate;
             sizes = {};
             for i = 1:numel(p.value)
@@ -44,15 +46,15 @@ classdef Replicate < nn.layers.template.BaseLayer
             outSizes = sizes;
         end
 
-        function setParams(obj, l)
-            obj.setParams@nn.layers.template.BaseLayer(l);
+        function setParams(obj)
+            obj.setParams@nn.layers.template.BaseLayer();
             p = obj.params.replicate;
             assert(~isempty(p.value));
         end
 
-        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
-            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});
-            assert(numel(l.top)==1);
+        function outSizes = setup(obj, inSizes)
+            outSizes = obj.setup@nn.layers.template.BaseLayer(inSizes);
+            assert(numel(obj.top)==1);
         end
     end
 
