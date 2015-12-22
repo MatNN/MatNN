@@ -160,16 +160,15 @@ classdef nnData < nn.BaseObject
             if cM, deleteID = []; end
             for i=numel(outIDs):-1:1
                 id = outIDs(i);
-                if c{id}(1) == 0
+                if isempty(c{id}) || c{id}(1) == 0
                     if numel(c{id})>1
                         c{id} = c{id}(2:end);
                     else
                         c{id} = [];
                         if cM, deleteID = [deleteID, id]; end
                     end
-
+                    m{id} = c{id};
                 end
-                m{id} = c{id};
             end
             obj.maxCount = m;
 

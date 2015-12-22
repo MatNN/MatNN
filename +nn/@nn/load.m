@@ -58,6 +58,10 @@ else
     end
     clearvars network;
 end
+
+% delete redundant diffs
+obj.data.diff(:) = {[]};
+
 if obj.gpu
     obj.data.moveTo('GPU');
 else

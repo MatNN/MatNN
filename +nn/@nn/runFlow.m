@@ -8,7 +8,7 @@ function runFlow(obj, flowOpts, flowLayerIDs, currentRepeatTimes, globalIterNum,
 data = obj.data;
 
 numGpus  = numel(obj.gpu);
-[involvedDataID, inoutIds, outputIDs, ~] = obj.findDataID(data, obj.layers(flowLayerIDs));
+[involvedDataID, inoutIds, outputIDs, inputIDs] = obj.findDataID(data, obj.layers(flowLayerIDs));
 
 accumulateOutBlobs = cell(size(outputIDs));
 accumulateOutBlobsNum = numel(accumulateOutBlobs);
@@ -55,7 +55,7 @@ if flowOpts.gpu
 end
 
 % Saving stat
-origPreserve = data.preserve(outputIDs);
+origPreserve = data.preserve;
 origCM = data.conserveMemory;
 data.preserve(outputIDs) = true;
 data.conserveMemory = flowOpts.conserveMemory;
@@ -80,12 +80,18 @@ for t = currentIter:flowOpts.iter
         for i = flowLayerIDs
             obj.layers{i}.forward();
         end
+        if flowOpts.conserveMemory && flowOpts.lr==0 % if in testing mod
+            deleteID = involvedDataID & ~data.preserve;
+            data.val(deleteID) = {[]};
+        end
         % backward
         if flowOpts.lr ~= 0
             data.diff(outputIDs) = {dzdy};
+            data.backwardCount([], outputIDs);
             for i = flowLayerIDs(end:-1:1)
                 obj.layers{i}.backward();
             end
+            data.backwardCount([], inputIDs);
         end
 
         % accumulate backprop errors
@@ -158,6 +164,7 @@ for t = currentIter:flowOpts.iter
     if ~isempty(flowOpts.numToSave) && mod(count, flowOpts.numToSave) == 0
         % only one worker can save the model
         if numGpus>1, labBarrier(); end
+        data.diff(:) = {[]};
         if labindex==1, obj.save(obj.saveFilePath(globalIterNum)); end
         if numGpus>1, labBarrier(); end
     end
@@ -170,7 +177,11 @@ end
 
 % Restore Stat
 % Saving stat
-data.preserve(outputIDs) = origPreserve;
+data.preserve = origPreserve;
+if flowOpts.conserveMemory
+    data.val(involvedDataID & ~data.preserve) = {[]};
+    data.diff(involvedDataID) = {[]};
+end
 data.conserveMemory = origCM;
 
 
