@@ -117,6 +117,9 @@ classdef nn < handle
             if opt.conserveMemory && opt.lr == 0
                 warning(['Flow(',  name,'): convserveMemory works on backward mode only.']);
             end
+            if isfield(opt_user, 'layerSettings')
+                opt.layerSettings = opt_user.layerSettings;
+            end
 
             % set opts
             obj.flow.(name).opts = opt;
