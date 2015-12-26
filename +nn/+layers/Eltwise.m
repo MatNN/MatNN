@@ -3,7 +3,7 @@ classdef Eltwise < nn.layers.template.BaseLayer
 
     properties (SetAccess = protected, Transient)
         default_eltwise_param = {
-            'operation' 'sum' ... % sum, prod, minus, max
+            'operation' 'plus' ... % plus, prod, minus, max
         };
     end
 

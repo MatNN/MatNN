@@ -3,6 +3,7 @@ classdef nnData < nn.BaseObject
         val;
         diff;
         momentum;
+        method = [];
         ref;
         currentCount = {};
         maxCount = {};
@@ -16,9 +17,15 @@ classdef nnData < nn.BaseObject
         names = {};
         namesInd = {}; % struct, each fieldname = var name, field value = var ind
         allInd = [];
+        methodString;
     end
 
     methods
+        function obj = nnData()
+            obj.methodString.gradient = 0;
+            obj.methodString.average = 1;
+        end
+
         function b = isVar(obj, IDorName)
             b = false;
             if ischar(IDorName)
@@ -242,6 +249,7 @@ classdef nnData < nn.BaseObject
             obj.val = {};
             obj.diff = {};
             obj.momentum = {};
+            obj.method = [];
             obj.currentCount = {};
             obj.maxCount = {};
             obj.ref = [];
@@ -265,6 +273,7 @@ classdef nnData < nn.BaseObject
             obj.ref(id) = int32(0);
             obj.lr(id) = single(0);
             obj.decay(id) = single(0);
+            obj.method(id) = obj.methodString.gradient;
         end
         
 % ======== SAVE / LOAD ========
@@ -272,6 +281,8 @@ classdef nnData < nn.BaseObject
             v.val = 2;
             v.diff = 2;
             v.momentum = 2;
+            v.method = 0;
+            v.methodString = 0;
             v.currentCount = 0;
             v.maxCount = 0;
             v.ref = 0;

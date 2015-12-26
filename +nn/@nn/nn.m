@@ -146,15 +146,25 @@ classdef nn < handle
         
         function updateWeightGPU(obj, data, lr, weightDecay, momentum, iter_size, updateWeightsInd, gf, data_len)
             for w = updateWeightsInd
-                [data.momentum{w}, data.val{w}] = feval(gf, momentum, data.momentum{w}, lr, data.lr(w), weightDecay, data.decay(w), data.val{w}, data.diff{w}, iter_size, data_len(w));
+                if data.method(w) == 0
+                    [data.momentum{w}, data.val{w}] = feval(gf, momentum, data.momentum{w}, lr, data.lr(w), weightDecay, data.decay(w), data.val{w}, data.diff{w}, iter_size, data_len(w));
+                else
+                    lrw = data.lr(w);
+                    data.val{w} = (1 - lrw)*data.val{w} + lrw * data.diff{w}/iter_size;
+                end
             end
         end
         function updateWeightCPU(obj, data, lr, weightDecay, momentum, iter_size, updateWeightsInd)
             for w = updateWeightsInd
-                thisDecay = weightDecay * data.decay(w);
-                thisLR = lr * data.lr(w);
-                data.momentum{w} = momentum * data.momentum{w} - thisLR * (thisDecay*data.val{w} + data.diff{w}/iter_size);
-                data.val{w}  = data.val{w} + data.momentum{w};
+                if data.method(w) == 0
+                    thisDecay = weightDecay * data.decay(w);
+                    thisLR = lr * data.lr(w);
+                    data.momentum{w} = momentum * data.momentum{w} - thisLR * (thisDecay*data.val{w} + data.diff{w}/iter_size);
+                    data.val{w}  = data.val{w} + data.momentum{w};
+                else
+                    lrw = data.lr(w);
+                    data.val{w} = (1 - lrw)*data.val{w} + lrw * data.diff{w}/iter_size;
+                end
             end
         end
         function setupSolver(obj)
