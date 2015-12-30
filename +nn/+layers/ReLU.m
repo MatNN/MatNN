@@ -10,10 +10,12 @@ classdef ReLU < nn.layers.template.SimpleLayer
             v.zero = 2;
         end
         function out = f(~, in)
-            out = max(in, 0);
+            %out = max(in, 0);
+            out = cudnn.activationForward(1, in);
         end
         function in_diff = b(~, in, out_diff)
-            in_diff = (in > 0) .* out_diff;
+            %in_diff = (in > 0) .* out_diff;
+            in_diff = cudnn.activationBackward(1, in, out_diff, out_diff);
         end
     end
 
