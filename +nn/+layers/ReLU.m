@@ -15,7 +15,7 @@ classdef ReLU < nn.layers.template.SimpleLayer
         end
         function in_diff = b(~, in, out_diff)
             %in_diff = (in > 0) .* out_diff;
-            in_diff = cudnn.activationBackward(1, in, out_diff, out_diff);
+            in_diff = cudnn.activationBackward(1, in, in, out_diff);
         end
     end
 

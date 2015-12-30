@@ -98,10 +98,10 @@ void mexFunction( int nlhs,       mxArray *plhs[],
 
     // Set outputs
     //cudnnDestroy(cudnnHandle);
-    cudnnDestroyTensorDescriptor(srcTensorDesc);
-    cudnnDestroyTensorDescriptor(srcDiffTensorDesc);
-    cudnnDestroyTensorDescriptor(dstTensorDesc);
-    cudnnDestroyTensorDescriptor(dstDiffTensorDesc);
+    CUDNN_CHECK( cudnnDestroyTensorDescriptor(srcTensorDesc) );
+    CUDNN_CHECK( cudnnDestroyTensorDescriptor(srcDiffTensorDesc) );
+    CUDNN_CHECK( cudnnDestroyTensorDescriptor(dstTensorDesc) );
+    CUDNN_CHECK( cudnnDestroyTensorDescriptor(dstDiffTensorDesc) );
     mxGPUDestroyGPUArray(input);
     mxGPUDestroyGPUArray(out_diff);
     mxGPUDestroyGPUArray(out);

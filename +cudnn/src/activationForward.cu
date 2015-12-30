@@ -72,8 +72,8 @@ void mexFunction( int nlhs,       mxArray *plhs[],
 
     // Set outputs
     //cudnnDestroy(cudnnHandle);
-    cudnnDestroyTensorDescriptor(srcTensorDesc);
-    cudnnDestroyTensorDescriptor(dstTensorDesc);
+    CUDNN_CHECK( cudnnDestroyTensorDescriptor(srcTensorDesc) );
+    CUDNN_CHECK( cudnnDestroyTensorDescriptor(dstTensorDesc) );
     mxGPUDestroyGPUArray(input1);
     plhs[0] = mxGPUCreateMxArrayOnGPU(output1);
     mxGPUDestroyGPUArray(output1);
