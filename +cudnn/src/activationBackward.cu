@@ -1,13 +1,15 @@
 #include "utils.h"
 /***
  PRHS[0] = ActivationMode
- PRHS[1] = input data (Format in Matlab = HWCN)
+ PRHS[1] = input data 
  PRHS[2] = output data (Format in Matlab = HWCN)
+ PRHS[3] = output diff (Format in Matlab = HWCN)
+ PLHS[0] = input diff (Format in Matlab = HWCN)
  ------------
- int ActivationMode, 0 = 
-                     1 = 
-                     2 =
-                     3 =
+ int ActivationMode, 0 = CUDNN_ACTIVATION_SIGMOID
+                     1 = CUDNN_ACTIVATION_RELU
+                     2 = CUDNN_ACTIVATION_TANH
+                     3 = CUDNN_ACTIVATION_CLIPPED_RELU
  */
 cudnnHandle_t cudnnHandle;
 bool initialized = false;
