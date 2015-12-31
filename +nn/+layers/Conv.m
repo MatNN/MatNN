@@ -12,16 +12,16 @@ classdef Conv < nn.layers.template.WeightLayer
 
     methods
         function out = f(obj, in, w1, w2, pad, stride) %#ok
-            out = vl_nnconv(in, w1, w2, 'pad', pad, 'stride', stride);
+            out = vl_nnconv(in, w1, w2, 'pad', pad, 'stride', stride, 'CudnnWorkspaceLimit', 512*1024*1024);
         end
         function [in_diff, w1_diff, w2_diff] = b(obj, in, out_diff, w1, w2, pad, stride) %#ok
-            [in_diff, w1_diff, w2_diff ] = vl_nnconv(in, w1, w2, out_diff, 'pad', pad, 'stride', stride);
+            [in_diff, w1_diff, w2_diff ] = vl_nnconv(in, w1, w2, out_diff, 'pad', pad, 'stride', stride, 'CudnnWorkspaceLimit', 512*1024*1024);
         end
         function forward(obj)
             p = obj.params.conv;
             data = obj.net.data;
 
-            data.val{obj.top} = vl_nnconv(data.val{obj.bottom}, data.val{obj.weights}, 'pad', p.pad, 'stride', p.stride);
+            data.val{obj.top} = vl_nnconv(data.val{obj.bottom}, data.val{obj.weights}, 'pad', p.pad, 'stride', p.stride, 'CudnnWorkspaceLimit', 512*1024*1024);
             data.forwardCount(obj.bottom, obj.top);
             data.forwardCount(obj.weights, []);
         end
@@ -29,7 +29,7 @@ classdef Conv < nn.layers.template.WeightLayer
             p = obj.params.conv;
             data = obj.net.data;
 
-            [bottom_diff, weights_diff1, weights_diff2] = vl_nnconv(data.val{obj.bottom}, data.val{obj.weights}, data.diff{obj.top}, 'pad', p.pad, 'stride', p.stride);
+            [bottom_diff, weights_diff1, weights_diff2] = vl_nnconv(data.val{obj.bottom}, data.val{obj.weights}, data.diff{obj.top}, 'pad', p.pad, 'stride', p.stride, 'CudnnWorkspaceLimit', 512*1024*1024);
             data.backwardCount(obj.bottom,  obj.top, bottom_diff);
             data.backwardCount(obj.weights, [],      weights_diff1, weights_diff2);
             %nn.utils.accumulateDiff(data, obj.bottom,  obj.top, bottom_diff);
