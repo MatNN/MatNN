@@ -52,6 +52,7 @@ sb = 1:accumulateOutBlobsNum;
 weightsNUMEL = [];
 if flowOpts.gpu
     gFun = obj.solverGPUFun;
+    gBNFun = obj.solver_BNGPUFun;
 end
 
 % Saving stat
@@ -122,8 +123,9 @@ for t = currentIter:flowOpts.iter
                         weightsNUMEL(i) = numel(data.val{i});
                     end
                     gFun.GridSize = ceil( max(weightsNUMEL)/obj.MaxThreadsPerBlock );
+                    gBNFun.GridSize = ceil( max(weightsNUMEL)/obj.MaxThreadsPerBlock );
                 end
-                obj.updateWeightGPU(data, learningRate, flowOpts.decay, flowOpts.momentum, flowOpts.iter_size, needToUpdatedWeightsInd, gFun, weightsNUMEL);
+                obj.updateWeightGPU(data, learningRate, flowOpts.decay, flowOpts.momentum, flowOpts.iter_size, needToUpdatedWeightsInd, gFun, gBNFun, weightsNUMEL);
             else
                 %warning('No need to update weights.');
             end

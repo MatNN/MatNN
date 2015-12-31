@@ -19,7 +19,6 @@ void destroyHandle(){
 void mexFunction( int nlhs,       mxArray *plhs[], 
                   int nrhs, const mxArray *prhs[]  )
 {
-    //mexAtExit(CloseStream);
     // Check nargin / nargout
     if (nrhs != 4) mexErrMsgIdAndTxt("MATLAB:MatNN", "Accepts 4 inputs."); // mode, input, output, output_diff
     if (nlhs != 1) mexErrMsgIdAndTxt("MATLAB:MatNN", "Accepts 1 output.");

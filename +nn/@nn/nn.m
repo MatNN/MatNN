@@ -25,6 +25,7 @@ classdef nn < handle
         layerNamesInd = {}; %Inverted index from layer name to layer index. A struct
 
         solverGPUFun;
+        solver_BNGPUFun;
         MaxThreadsPerBlock = 1024;
     end
 
@@ -144,13 +145,12 @@ classdef nn < handle
             end
         end
         
-        function updateWeightGPU(obj, data, lr, weightDecay, momentum, iter_size, updateWeightsInd, gf, data_len)
+        function updateWeightGPU(obj, data, lr, weightDecay, momentum, iter_size, updateWeightsInd, gf, gBNf, data_len)
             for w = updateWeightsInd
                 if data.method(w) == 0
                     [data.momentum{w}, data.val{w}] = feval(gf, momentum, data.momentum{w}, lr, data.lr(w), weightDecay, data.decay(w), data.val{w}, data.diff{w}, iter_size, data_len(w));
                 else
-                    lrw = data.lr(w);
-                    data.val{w} = (1 - lrw)*data.val{w} + lrw * data.diff{w}/iter_size;
+                    data.val{w} = feval(gBNf, data.lr(w), data.val{w}, data.diff{w}, iter_size, data_len(w));
                 end
             end
         end
@@ -168,17 +168,21 @@ classdef nn < handle
             end
         end
         function setupSolver(obj)
-            ptxp = [];
-            cup = [];
-            if isempty(ptxp)
-                fileP = fileparts(mfilename('fullpath'));
-                ptxp = fullfile(fileP, 'private', 'SGD.ptx');
-                cup = fullfile(fileP, 'private', 'SGD.cu');
-            end
-            obj.solverGPUFun = nn.utils.gpu.createHandle(1, ptxp, cup, 'SGD');
             d = gpuDevice();
+
+            fileP = fileparts(mfilename('fullpath'));
+            ptxp = fullfile(fileP, 'private', 'SGD.ptx');
+            cup = fullfile(fileP, 'private', 'SGD.cu');
+            obj.solverGPUFun = nn.utils.gpu.createHandle(1, ptxp, cup, 'SGD');
             obj.MaxThreadsPerBlock = d.MaxThreadsPerBlock;
             obj.solverGPUFun.ThreadBlockSize = obj.MaxThreadsPerBlock;
+
+            fileP = fileparts(mfilename('fullpath'));
+            ptxp = fullfile(fileP, 'private', 'BNAvg.ptx');
+            cup = fullfile(fileP, 'private', 'BNAvg.cu');
+            obj.solver_BNGPUFun = nn.utils.gpu.createHandle(1, ptxp, cup, 'BNAvg');
+            obj.MaxThreadsPerBlock = d.MaxThreadsPerBlock;
+            obj.solver_BNGPUFun.ThreadBlockSize = obj.MaxThreadsPerBlock;
         end
 
         function add(obj, varargin)
