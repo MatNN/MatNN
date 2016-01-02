@@ -6,7 +6,7 @@ batchSize = 100;
 
 trainer.add({
     'type' 'data.MNIST'...
-    'name' 'data'...
+    'name' 'data_train'...
     'top' {'data', 'label'} ...
     'data_param' {
                 'src' conf.mnistPath ...
@@ -18,11 +18,10 @@ trainer.add({
     'mnist_param' {
            'type' 'train' ...
         } ...
-    'phase' 'train'
     });
 trainer.add({
     'type' 'data.MNIST'...
-    'name' 'data'...
+    'name' 'data_test'...
     'top' {'data', 'label'} ...
     'data_param' {
                 'src' conf.mnistPath ...
@@ -34,7 +33,6 @@ trainer.add({
     'mnist_param' {
            'type' 'test' ...
         } ...
-    'phase' 'test'
     });
 trainer.add({
     'type'   'Conv'...
@@ -135,7 +133,6 @@ trainer.add({
     'name'   'loss'...
     'bottom' {'fc4', 'label'}...
     'top'    'loss'...
-    'phase'  'train'...
     });
 trainer.add({
     'type'   'Accuracy'...
@@ -145,30 +142,34 @@ trainer.add({
     'accuracy_param' {
         'meanClassAcc' true ...
         }...
-    'phase'  'test'...
     });
 
+trainer.flowOrder = {'train'};
+trainer.repeat    = 5;
+trainer.savePath  = fullfile('data','exp');
+trainer.gpu       = 1;
+trainer.showDate  = false;
 
-trainer.setPhaseOrder('train', 'test');
-trainer.setRepeat(5);
-trainer.setSavePath(fullfile('data','exp'));
-trainer.setGpu(1);
-trainer.setShowDate(false);
+trainOp.iter        = 600;  
+trainOp.numToSave   = 600*conf.save;  
+trainOp.displayIter = 1;
+trainOp.lrGamma     = 0.8;
+trainOp.lrSteps     = 600;
+trainOp.lrPolicy    = @lrPolicy;
 
-trainOp.numToNext          = 600;  
-trainOp.numToSave          = 600*conf.save;  
-trainOp.displayIter        = 1;
-trainOp.learningRateGamma  = 0.8;
-trainOp.learningRateSteps  = 600;
-trainOp.learningRatePolicy = @lrPolicy;
-trainer.setPhasePara('train', trainOp);
+testOp.iter          = 100;
+testOp.numToSave     = [];
+testOp.displayIter   = 100;
+testOp.showFirstIter = false;
+testOp.lr            = 0;
 
-testOp.numToNext           = 100;
-testOp.numToSave           = [];
-testOp.displayIter         = 100;
-testOp.showFirstIter       = false;
-testOp.learningRate        = 0;
-trainer.setPhasePara('test', testOp);
+trainLayers = trainer.getLayerIDs('data_train', 'conv1', 'pool1', 'conv2', 'pool2', 'conv3', 'relu1', 'fc4', 'loss');
+testLayers  = trainer.getLayerIDs('data_test' , 'conv1', 'pool1', 'conv2', 'pool2', 'conv3', 'relu1', 'fc4', 'accuracy');
+
+trainer.addFlow('train', trainOp, trainLayers);
+trainer.addFlow('test',  testOp,  testLayers );
+
+%trainer.load(600);
 
 trainer.run();
 

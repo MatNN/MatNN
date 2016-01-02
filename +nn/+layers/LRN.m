@@ -16,18 +16,21 @@ classdef LRN < nn.layers.template.BaseLayer
         function in_diff = b(~, in, out_diff, window, kappa, alpha, beta)
             in_diff = vl_nnnormalize(in, [window, kappa, alpha, beta], out_diff);
         end
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+        function forward(obj)
             p = obj.params.lrn;
-            data.val{l.top} = obj.f(data.val{l.bottom}, p.window_size, p.kappa, p.alpha, p.beta);
+            data = obj.net.data;
+            data.val{obj.top} = obj.f(data.val{obj.bottom}, p.window_size, p.kappa, p.alpha, p.beta);
+            data.forwardCount(obj.bottom, obj.top);
         end
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
+        function backward(obj)
             p = obj.params.lrn;
-            data = nn.utils.accumulateData(opts, data, l, obj.b(data.val{l.bottom}, data.diff{l.top}, p.window_size, p.kappa, p.alpha, p.beta));
+            data = obj.net.data;
+            data.backwardCount(obj.bottom,  obj.top, obj.b(data.val{obj.bottom}, data.diff{obj.top}, p.window_size, p.kappa, p.alpha, p.beta));
         end
-        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
-            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});
-            assert(numel(l.bottom)==1);
-            assert(numel(l.top)==1);
+        function outSizes = setup(obj, inSizes)
+            outSizes = obj.setup@nn.layers.template.BaseLayer(inSizes);
+            assert(numel(obj.bottom)==1);
+            assert(numel(obj.top)==1);
         end
     end
 

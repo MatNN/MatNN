@@ -57,10 +57,13 @@ classdef Multiply < nn.layers.template.BaseLayer
             end
         end
 
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+        function forward(obj)
             p = obj.params.multiply;
-            in1 = data.val{l.bottom(1)};
-            in2 = data.val{l.bottom(2)};
+            net = obj.net;
+            data = net.data;
+
+            in1 = data.val{obj.bottom(1)};
+            in2 = data.val{obj.bottom(2)};
             
             % compute output size
             outSizes = size(in2);
@@ -70,24 +73,27 @@ classdef Multiply < nn.layers.template.BaseLayer
                 outSizes(1) = size(in1, 1);
             end
 
-            if opts.gpuMode
-                data.val{l.top} = obj.gf(p.transpose, in1, in2, outSizes);
+            if net.opts.gpu
+                data.val{obj.top} = obj.gf(p.transpose, in1, in2, outSizes);
             else
-                data.val{l.top} = obj.f(p.transpose, in1, in2, outSizes);
+                data.val{obj.top} = obj.f(p.transpose, in1, in2, outSizes);
             end
+            data.forwardCount(obj.bottom, obj.top);
         end
 
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
+        function backward(obj)
             p = obj.params.multiply;
-            if opts.gpuMode
-                [bottom_diff{1}, bottom_diff{2}] = obj.gb(p.transpose, data.val{l.bottom(1)}, data.val{l.bottom(2)}, data.diff{l.top});
+            net = obj.net;
+            data = net.data;
+            if net.opts.gpu
+                [bottom_diff1, bottom_diff2] = obj.gb(p.transpose, data.val{obj.bottom}, data.diff{obj.top});
             else
-                [bottom_diff{1}, bottom_diff{2}] = obj.b(p.transpose, data.val{l.bottom(1)}, data.val{l.bottom(2)}, data.diff{l.top});
+                [bottom_diff1, bottom_diff2] = obj.b(p.transpose, data.val{obj.bottom}, data.diff{obj.top});
             end
-            data = nn.utils.accumulateData(opts, data, l, bottom_diff{:});
+            data.backwardCount(obj.bottom, obj.top, bottom_diff1, bottom_diff2);
         end
 
-        function outSizes =  outputSizes(obj, opts, l, inSizes, varargin)
+        function outSizes =  outputSizes(obj, inSizes)
             p = obj.params.multiply;
             if p.transpose
                 outSizes = {[inSizes{1}(2), inSizes{2}(2), inSizes{1}(3:end)]};
@@ -96,13 +102,13 @@ classdef Multiply < nn.layers.template.BaseLayer
             end
         end
 
-        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
+        function outSizes = setup(obj, inSizes)
             assert(inSizes{1}(3)==inSizes{2}(3));
             assert(inSizes{1}(4)==inSizes{2}(4));
-            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});
+            outSizes = obj.setup@nn.layers.template.BaseLayer(inSizes);
             p = obj.params.multiply;
-            assert(numel(l.bottom)==2);
-            assert(numel(l.top) == 1);
+            assert(numel(obj.bottom)==2);
+            assert(numel(obj.top) == 1);
             if p.transpose
                 assert(inSizes{1}(1) == inSizes{2}(1));
             else

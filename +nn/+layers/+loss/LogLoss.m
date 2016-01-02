@@ -1,6 +1,6 @@
 classdef LogLoss < nn.layers.template.LossLayer
 
-    properties (Access = {?nn.layers.template.BaseLayer, ?nn.layers.template.LossLayer})
+    properties (SetAccess = {?nn.BaseObject}, GetAccess = public)
         threshold   = realmin('single');
         batchSize   = 1;
         ind         = [];
@@ -77,9 +77,9 @@ classdef LogLoss < nn.layers.template.LossLayer
             obj.ll  = labelQ;
         end
 
-        % Forward function for training/testing routines
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
-            loss = obj.params.loss.loss_weight * obj.f(data.val{l.bottom});
+        function forward(obj)
+            data = obj.net.data;
+            loss = obj.params.loss.loss_weight * obj.f(data.val{obj.bottom});
             
             if obj.params.loss.accumulate
                 if opts.currentIter == 1
@@ -90,28 +90,29 @@ classdef LogLoss < nn.layers.template.LossLayer
                 obj.accumulateN = obj.accumulateN + obj.batchSize;
                 loss = obj.accumulateL/obj.accumulateN;
             end
-            data.val{l.top} = loss;
+            data.val{obj.top} = loss;
+            data.forwardCount(obj.bottom, obj.top);
         end
-        % Backward function for training/testing routines
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
+        function backward(obj)
             p = obj.params.loss;
-            if numel(l.bottom) == 3
-                bd = p.loss_weight * obj.b(data.val{l.bottom(1)}, data.val{l.bottom(2)}, data.diff{l.top}, data.val{l.bottom(3)});
+            net = obj.net;
+            data = net.data;
+            if numel(obj.bottom) == 3
+                bd = p.loss_weight * obj.b(data.val{obj.bottom(1)}, data.val{obj.bottom(2)}, data.diff{obj.top}, data.val{obj.bottom(3)});
             else
-                bd = p.loss_weight * obj.b(data.val{l.bottom(1)}, data.val{l.bottom(2)}, data.diff{l.top});
+                bd = p.loss_weight * obj.b(data.val{obj.bottom(1)}, data.val{obj.bottom(2)}, data.diff{obj.top});
             end
-            if ~isa(bd,'gpuArray') && opts.gpuMode
+            if ~isa(bd,'gpuArray') && net.opts.gpu
                 bd = gpuArray(bd);
             end
-            if numel(l.bottom) == 3
-                data = nn.utils.accumulateData(opts, data, l, bd, [], []);
+            if numel(obj.bottom) == 3
+                data.backwardCount(obj.bottom,  obj.top, bd, [], []);
             else
-                data = nn.utils.accumulateData(opts, data, l, bd, []);
+                data.backwardCount(obj.bottom,  obj.top, bd, []);
             end
         end
 
-        % Calc Output sizes
-        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
+        function outSizes = outputSizes(obj, inSizes)
             resSize = inSizes{1};
             ansSize = inSizes{2};
             if ~isequal(resSize(4),prod(ansSize))
@@ -121,130 +122,20 @@ classdef LogLoss < nn.layers.template.LossLayer
             end
             outSizes = {[1,1,1,1]};
         end
-
-        function setParams(obj, l)
-            obj.setParams@nn.layers.template.BaseLayer(l);
+        function setParams(obj)
+            obj.setParams@nn.layers.template.BaseLayer();
             obj.threshold = obj.params.loss.threshold;
         end
-
-        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
-            [outSizes, resources] = obj.setup@nn.layers.template.LossLayer(opts, l, inSizes, varargin{:});
-            assert(numel(l.bottom)>=2 && numel(l.bottom)<=3);
-            assert(numel(l.top)==1);
-            if opts.gpuMode
+        function outSizes = setup(obj, inSizes)
+            outSizes = obj.setup@nn.layers.template.LossLayer(inSizes);
+            assert(numel(obj.bottom)>=2 && numel(obj.bottom)<=3);
+            assert(numel(obj.top)==1);
+            if obj.net.opts.gpu
                 obj.accumulateN = gpuArray.zeros(1,1,'single');
                 obj.accumulateL = gpuArray.zeros(1,1,'single');
             end
         end
 
     end
-    
 
 end
-
-
-
-
-
-
-
-
-
-
-% function o = logisticLoss(networkParameter)
-% %LOGISTICLOSS 
-% %
-% % NOTICE
-% %   label index starts from 0 (compatible with other NN tools)
-% %   you can specify begining index from parameter
-
-% o.name         = 'LogisticLoss';
-% o.generateLoss = true;
-% o.setup        = @setup;
-% o.forward      = @forward;
-% o.backward     = @backward;
-
-
-% default_logisticLoss_param = {
-%     'labelIndex_start' single(0)    ...
-%            'threshold' single(1e-4)
-% };
-
-% % Save Forward result for faster computation
-% resultBlob = [];
-% ind        = [];
-% N          = [];
-% ll         = [];
-
-%     function [resource, topSizes, param] = setup(l, bottomSizes)
-%         resource = {};
-
-%         if isfield(l, 'logisticLoss_param')
-%             wp = nn.utils.vararginHelper(default_logisticLoss_param, l.logisticLoss_param);
-%         else
-%             wp = nn.utils.vararginHelper(default_logisticLoss_param, default_logisticLoss_param);
-%         end
-%         param.logisticLoss_param = wp;
-
-
-%         assert(numel(l.bottom)==2);
-%         assert(numel(l.top)==1);
-        
-
-%         resSize = bottomSizes{1};
-%         ansSize = bottomSizes{2};
-%         if ~isequal(resSize(4),prod(ansSize))
-%             if ~(isequal(resSize([1,2,4]), ansSize([1,2,4])) && ansSize(3) == 1) && ~(isequal(resSize(4), ansSize(4)) && isequal(ansSize(1:3),[1 1 1]))
-%                 error('Label size must be Nx1, 1xN or HxWx1xN.');
-%             end
-%         end
-%         topSizes = {[1, 1, 1, 1]};
-
-%     end
-%     function [top, weights, misc] = forward(opts, l, weights, misc, bottom, top)
-%         %resultBlob = max(bottom{1}, l.logisticLoss_param.threshold);
-%         resultBlob = bottom{1}+l.logisticLoss_param.threshold;
-
-%         resSize = nn.utils.size4D(resultBlob);
-%         labelSize = nn.utils.size4D(bottom{2});
-
-%         if resSize(4) == numel(bottom{2})
-%             label = reshape(bottom{2}, [1, 1, 1 resSize(4)]) ;
-%             label = repmat(label, [resSize(1), resSize(2)]) ;
-%         else
-%             if ~isequal(resSize([1,2,4]), labelSize([1,2,4]))
-%                 error('Label size must be Nx1, 1xN or HxWx1xN.');
-%             else
-%                 label = bottom{2};
-%             end
-%         end
-%         ll = label >= l.logisticLoss_param.labelIndex_start;
-%         %label = label(ll) - l.logisticLoss_param.labelIndex_start;
-%         N = resSize(1)*resSize(2)*resSize(4);
-%         %ind = find(ll)-1;
-%         %ind = 1 + mod(ind, N)  ...
-%         %        + N * label(:) ...
-%         %        + N*resSize(3) * floor(ind/N);
-
-%         if opts.gpuMode
-%             ind = gpuArray.false(resSize);
-%         else
-%             ind = false(resSize);
-%         end
-%         for i=1:resSize(3)
-%             ind(:,:,i,:) = label == i + (l.logisticLoss_param.labelIndex_start - 1);
-%         end
-
-%         top{1} = -sum(log(resultBlob(ind)))/N;
-
-%     end
-%     function [bottom_diff, weights_diff, misc] = backward(opts, l, weights, misc, bottom, top, top_diff, weights_diff)
-%         dzdx = -bsxfun(@rdivide, bsxfun(@times, ll, top_diff{1}/N), resultBlob);
-
-%         % only ground truth label are correct, set others to zero
-%         outdzdx = dzdx*0; % faster than zeros(size(dzdx)); ?
-%         outdzdx(ind) = dzdx(ind);
-%         bottom_diff = {outdzdx,[]};
-
-%     end
-% end

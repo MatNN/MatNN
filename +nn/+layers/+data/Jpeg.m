@@ -92,8 +92,8 @@ classdef Jpeg < nn.layers.template.DataLayer
         end
 
 
-        function setParams(obj, baseProperties)
-            obj.setParams@nn.layers.template.DataLayer(baseProperties);
+        function setParams(obj)
+            obj.setParams@nn.layers.template.DataLayer();
             %Read file
             p = obj.params.data;
             j = obj.params.jpeg;
@@ -133,7 +133,7 @@ classdef Jpeg < nn.layers.template.DataLayer
         end
 
         % Calc Output sizes
-        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
+        function outSizes = outputSizes(obj, inSizes)
             p = obj.params.jpeg;
             if numel(p.crop)==1
                 crop = [p.crop,p.crop];
@@ -144,9 +144,9 @@ classdef Jpeg < nn.layers.template.DataLayer
             outSizes{2} = [1, 1, 1, obj.params.data.batch_size];
         end
 
-        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
-            [outSizes, resources] = obj.setup@nn.layers.template.DataLayer(opts, l, inSizes, varargin{:});
-            assert(numel(l.bottom)==0, 'JPEG layer does not accept inputs.');
+        function outSizes = setup(obj, inSizes)
+            outSizes = obj.setup@nn.layers.template.DataLayer(inSizes);
+            assert(numel(obj.bottom)==0, 'JPEG layer does not accept inputs.');
         end
 
 

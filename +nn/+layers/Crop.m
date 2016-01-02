@@ -36,14 +36,17 @@ classdef Crop < nn.layers.template.BaseLayer
             in1_diff(offset(1)+1:offset(1)+s(1), offset(2)+1:offset(2)+s(2), :, :) = out_diff;
             in2_diff = [];
         end
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
-            data.val{l.top} = obj.f(data.val{l.bottom(1)}, data.val{l.bottom(2)}, obj.params.crop.offset);
+        function forward(obj)
+            data = obj.net.data;
+            data.val{obj.top} = obj.f(data.val{obj.bottom}, obj.params.crop.offset);
+            data.forwardCount(obj.bottom, obj.top);
         end
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
-            [bottom_diff{1}, bottom_diff{2}] = obj.b(data.val{l.bottom(1)}, data.val{l.bottom(2)}, data.diff{l.top}, obj.params.crop.offset);
-            data = nn.utils.accumulateData(opts, data, l, bottom_diff{:});
+        function backward(obj)
+            data = obj.net.data;
+            [bottom_diff1, bottom_diff2] = obj.b(data.val{obj.bottom}, data.diff{obj.top}, obj.params.crop.offset);
+            data.backwardCount(obj.bottom,  obj.top, bottom_diff1, bottom_diff2);
         end
-        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
+        function outSizes = outputSizes(obj, inSizes)
             HW1 = inSizes{1}(1:2);
             HW2 = inSizes{2}(1:2);
             % use the smallest bottom size as top size
@@ -53,10 +56,10 @@ classdef Crop < nn.layers.template.BaseLayer
                 error('Crop Layer bottom size is wrong.');
             end
         end
-        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
-            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});
-            assert(numel(l.bottom)==2);
-            assert(numel(l.top)==1);
+        function outSizes = setup(obj, inSizes)
+            outSizes = obj.setup@nn.layers.template.BaseLayer(inSizes);
+            assert(numel(obj.bottom)==2);
+            assert(numel(obj.top)==1);
         end
     end
 end

@@ -54,3 +54,4 @@ site/
 # specific files
 dmats.sh
 setpath.m
+*.ptx

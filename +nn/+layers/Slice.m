@@ -29,25 +29,15 @@ classdef Slice < nn.layers.template.BaseLayer
             varargout = cell(1,K);
             switch dim
                 case 1
-                    for i=1:K
-                        varargout{K} = in(indices{i},:,:,:);
-                    end
+                    for i=1:K, varargout{K} = in(indices{i},:,:,:); end
                 case 2
-                    for i=1:K
-                        varargout{K} = in(:,indices{i},:,:);
-                    end
+                    for i=1:K, varargout{K} = in(:,indices{i},:,:); end
                 case 3
-                    for i=1:K
-                        varargout{K} = in(:,:,indices{i},:);
-                    end
+                    for i=1:K, varargout{K} = in(:,:,indices{i},:); end
                 case 4
-                    for i=1:K
-                        varargout{K} = in(:,:,:,indices{i});
-                    end
+                    for i=1:K, varargout{K} = in(:,:,:,indices{i}); end
                 otherwise
-                    for i=1:K
-                        varargout{K} = in(:,:,indices{i},:);
-                    end
+                    for i=1:K, varargout{K} = in(:,:,indices{i},:); end
             end
         end
         function in_diff = b(~, dim, indices, in, varargin)
@@ -55,36 +45,29 @@ classdef Slice < nn.layers.template.BaseLayer
             K = numel(indices);
             switch dim
                 case 1
-                    for i=1:K
-                        in_diff(indices{i},:,:,:) = varargin{i};
-                    end
+                    for i=1:K, in_diff(indices{i},:,:,:) = varargin{i}; end
                 case 2
-                    for i=1:K
-                        in_diff(:,indices{i},:,:) = varargin{i};
-                    end
+                    for i=1:K, in_diff(:,indices{i},:,:) = varargin{i}; end
                 case 3
-                    for i=1:K
-                        in_diff(:,:,indices{i},:) = varargin{i};
-                    end
+                    for i=1:K, in_diff(:,:,indices{i},:) = varargin{i}; end
                 case 4
-                    for i=1:K
-                        in_diff(:,:,:,indices{i}) = varargin{i};
-                    end
+                    for i=1:K, in_diff(:,:,:,indices{i}) = varargin{i}; end
                 otherwise
-                    for i=1:K
-                        in_diff(:,:,indices{i},:) = varargin{i};
-                    end
+                    for i=1:K, in_diff(:,:,indices{i},:) = varargin{i}; end
             end
         end
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+        function forward(obj)
             p = obj.params.slice;
-            data.val{l.top} = obj.f(p.dim, p.indices, data.val{l.bottom});
+            data = obj.net.data;
+            data.val{obj.top} = obj.f(p.dim, p.indices, data.val{obj.bottom});
+            data.forwardCount(obj.bottom, obj.top);
         end
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
+        function backward(obj)
             p = obj.params.slice;
-            data = nn.utils.accumulateData(opts, data, l, obj.b(p.dim, p.indices, data.val{l.bottom}, data.diff{l.top}));
+            data = obj.net.data;
+            data.backwardCount(obj.bottom,  obj.top, obj.b(p.dim, p.indices, data.val{obj.bottom}, data.diff{obj.top}));
         end
-        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
+        function outSizes = outputSizes(obj, inSizes)
             K = numel(obj.params.slice.indices);
             outSizes = cell(1, K);
             d1 = inSizes{1}(1);
@@ -93,31 +76,21 @@ classdef Slice < nn.layers.template.BaseLayer
             d4 = inSizes{1}(4);
             switch obj.params.slice.dim
                 case 1
-                    for i=1:K
-                        outSizes{K} = [numel(obj.params.slice.indices{i}),d2,d3,d4];
-                    end
+                    for i=1:K, outSizes{K} = [numel(obj.params.slice.indices{i}),d2,d3,d4]; end
                 case 2
-                    for i=1:K
-                        outSizes{K} = [d1,numel(obj.params.slice.indices{i}),d3,d4];
-                    end
+                    for i=1:K, outSizes{K} = [d1,numel(obj.params.slice.indices{i}),d3,d4]; end
                 case 3
-                    for i=1:K
-                        outSizes{K} = [d1,d2,numel(obj.params.slice.indices{i}),d4];
-                    end
+                    for i=1:K, outSizes{K} = [d1,d2,numel(obj.params.slice.indices{i}),d4]; end
                 case 4
-                    for i=1:K
-                        outSizes{K} = [d1,d2,d3, numel(obj.params.slice.indices{i})];
-                    end
+                    for i=1:K, outSizes{K} = [d1,d2,d3,numel(obj.params.slice.indices{i})]; end
                 otherwise
-                    for i=1:K
-                        outSizes{K} = [d1,d2,numel(obj.params.slice.indices{i}),d4];
-                    end
+                    for i=1:K, outSizes{K} = [d1,d2,numel(obj.params.slice.indices{i}),d4]; end
             end
         end
-        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
-            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});
-            assert(numel(l.bottom)==1);
-            assert(numel(l.top)==numel(obj.params.slice.indices));
+        function outSizes = setup(obj, inSizes)
+            outSizes = obj.setup@nn.layers.template.BaseLayer(inSizes);
+            assert(numel(obj.bottom)==1);
+            assert(numel(obj.top)==numel(obj.params.slice.indices));
         end
     end
 

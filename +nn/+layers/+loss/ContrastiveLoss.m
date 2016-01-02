@@ -4,7 +4,7 @@ classdef ContrastiveLoss < nn.layers.template.LossLayer
         default_contrastiveLoss_param = { 'margin' single(1) };
     end
 
-    properties (Access = {?nn.layers.template.BaseLayer, ?nn.layers.template.LossLayer})
+    properties (SetAccess = {?nn.BaseObject}, GetAccess = public)
         threshold = realmin('single');
         batchSize = 1;
         N         = [];
@@ -57,10 +57,12 @@ classdef ContrastiveLoss < nn.layers.template.LossLayer
             in1_diff = out_diff * (bsxfun(@times, d_+rightTerm, y) - rightTerm) / obj.N;
             in2_diff = -in1_diff;
         end
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
-            loss = obj.params.loss.loss_weight * obj.f(data.val{l.bottom}, obj.params.contrastiveLoss.margin);
+        function forward(obj)
+            net = obj.net;
+            data = net.data;
+            loss = obj.params.loss.loss_weight * obj.f(data.val{obj.bottom}, obj.params.contrastiveLoss.margin);
             if obj.params.loss.accumulate
-                if opts.currentIter == 1
+                if net.opts.currentIter == 1
                     obj.accumulateL = obj.accumulateL*0;
                     obj.accumulateN = obj.accumulateN*0;
                 end
@@ -68,36 +70,40 @@ classdef ContrastiveLoss < nn.layers.template.LossLayer
                 obj.accumulateN = obj.accumulateN + obj.batchSize;
                 loss = obj.accumulateL/obj.accumulateN;
             end
-            data.val{l.top} = loss;
+            data.val{obj.top} = loss;
+            data.forwardCount(obj.bottom, obj.top);
         end
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
+        function backward(obj)
+            net = obj.net;
+            data = net.data;
             p = obj.params.loss;
-            [bd1,bd2] = obj.b(data.val{l.bottom}, obj.params.contrastiveLoss.margin, data.diff{l.top});
+            [bd1,bd2] = obj.b(data.val{obj.bottom}, obj.params.contrastiveLoss.margin, data.diff{obj.top});
 
             bd1 = bd1 * p.loss_weight;
             bd2 = bd2 * p.loss_weight;
             
-            if ~isa(bd1,'gpuArray') && opts.gpuMode
+            if ~isa(bd1,'gpuArray') && net.opts.gpu
                 bd1 = gpuArray(bd1);
                 bd2 = gpuArray(bd2);
             end
-            data = nn.utils.accumulateData(opts, data, l, bd1, bd2, []);
+            %nn.utils.accumulateDiff(data, obj.bottom(1:2),  obj.top, bd1, bd2, []);
+            data.backwardCount(obj.bottom, obj.top, bd1, bd2, []);
         end
-        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
+        function outSizes = outputSizes(~, inSizes)
             assert( isequal(inSizes{1}, inSizes{2}) );
             assert( inSizes{1}(4) == prod(inSizes{3}) );
             % similarity input size must be 1x1x1xN, or 1xN or Nx1
             outSizes = {[1,1,1,1]};
         end
-        function setParams(obj, l)
-            obj.setParams@nn.layers.template.BaseLayer(l);
+        function setParams(obj)
+            obj.setParams@nn.layers.template.BaseLayer();
             obj.threshold = obj.params.loss.threshold;
         end
-        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
-            [outSizes, resources] = obj.setup@nn.layers.template.LossLayer(opts, l, inSizes, varargin{:});
-            assert(numel(l.bottom)==3);
-            assert(numel(l.top)==1);
-            if opts.gpuMode
+        function outSizes = setup(obj, inSizes)
+            outSizes = obj.setup@nn.layers.template.LossLayer(inSizes);
+            assert(numel(obj.bottom)==3);
+            assert(numel(obj.top)==1);
+            if obj.net.opts.gpu
                 obj.accumulateN = gpuArray.zeros(1,1,'single');
                 obj.accumulateL = gpuArray.zeros(1,1,'single');
             end

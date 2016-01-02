@@ -1,7 +1,6 @@
 classdef EuclideanLoss < nn.layers.template.LossLayer
 
-
-    properties (Access = {?nn.layers.template.BaseLayer, ?nn.layers.template.LossLayer})
+    properties (SetAccess = {?nn.BaseObject}, GetAccess = public)
         threshold = realmin('single');
         batchSize = 1;
         N         = [];
@@ -56,17 +55,18 @@ classdef EuclideanLoss < nn.layers.template.LossLayer
             label_diff = -in_diff;
         end
 
-        % Forward function for training/testing routines
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+        function forward(obj)
             lst = obj.params.loss.labelIndex_start;
-            if numel(l.bottom) == 3
-                loss = obj.params.loss.loss_weight * obj.f(data.val{l.bottom(1)}, data.val{l.bottom(2)}-lst+1, data.val{l.bottom(3)});
+            net = obj.net;
+            data = net.data;
+            if numel(obj.bottom) == 3
+                loss = obj.params.loss.loss_weight * obj.f(data.val{obj.bottom(1)}, data.val{obj.bottom(2)}-lst+1, data.val{obj.bottom(3)});
             else
-                loss = obj.params.loss.loss_weight * obj.f(data.val{l.bottom(1)}, data.val{l.bottom(2)}-lst+1);
+                loss = obj.params.loss.loss_weight * obj.f(data.val{obj.bottom(1)}, data.val{obj.bottom(2)}-lst+1);
             end
             
             if obj.params.loss.accumulate
-                if opts.currentIter == 1
+                if net.opts.currentIter == 1
                     obj.accumulateL = obj.accumulateL*0;
                     obj.accumulateN = obj.accumulateN*0;
                 end
@@ -74,50 +74,49 @@ classdef EuclideanLoss < nn.layers.template.LossLayer
                 obj.accumulateN = obj.accumulateN + obj.batchSize;
                 loss = obj.accumulateL/obj.accumulateN;
             end
-            data.val{l.top} = loss;
+            data.val{obj.top} = loss;
+            data.forwardCount(obj.bottom, obj.top);
         end
-        % Backward function for training/testing routines
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
+        function backward(obj)
             p = obj.params.loss;
-            if numel(l.bottom) == 3
-                [bd1,bd2] = obj.b(data.diff{l.top}, data.val{l.bottom(3)});
+            net = obj.net;
+            data = net.data;
+            if numel(obj.bottom) == 3
+                [bd1,bd2] = obj.b(data.diff{obj.top}, data.val{obj.bottom(3)});
             else
-                [bd1,bd2] = obj.b(data.diff{l.top});
+                [bd1,bd2] = obj.b(data.diff{obj.top});
             end
 
             bd1 = bd1 * p.loss_weight;
             bd2 = bd2 * p.loss_weight;
             
-            if ~isa(bd1,'gpuArray') && opts.gpuMode
+            if ~isa(bd1,'gpuArray') && net.opts.gpu
                 bd1 = gpuArray(bd1);
                 bd2 = gpuArray(bd2);
             end
-            if numel(l.bottom) == 3
-                data = nn.utils.accumulateData(opts, data, l, bd1, bd2, []);
+            if numel(obj.bottom) == 3
+                data.backwardCount(obj.bottom,  obj.top, bd1, bd2, []);
             else
-                data = nn.utils.accumulateData(opts, data, l, bd1, bd2);
+                data.backwardCount(obj.bottom,  obj.top, bd1, bd2);
             end
         end
 
-        % Calc Output sizes
-        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
+        function outSizes = outputSizes(obj, inSizes)
             resSize = inSizes{1};
             ansSize = inSizes{2};
             assert( isequal(ansSize, resSize) | (isequal(ansSize([1,2,4]), resSize([1,2,4])) && ansSize(3)==1) );
             % Label size must be HxWxCxN or HxWx1xN
             outSizes = {[1,1,1,1]};
         end
-
-        function setParams(obj, l)
-            obj.setParams@nn.layers.template.BaseLayer(l);
+        function setParams(obj)
+            obj.setParams@nn.layers.template.BaseLayer();
             obj.threshold = obj.params.loss.threshold;
         end
-
-        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
-            [outSizes, resources] = obj.setup@nn.layers.template.LossLayer(opts, l, inSizes, varargin{:});
-            assert(numel(l.bottom)>=2 && numel(l.bottom)<=3);
-            assert(numel(l.top)==1);
-            if opts.gpuMode
+        function outSizes = setup(obj, inSizes)
+            outSizes = obj.setup@nn.layers.template.LossLayer(inSizes);
+            assert(numel(obj.bottom)>=2 && numel(obj.bottom)<=3);
+            assert(numel(obj.top)==1);
+            if obj.net.opts.gpu
                 obj.accumulateN = gpuArray.zeros(1,1,'single');
                 obj.accumulateL = gpuArray.zeros(1,1,'single');
             end

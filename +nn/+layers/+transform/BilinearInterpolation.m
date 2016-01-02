@@ -8,7 +8,7 @@ classdef BilinearInterpolation < nn.layers.template.BaseLayer
     end
 
     % intermediate savings (computed values, recomputed every time)
-    properties (SetAccess = {?nn.layers.template.BaseLayer}, GetAccess = public)
+    properties (SetAccess = {?nn.BaseObject}, GetAccess = public)
         forwardHandle;
         backwardHandle;
         count = 0;
@@ -49,13 +49,15 @@ classdef BilinearInterpolation < nn.layers.template.BaseLayer
             in_diff = obj.b(varargin{:});
         end
 
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
-            if opts.gpuMode
-                data.val{l.top} = obj.f(data.val{l.bottom(1)}, data.val{l.bottom(2)});
+        function forward(obj)
+            net = obj.net;
+            data = net.data;
+            if net.opts.gpu
+                data.val{obj.top} = obj.f(data.val{obj.bottom});
                 if obj.params.bilinear.showDebugWindow
                     if mod(obj.count, 20) == 0
-                        subplot(1,2,1), imshow(gather(data.val{l.bottom(1)}(:,:,:,1)), []);
-                        subplot(1,2,2), imshow(gather(data.val{l.top}(:,:,:,1)), []);
+                        subplot(1,2,1), imshow(gather(data.val{obj.bottom(1)}(:,:,:,1)), []);
+                        subplot(1,2,2), imshow(gather(data.val{obj.top}(:,:,:,1)), []);
                         drawnow;
                         obj.count = 0;
                     end
@@ -64,24 +66,27 @@ classdef BilinearInterpolation < nn.layers.template.BaseLayer
             else
                 error('BilinearInterpolation Layer : only support gpu mode currently.');
             end
+            data.forwardCount(obj.bottom, obj.top);
         end
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
-            if opts.gpuMode
-                [bottom_diff{1}, bottom_diff{2}] = obj.b(data.val{l.bottom(1)}, data.val{l.bottom(2)}, data.val{l.top}, data.diff{l.top});
+        function backward(obj)
+            net = obj.net;
+            data = net.data;
+            if net.opts.gpu
+                [bottom_diff1, bottom_diff2] = obj.b(data.val{obj.bottom}, data.val{obj.top}, data.diff{obj.top});
             else
                 error('BilinearInterpolation Layer : only support gpu mode currently.');
             end
-            data = nn.utils.accumulateData(opts, data, l, bottom_diff{:});
+            data.backwardCount(obj.bottom, obj.top, bottom_diff1, bottom_diff2);
         end
         
-        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
+        function outSizes = outputSizes(obj, inSizes)
             assert(inSizes{2}(3) == 2);
             outSizes = inSizes(1);
         end
-        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
-            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});
-            assert(numel(l.bottom)==2);
-            assert(numel(l.top)==1);
+        function outSizes = setup(obj, inSizes)
+            outSizes = obj.setup@nn.layers.template.BaseLayer(inSizes);
+            assert(numel(obj.bottom)==2);
+            assert(numel(obj.top)==1);
             obj.createGPUFun(inSizes{2});
         end
         function createGPUFun(obj, sampleSize)
@@ -93,7 +98,7 @@ classdef BilinearInterpolation < nn.layers.template.BaseLayer
                 mf = fileparts(mfilename('fullpath'));
                 ptxp = fullfile(mf, 'private', 'bilinearInterpolation.ptx');
             cup = fullfile(mf, 'private', 'bilinearInterpolation.cu');
-                h = nn.utils.gpu.createHandle(prod(sampleSize), ptxp, cup, 'BilinearInterpolationForward');
+                h = nn.utils.gpu.createHandle(1, ptxp, cup, 'BilinearInterpolationForward');
             elseif strcmpi(varargin{1}, 'CPU')
                 h = [];
             end
@@ -103,7 +108,7 @@ classdef BilinearInterpolation < nn.layers.template.BaseLayer
                 mf = fileparts(mfilename('fullpath'));
                 ptxp = fullfile(mf, 'private', 'bilinearInterpolation.ptx');
             cup = fullfile(mf, 'private', 'bilinearInterpolation.cu');
-                h = nn.utils.gpu.createHandle(prod(sampleSize), ptxp, cup, 'BilinearInterpolationBackward');
+                h = nn.utils.gpu.createHandle(1, ptxp, cup, 'BilinearInterpolationBackward');
             elseif strcmpi(varargin{1}, 'CPU')
                 h = [];
             end

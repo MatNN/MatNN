@@ -18,7 +18,7 @@ classdef RandDistort < nn.layers.template.BaseLayer
     end
 
     % intermediate savings (computed values, recomputed every time)
-    properties (SetAccess = {?nn.layers.template.BaseLayer}, GetAccess = public)
+    properties (SetAccess = {?nn.BaseObject}, GetAccess = public)
         forwardHandle;
     end
 
@@ -99,25 +99,28 @@ classdef RandDistort < nn.layers.template.BaseLayer
             in_diff = [];
         end
 
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+        function forward(obj)
             p = obj.params.randDistort;
-            if opts.gpuMode
-                if numel(l.top)==1
-                    data.val{l.top} = obj.gf(data.val{l.bottom}, p.angle, p.scaleX, p.scaleY, p.scaleEQ, p.shiftX, p.shiftY, p.extend, p.mix);
-                elseif numel(l.top)==2
-                    [data.val{l.top(1)}, data.val{l.top(2)}] = obj.gf(data.val{l.bottom}, p.angle, p.scaleX, p.scaleY, p.scaleEQ, p.shiftX, p.shiftY, p.extend, p.mix);
+            net = obj.net;
+            data = net.data;
+            if net.opts.gpu
+                if numel(obj.top)==1
+                    data.val{obj.top} = obj.gf(data.val{obj.bottom}, p.angle, p.scaleX, p.scaleY, p.scaleEQ, p.shiftX, p.shiftY, p.extend, p.mix);
+                elseif numel(obj.top)==2
+                    [data.val{obj.top(1)}, data.val{obj.top(2)}] = obj.gf(data.val{obj.bottom}, p.angle, p.scaleX, p.scaleY, p.scaleEQ, p.shiftX, p.shiftY, p.extend, p.mix);
                 else
                     error('top number mismatch.');
                 end
             else
                 error('RandDistort Layer : only support gpu mode currently.');
             end
+            data.forwardCount(obj.bottom, obj.top);
         end
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
-            data = nn.utils.accumulateData(opts, data, l);
+        function backward(obj)
+            obj.net.data.backwardCount(obj.bottom, obj.top);
         end
 
-        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
+        function outSizes = outputSizes(obj, inSizes)
             p = obj.params.randDistort;
             if numel(inSizes)==1
                 outSizes = {[p.extend(1)+inSizes{1}(1), p.extend(2)+inSizes{1}(2),inSizes{1}(3), inSizes{1}(4)]};
@@ -125,15 +128,15 @@ classdef RandDistort < nn.layers.template.BaseLayer
                 outSizes = {[p.extend(1)+inSizes{1}(1), p.extend(2)+inSizes{1}(2),inSizes{1}(3), inSizes{1}(4)], [1,1,6,inSizes{1}(4)]};
             end
         end
-        function setParams(obj, l)
-            obj.setParams@nn.layers.template.BaseLayer(l);
+        function setParams(obj)
+            obj.setParams@nn.layers.template.BaseLayer();
             p = obj.params.randDistort;
             assert(all(p.extend>=0));
         end
-        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
-            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});
-            assert(numel(l.bottom)==1);
-            assert(numel(l.top)>=1 && numel(l.top)<=2);
+        function outSizes = setup(obj, inSizes)
+            outSizes = obj.setup@nn.layers.template.BaseLayer(inSizes);
+            assert(numel(obj.bottom)==1);
+            assert(numel(obj.top)>=1 && numel(obj.top)<=2);
             obj.createGPUFun(inSizes{1});
         end
         function createGPUFun(obj, sampleSize)

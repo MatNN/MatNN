@@ -26,21 +26,13 @@ classdef Cat < nn.layers.template.BaseLayer
                 end
                 switch dim
                     case 1
-                        for i=1:numel(indices)
-                            out(indices{i},:,:,:) = varargin{i};
-                        end
+                        for i=1:numel(indices), out(indices{i},:,:,:) = varargin{i}; end
                     case 2
-                        for i=1:numel(indices)
-                            out(:,indices{i},:,:) = varargin{i};
-                        end
+                        for i=1:numel(indices), out(:,indices{i},:,:) = varargin{i}; end
                     case 3
-                        for i=1:numel(indices)
-                            out(:,:,indices{i},:) = varargin{i};
-                        end
+                        for i=1:numel(indices), out(:,:,indices{i},:) = varargin{i}; end
                     case 4
-                        for i=1:numel(indices)
-                            out(:,:,:,indices{i}) = varargin{i};
-                        end
+                        for i=1:numel(indices), out(:,:,:,indices{i}) = varargin{i}; end
                     otherwise
                         error('dim must be 1~4');
                 end
@@ -95,15 +87,20 @@ classdef Cat < nn.layers.template.BaseLayer
                 end
             end
         end
-        function [top, weights, misc] = forward(obj, opts, top, bottom, weights, misc)
+        function forward(obj)
             p = obj.params.slice;
-            top{1} = obj.f(p.dim, p.indices, bottom{:});
+            data = obj.net.data;
+            data.val{obj.top} = obj.f(p.dim, p.indices, data.val{obj.bottom});
+            data.forwardCount(obj.bottom, obj.top);
         end
-        function [bottom_diff, weights_diff, misc] = backward(obj, opts, top, bottom, weights, misc, top_diff, bottom_diff, weights_diff)
+        function backward(obj)
             p = obj.params.slice;
-            bottom_diff{1:numel(bottom)} = obj.b(p.dim, p.indices, top_diff{1}, bottom{:});
+            data = obj.net.data;
+            bottom_diff = cell(1, numel(obj.bottom));
+            [bottom_diff{:}] = obj.b(p.dim, p.indices, data.diff{obj.top}, data.val{obj.bottom});
+            data.backwardCount(obj.bottom, obj.top, bottom_diff{:});
         end
-        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
+        function outSizes = outputSizes(obj, inSizes)
             p = obj.params.cat;
             topSizes = [1, 1, 1, 1];
             topSizes(1:numel(inSizes{1})) = inSizes{1}; % prevent matlab singleton dimension error
@@ -119,18 +116,18 @@ classdef Cat < nn.layers.template.BaseLayer
             end
             outSizes = {topSizes};
         end
-        function setParams(obj, baseProperties)
-            obj.setParams@nn.layers.template.BaseLayer(baseProperties);
+        function setParams(obj)
+            obj.setParams@nn.layers.template.BaseLayer();
             p = obj.params.cat;
             assert(numel(p.dim) == 1 && p.dim >= 1 && p.dim <= 4);
         end
-        function [outSizes, resources] = setup(obj, opts, baseProperties, inSizes, varargin)
-            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, baseProperties, inSizes, varargin{:});
-            assert(numel(baseProperties.bottom)>=1);
-            assert(numel(baseProperties.top)==1);
+        function outSizes = setup(obj, inSizes)
+            outSizes = obj.setup@nn.layers.template.BaseLayer(inSizes);
+            assert(numel(obj.bottom)>=1);
+            assert(numel(obj.top)==1);
             p = obj.params.cat;
             if ~isempty(p.indices)
-                assert(numel(p.indices)==numel(baseProperties.bottom));
+                assert(numel(p.indices)==numel(obj.bottom));
                 assert(all(unique([p.indices{:}])>0));
                 sumSize = sum(cell2mat(inSizes'),1);
                 assert(numel(unique([p.indices{:}]))==sumSize(3));

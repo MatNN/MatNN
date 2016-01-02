@@ -18,52 +18,54 @@ classdef Dummy < nn.layers.template.BaseLayer
         function b(~, varargin)
             error('Not supported.');
         end
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
+        function forward(obj)
             p = obj.params.dummy;
-            if numel(l.bottom)==0
+            data = obj.net.data;
+            if numel(obj.bottom)==0
                 sizes = p.sizes;
             else
-                sizes = cellfun(@nn.utils.size4D, data.val(l.bottom), 'un', false);
+                sizes = cellfun(@nn.utils.size4D, data.val(obj.bottom), 'un', false);
             end
             for i=1:numel(sizes)
-                if opts.gpuMode
+                if obj.net.opts.gpu
                     if isempty(p.value{i})
-                        data.val{l.top(i)} = gpuArray.randn(sizes{i}, 'single');
+                        data.val{obj.top(i)} = gpuArray.randn(sizes{i}, 'single');
                     elseif p.value{i}==0
-                        data.val{l.top(i)} = gpuArray.zeros(sizes{i}, 'single');
+                        data.val{obj.top(i)} = gpuArray.zeros(sizes{i}, 'single');
                     elseif p.value{i}==1
-                        data.val{l.top(i)} = gpuArray.ones(sizes{i}, 'single');
+                        data.val{obj.top(i)} = gpuArray.ones(sizes{i}, 'single');
                     else
-                        data.val{l.top(i)} = gpuArray.ones(sizes{i}, 'single').*p.value{i};
+                        data.val{obj.top(i)} = gpuArray.ones(sizes{i}, 'single').*p.value{i};
                     end
                 else
                     if isempty(p.value{i})
-                        data.val{l.top(i)} = randn(sizes{i}, 'single');
+                        data.val{obj.top(i)} = randn(sizes{i}, 'single');
                     elseif p.value{i}==0
-                        data.val{l.top(i)} = zeros(sizes{i}, 'single');
+                        data.val{obj.top(i)} = zeros(sizes{i}, 'single');
                     elseif p.value{i}==1
-                        data.val{l.top(i)} = ones(sizes{i}, 'single');
+                        data.val{obj.top(i)} = ones(sizes{i}, 'single');
                     else
-                        data.val{l.top(i)} = ones(sizes{i}, 'single').*p.value{i};
+                        data.val{obj.top(i)} = ones(sizes{i}, 'single').*p.value{i};
                     end
                 end
             end
+            data.forwardCount(obj.bottom, obj.top);
         end
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
-            data = nn.utils.accumulateData(opts, data, l);
+        function backward(obj)
+            obj.net.data.backwardCount(obj.bottom,  obj.top);
         end
-        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
+        function outSizes = outputSizes(obj, inSizes)
             p = obj.params.dummy;
-            if numel(l.bottom)==0
+            if numel(obj.bottom)==0
                 outSizes = p.size;
             else
                 outSizes = inSizes;
             end
         end
-        function setParams(obj, l)
-            obj.setParams@nn.layers.template.BaseLayer(l);
+        function setParams(obj)
+            obj.setParams@nn.layers.template.BaseLayer();
             p = obj.params.dummy;
-            if numel(l.bottom)==0
+            if numel(obj.bottom)==0
                 assert(numel(p.value)>=1);
                 assert(numel(p.size) == numel(p.value));
             else
@@ -71,12 +73,12 @@ classdef Dummy < nn.layers.template.BaseLayer
                 assert(numel(p.size)==0);
             end
         end
-        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
-            [outSizes, resources] = obj.setup@nn.layers.template.BaseLayer(opts, l, inSizes, varargin{:});
-            if numel(l.bottom)==0
-                assert(numel(l.top)>=1);
+        function outSizes = setup(obj, inSizes)
+            outSizes = obj.setup@nn.layers.template.BaseLayer(inSizes);
+            if numel(obj.bottom)==0
+                assert(numel(obj.top)>=1);
             else
-                assert(numel(l.top)==numel(l.bottom));
+                assert(numel(obj.top)==numel(obj.bottom));
             end
         end
     end

@@ -27,22 +27,6 @@ trainer.add({
         } ...
     'phase' 'train'
     });
-trainer.add({
-    'type' 'data.MNIST'...
-    'name' 'data_test'...
-    'top' {'data', 'label'} ...
-    'data_param' {
-                'src' conf.mnistPath ...
-        'root_folder' ''       ...
-         'batch_size' batchSize ...
-               'full' false  ...
-            'shuffle' true   ...
-        } ...
-    'mnist_param' {
-           'type' 'test' ...
-        } ...
-    'phase' 'test'
-    });
 %------------------Spatial Transform
 trainer.add({
     'type'   'transform.RandDistort' ...
@@ -213,18 +197,23 @@ trainer.add({
     });
 
 
-trainer.setPhaseOrder('train');
-trainer.setRepeat(100);
-trainer.setSavePath(fullfile('data','exp'));
-trainer.setGpu(1);
+trainer.flowOrder = {'train'};
+trainer.repeat     = 100;
+trainer.savePath   = fullfile('data','exp');
+trainer.gpu        = 1;
 
-trainOp.numToNext          = 600;  
-trainOp.numToSave          = 600*conf.save;  
-trainOp.displayIter        = 20;
-trainOp.learningRateSteps  = 600;
-trainOp.learningRateGamma  = 0.95;
-trainOp.learningRatePolicy = @lrPolicy;
-trainer.setPhasePara('train', trainOp);
+trainOp.iter        = 600;  
+trainOp.numToSave   = 600*conf.save;  
+trainOp.displayIter = 20;
+trainOp.lrSteps     = 600;
+trainOp.lrGamma     = 0.95;
+trainOp.lrPolicy    = @lrPolicy;
+
+trainLayers = trainer.getLayerIDs('data_train', 'RandomDistortion', 'local1', 'lr1', ...
+                                  'local2', 'lr2', 'local3', 'lr3', 'local4', 'lr4', ...
+                                  'local5', 'reshape', 'localTransform', 'crop', 'loss', 'silence');
+
+trainer.addFlow('train', trainOp, trainLayers);
 
 trainer.run();
 

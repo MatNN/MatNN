@@ -13,7 +13,7 @@ classdef DataLayer < nn.layers.template.BaseLayer
     end
 
     % variables (not computed every time, eg. once at launch)
-    properties (SetAccess = {?nn.layers.template.BaseLayer}, GetAccess = public)
+    properties (SetAccess = {?nn.BaseObject}, GetAccess = public)
         dataPaths    = {};
         dataLabel    = [];
         batchIndices = []; % 2-D matrix, each column is the image indices. And column ind is the batch ind.
@@ -86,20 +86,21 @@ classdef DataLayer < nn.layers.template.BaseLayer
             error('must implement.');
         end
 
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
-            if opts.gpuMode
-                [data.val{l.top(1)}, data.val{l.top(2)}] = obj.gf();
+        function forward(obj)
+            data = obj.net.data;
+            if obj.net.opts.gpu
+                [data.val{obj.top(1)}, data.val{obj.top(2)}] = obj.gf();
             else
-                [data.val{l.top(1)}, data.val{l.top(2)}] = obj.f();
+                [data.val{obj.top(1)}, data.val{obj.top(2)}] = obj.f();
             end
-
+            obj.net.data.forwardCount(obj.bottom, obj.top);
         end
 
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
-            data = nn.utils.accumulateData(opts, data, l);
+        function backward(obj)
+            obj.net.data.backwardCount(obj.bottom,  obj.top, []);
         end
 
-        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
+        function outSizes = outputSizes(obj, inSizes)
             error('must implement this method.');
         end
 

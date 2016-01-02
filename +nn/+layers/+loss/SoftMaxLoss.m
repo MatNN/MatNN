@@ -1,6 +1,6 @@
 classdef SoftMaxLoss < nn.layers.template.LossLayer
 
-    properties (Access = {?nn.layers.template.BaseLayer, ?nn.layers.template.LossLayer})
+    properties (SetAccess = {?nn.BaseObject}, GetAccess = public)
         threshold = realmin('single');
         batchSize = 1;
         ind         = [];
@@ -98,15 +98,17 @@ classdef SoftMaxLoss < nn.layers.template.LossLayer
             end
         end
 
-        function [data, net] = forward(obj, nnObj, l, opts, data, net)
-            if opts.gpuMode
-                loss = obj.params.loss.loss_weight * obj.gf(data.val{l.bottom});
+        function forward(obj)
+            net = obj.net;
+            data = net.data;
+            if net.opts.gpu
+                loss = obj.params.loss.loss_weight * obj.gf(data.val{obj.bottom});
             else
-                loss = obj.params.loss.loss_weight * obj.f(data.val{l.bottom});
+                loss = obj.params.loss.loss_weight * obj.f(data.val{obj.bottom});
             end
             
             if obj.params.loss.accumulate
-                if opts.currentIter == 1
+                if net.opts.currentIter == 1
                     obj.accumulateL = obj.accumulateL*0;
                     obj.accumulateN = obj.accumulateN*0;
                 end
@@ -114,35 +116,41 @@ classdef SoftMaxLoss < nn.layers.template.LossLayer
                 obj.accumulateN = obj.accumulateN + obj.batchSize;
                 loss = obj.accumulateL/obj.accumulateN;
             end
-            data.val{l.top} = loss;
+            data.val{obj.top} = loss;
+            data.forwardCount(obj.bottom, obj.top);
         end
-        function [data, net] = backward(obj, nnObj, l, opts, data, net)
+        function backward(obj)
             p = obj.params.loss;
-            if opts.gpuMode
-                if numel(l.bottom) == 3
-                    bd = p.loss_weight * obj.gb(data.val{l.bottom(1)}, data.val{l.bottom(2)}, data.diff{l.top}, data.val{l.bottom(3)});
+            net = obj.net;
+            data = net.data;
+
+            if net.opts.gpu
+                if numel(obj.bottom) == 3
+                    bd = p.loss_weight * obj.gb(data.val{obj.bottom(1)}, data.val{obj.bottom(2)}, data.diff{obj.top}, data.val{obj.bottom(3)});
                 else
-                    bd = p.loss_weight * obj.gb(data.val{l.bottom(1)}, data.val{l.bottom(2)}, data.diff{l.top});
+                    bd = p.loss_weight * obj.gb(data.val{obj.bottom(1)}, data.val{obj.bottom(2)}, data.diff{obj.top});
                 end
             else
-                if numel(l.bottom) == 3
-                    bd = p.loss_weight * obj.b(data.val{l.bottom(1)}, data.diff{l.top}, data.val{l.bottom(3)});
+                if numel(obj.bottom) == 3
+                    bd = p.loss_weight * obj.b(data.val{obj.bottom(1)}, data.diff{obj.top}, data.val{obj.bottom(3)});
                 else
-                    bd = p.loss_weight * obj.b(data.val{l.bottom(1)}, data.diff{l.top});
+                    bd = p.loss_weight * obj.b(data.val{obj.bottom(1)}, data.diff{obj.top});
                 end
             end
             
-            if ~isa(bd,'gpuArray') && opts.gpuMode
+            if ~isa(bd,'gpuArray') && net.opts.gpu
                 bd = gpuArray(bd);
             end
-            if numel(l.bottom) == 3
-                data = nn.utils.accumulateData(opts, data, l, bd, [], []);
+            if numel(obj.bottom) == 3
+                %nn.utils.accumulateDiff(data, obj.bottom(1),  obj.top, bd, [], []);
+                data.backwardCount(obj.bottom,  obj.top, bd, [], []);
             else
-                data = nn.utils.accumulateData(opts, data, l, bd, []);
+                %nn.utils.accumulateDiff(data, obj.bottom(1),  obj.top, bd, []);
+                data.backwardCount(obj.bottom,  obj.top, bd, []);
             end
         end
 
-        function outSizes = outputSizes(obj, opts, l, inSizes, varargin)
+        function outSizes = outputSizes(obj, inSizes)
             resSize = inSizes{1};
             ansSize = inSizes{2};
             if ~isequal(resSize(4),prod(ansSize))
@@ -152,15 +160,15 @@ classdef SoftMaxLoss < nn.layers.template.LossLayer
             end
             outSizes = {[1,1,1,1]};
         end
-        function setParams(obj, l)
-            obj.setParams@nn.layers.template.BaseLayer(l);
+        function setParams(obj)
+            obj.setParams@nn.layers.template.BaseLayer();
             obj.threshold = obj.params.loss.threshold;
         end
-        function [outSizes, resources] = setup(obj, opts, l, inSizes, varargin)
-            [outSizes, resources] = obj.setup@nn.layers.template.LossLayer(opts, l, inSizes, varargin{:});
-            assert(numel(l.bottom)>=2 && numel(l.bottom)<=3);
-            assert(numel(l.top)==1);
-            if opts.gpuMode
+        function outSizes = setup(obj, inSizes)
+            outSizes = obj.setup@nn.layers.template.LossLayer(inSizes);
+            assert(numel(obj.bottom)>=2 && numel(obj.bottom)<=3);
+            assert(numel(obj.top)==1);
+            if obj.net.opts.gpu
                 obj.accumulateN = gpuArray.zeros(1,1,'single');
                 obj.accumulateL = gpuArray.zeros(1,1,'single');
                 obj.createGPUFun(inSizes{1});
